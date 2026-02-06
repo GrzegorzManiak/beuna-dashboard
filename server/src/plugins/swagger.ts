@@ -11,11 +11,24 @@ const SwaggerPlugin = fp(async (app) => {
                 description: "API documentation for the Beuna Dashboard backend.",
                 version: "0.0.1",
             },
+            components: {
+                securitySchemes: {
+                    SessionAuth: {
+                        type: "apiKey",
+                        in: "header",
+                        name: "x-session-id",
+                        description: "Session ID for authentication. Obtain a session ID by creating a session via the /sessions endpoint.",
+                    },
+                },
+            }
         },
     });
 
     await app.register(swaggerUI, {
         routePrefix: "/docs",
+        uiConfig: {
+            persistAuthorization: true,
+        },
     });
 });
 

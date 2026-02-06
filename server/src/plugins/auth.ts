@@ -94,6 +94,16 @@ async function authPlugin(app: FastifyInstance, opts: AuthPluginOpts): Promise<v
     app.addHook("onRoute", (route) => {
         if (!route.config?.authRequired) return;
 
+        // Dynamically add the SessionAuth security scheme to routes 
+        // that require auth, for Swagger reasons, makes things just easier
+        route.schema = route.schema ?? {};
+        if (!route.schema.security) route.schema.security = [{ SessionAuth: [] }];
+        else if (Array.isArray(route.schema.security)) {
+            const hasSessionAuth = route.schema.security
+                .some((entry) => Object.prototype.hasOwnProperty.call(entry, "SessionAuth"));
+            if (!hasSessionAuth) route.schema.security.push({ SessionAuth: [] });
+        }
+
         const existing = route.preHandler;
         if (!existing) {
             route.preHandler = requireAuth;
