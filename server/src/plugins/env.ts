@@ -1,10 +1,11 @@
 import fp from "fastify-plugin";
 import fastifyEnv from "@fastify/env";
+import { type FastifyInstance } from "fastify";
 
 const DEFAULT_NODE_ENV = "development";
 const DEFAULT_PORT = 3000;
 
-const EnvPlugin = fp(async (app) => {
+const EnvPlugin = fp(async (app: FastifyInstance) => {
     const schema = {
         type: "object",
         required: ["PORT", "DATABASE_URL", "JWT_SECRET"],
