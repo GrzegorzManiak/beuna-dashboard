@@ -1,0 +1,13 @@
+{
+  "name": "beuna-dashboard",
+  "module": "server.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "server:dev": "bun run --watch server/src/server.ts"
+  },
+  "dependencies": {
+    "@fastify/env": "^5.0.3",
+    "fastify": "^5.7.4"
+  }
+}
