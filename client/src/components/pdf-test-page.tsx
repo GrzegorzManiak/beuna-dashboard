@@ -21,6 +21,8 @@ type SplitComponentProps = {
 const GAP_HEIGHT = 80;
 const ANIMATION_MS = 500;
 const PAGE_DIVIDER_HEIGHT = 1;
+const SIDEBAR_CARD_HEIGHT = 72;
+const SIDEBAR_CARD_GAP = 12;
 const HIGHLIGHT_PADDING = 2;
 const COORDINATE_ORIGIN: "top-left" | "bottom-left" = "top-left";
 const SOURCE_UNITS: "pt" | "mm" = "pt";
@@ -80,10 +82,19 @@ type SidebarAnchor = {
   sectionType: string;
 };
 
+type SidebarItem = SidebarAnchor & {
+  targetTop: number;
+  top: number;
+};
+
+type SectionEntry = SectionData & {
+  key: string;
+};
+
 const SECTION_DATA: { sections: SectionData[] } = {
   sections: [
     {
-      id: "section-0",
+      id: "section-01",
       heading: "TEILUNGSERKLÄRUNG",
       sectionType: "document_meta",
       headingPosition: {
@@ -98,7 +109,22 @@ const SECTION_DATA: { sections: SectionData[] } = {
       units: [],
     },
     {
-      id: "section-1",
+      id: "section-02",
+      heading: "TEILUNGSERKLÄRUNG",
+      sectionType: "document_meta",
+      headingPosition: {
+        page: 1,
+        x: 32.888724282515625 * 8,
+        y: 44.10435300450001 * 5.67,
+        width: 172.87064915344396,
+        height: 16.804687851,
+      },
+      text: "",
+      textPosition: [],
+      units: [],
+    },
+    {
+      id: "section-13",
       heading: "gemäß § 8 Wohnungseigentumsgesetz (WEG)",
       sectionType: "unit_allocation",
       headingPosition: {
@@ -113,7 +139,7 @@ const SECTION_DATA: { sections: SectionData[] } = {
       units: [],
     },
     {
-      id: "section-2",
+      id: "section-24",
       heading: "I. Begründung von Wohnungs- und Teileigentum",
       sectionType: "unit_allocation",
       headingPosition: {
@@ -130,6 +156,11 @@ const SECTION_DATA: { sections: SectionData[] } = {
   ],
 };
 
+const SECTION_ENTRIES: SectionEntry[] = SECTION_DATA.sections.map((section, index) => ({
+  ...section,
+  key: `${section.id}-${index}`,
+}));
+
 function adjustOverlaps(boxes: HighlightBox[]): HighlightBox[] {
   const next = boxes.map((box) => ({ ...box }));
   next.sort((a, b) => a.y - b.y);
@@ -138,11 +169,19 @@ function adjustOverlaps(boxes: HighlightBox[]): HighlightBox[] {
     for (let j = i + 1; j < next.length; j += 1) {
       const topBox = next[i];
       const bottomBox = next[j];
+      const xOverlap =
+        Math.min(topBox.x + topBox.width, bottomBox.x + bottomBox.width) -
+          Math.max(topBox.x, bottomBox.x) >
+        0;
       const overlapStart = Math.max(topBox.y, bottomBox.y);
       const overlapEnd = Math.min(topBox.y + topBox.height, bottomBox.y + bottomBox.height);
       const overlap = overlapEnd - overlapStart;
+      const nearY = Math.abs(topBox.y - bottomBox.y) <=
+        Math.max(topBox.height, bottomBox.height) * 0.2;
 
       if (overlap <= 0) continue;
+      if (!xOverlap) continue;
+      if (nearY) continue;
 
       const shrink = overlap / 2;
       topBox.height = Math.max(1, topBox.height - shrink);
@@ -175,6 +214,7 @@ type PageSliceProps = {
   height: number;
   offset: number;
   highlights: HighlightBox[];
+  onHighlightClick: (event: MouseEvent<HTMLDivElement>, highlight: HighlightBox) => void;
   onRenderSuccess: (page: PDFPageProxy) => void;
 };
 
@@ -184,17 +224,18 @@ function PageSlice({
   height,
   offset,
   highlights,
+  onHighlightClick,
   onRenderSuccess,
 }: PageSliceProps) {
   return (
     <div className="w-full overflow-hidden" style={{ height }}>
       <div className="relative" style={{ transform: `translateY(-${offset}px)` }}>
         <Page pageNumber={pageNumber} width={width} onRenderSuccess={onRenderSuccess} />
-        <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0">
           {highlights.map((box) => (
             <div
               key={box.id}
-              className={`absolute rounded-[6px] border ${
+              className={`absolute cursor-pointer rounded-[6px] border ${
                 box.kind === "heading"
                   ? "border-amber-200/70 bg-amber-200/20"
                   : "border-sky-200/70 bg-sky-200/15"
@@ -205,6 +246,7 @@ function PageSlice({
                 width: box.width,
                 height: box.height,
               }}
+              onClick={(event) => onHighlightClick(event, box)}
             />
           ))}
         </div>
@@ -259,18 +301,18 @@ export function PdfTestPage() {
   const highlightSources = useMemo<HighlightSource[]>(() => {
     const sources: HighlightSource[] = [];
 
-    SECTION_DATA.sections.forEach((section) => {
+    SECTION_ENTRIES.forEach((section) => {
       sources.push({
-        id: `${section.id}-heading`,
-        sectionId: section.id,
+        id: `${section.key}-heading`,
+        sectionId: section.key,
         kind: "heading",
         ...section.headingPosition,
       });
 
       section.textPosition.forEach((position, index) => {
         sources.push({
-          id: `${section.id}-text-${index}`,
-          sectionId: section.id,
+          id: `${section.key}-text-${index}`,
+          sectionId: section.key,
           kind: "text",
           ...position,
         });
@@ -363,20 +405,20 @@ export function PdfTestPage() {
   }, [pageOffsets, pageMetrics, pages]);
 
   const sidebarAnchors = useMemo<SidebarAnchor[]>(() => {
-    return SECTION_DATA.sections.flatMap((section) => {
+    return SECTION_ENTRIES.flatMap((section) => {
       const page = section.headingPosition.page;
       const pageHighlights = highlightsByPage[page];
       if (!pageHighlights) return [];
 
       const headingHighlight = pageHighlights.find(
-        (box) => box.sectionId === section.id && box.kind === "heading"
+        (box) => box.sectionId === section.key && box.kind === "heading"
       );
 
       if (!headingHighlight) return [];
 
       return [
         {
-          id: section.id,
+          id: section.key,
           page,
           y: headingHighlight.y,
           height: headingHighlight.height,
@@ -386,6 +428,54 @@ export function PdfTestPage() {
       ];
     });
   }, [highlightsByPage]);
+
+  const sidebarLayout = useMemo(() => {
+    if (!sidebarAnchors.length) {
+      return { items: [] as SidebarItem[], height: documentHeight };
+    }
+
+    const items = sidebarAnchors
+      .map((anchor) => {
+        const height = pageMetrics[anchor.page]?.height ?? 0;
+        const splitY =
+          split?.page === anchor.page && height > 0
+            ? Math.round(height * split.ratio)
+            : null;
+        const localGap =
+          splitOpen && splitY !== null && anchor.y >= splitY ? GAP_HEIGHT : 0;
+        const targetTop =
+          (pageOffsets[anchor.page] ?? 0) +
+          anchor.y +
+          localGap +
+          anchor.height / 2;
+
+        return {
+          ...anchor,
+          targetTop,
+          top: targetTop,
+        };
+      })
+      .sort((a, b) => a.targetTop - b.targetTop);
+
+    let lastTop = Number.NEGATIVE_INFINITY;
+    items.forEach((item, index) => {
+      if (index === 0) {
+        lastTop = item.top;
+        return;
+      }
+
+      const minTop = lastTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
+      if (item.top < minTop) item.top = minTop;
+      lastTop = item.top;
+    });
+
+    const height =
+      items.length > 0
+        ? Math.max(documentHeight, items[items.length - 1].top + SIDEBAR_CARD_HEIGHT)
+        : documentHeight;
+
+    return { items, height };
+  }, [sidebarAnchors, pageMetrics, pageOffsets, split, splitOpen, documentHeight]);
 
   const scrollToAnchor = (anchor: SidebarAnchor) => {
     const container = pdfScrollRef.current;
@@ -402,6 +492,23 @@ export function PdfTestPage() {
     const containerTop = container.getBoundingClientRect().top + window.scrollY;
     const anchorTop =
       (pageOffsets[anchor.page] ?? 0) + anchor.y + gapOffset + anchor.height / 2;
+    const target = Math.max(0, containerTop + anchorTop - window.innerHeight / 2);
+
+    window.scrollTo({ top: target, behavior: "smooth" });
+  };
+
+  const scrollToPosition = (page: number, y: number, height: number) => {
+    const container = pdfScrollRef.current;
+    if (!container) return;
+
+    const pageHeight = pageMetrics[page]?.height ?? 0;
+    const splitY =
+      split?.page === page && pageHeight > 0 ? Math.round(pageHeight * split.ratio) : null;
+    const gapOffset =
+      splitOpen && splitY !== null && y >= splitY ? GAP_HEIGHT : 0;
+
+    const containerTop = container.getBoundingClientRect().top + window.scrollY;
+    const anchorTop = (pageOffsets[page] ?? 0) + y + gapOffset + height / 2;
     const target = Math.max(0, containerTop + anchorTop - window.innerHeight / 2);
 
     window.scrollTo({ top: target, behavior: "smooth" });
@@ -491,6 +598,28 @@ export function PdfTestPage() {
     applySplit(page, y / height);
   };
 
+  const handleHighlightClick = (
+    event: MouseEvent<HTMLDivElement>,
+    highlight: HighlightBox
+  ) => {
+    event.stopPropagation();
+    const pageHeight = pageMetrics[highlight.page]?.height ?? 0;
+    if (!pageHeight) return;
+
+    const targetY = highlight.y + highlight.height + 5;
+    applySplit(highlight.page, targetY / pageHeight);
+
+    if (animateSplit && animateOnClick) {
+      window.setTimeout(
+        () => scrollToPosition(highlight.page, highlight.y, highlight.height),
+        ANIMATION_MS + 50
+      );
+      return;
+    }
+
+    scrollToPosition(highlight.page, highlight.y, highlight.height);
+  };
+
   const handlePageRender = (pageNumber: number) => (page: PDFPageProxy) => {
     const viewport = page.getViewport({ scale: 1 });
     const scale = pageWidth / viewport.width;
@@ -517,6 +646,8 @@ export function PdfTestPage() {
       };
     });
   };
+
+  const { items: sidebarItems, height: sidebarHeight } = sidebarLayout;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b_0%,_#0f172a_45%,_#020617_100%)] text-slate-100">
@@ -587,47 +718,49 @@ export function PdfTestPage() {
             <aside className="w-64">
               <div
                 className="relative"
-                style={{ height: documentHeight || "auto" }}
+                style={{ height: sidebarHeight || "auto" }}
               >
-                {sidebarAnchors.map((anchor) => {
-                  const height = pageMetrics[anchor.page]?.height ?? 0;
-                  const splitY =
-                    split?.page === anchor.page && height > 0
-                      ? Math.round(height * split.ratio)
-                      : null;
-                  const localGap =
-                    splitOpen && splitY !== null && anchor.y >= splitY ? GAP_HEIGHT : 0;
-                  const top =
-                    (pageOffsets[anchor.page] ?? 0) +
-                    anchor.y +
-                    localGap +
-                    anchor.height / 2;
+                {sidebarItems.map((anchor) => {
+                  const offset = anchor.top - anchor.targetTop;
+                  const connectorTop = Math.min(anchor.top, anchor.targetTop);
+                  const connectorHeight = Math.abs(offset);
 
                   return (
-                    <button
-                      key={anchor.id}
-                      type="button"
-                      onClick={() => {
-                        const pageHeight = pageMetrics[anchor.page]?.height ?? 0;
-                        if (!pageHeight) return;
-                        const targetY = anchor.y + anchor.height + 5;
-                        applySplit(anchor.page, targetY / pageHeight);
-                        if (animateSplit && animateOnClick) {
-                          window.setTimeout(() => scrollToAnchor(anchor), ANIMATION_MS + 50);
-                          return;
-                        }
-                        scrollToAnchor(anchor);
-                      }}
-                      className="absolute left-0 right-0 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-left text-xs text-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.35)] transition hover:border-emerald-300/40 hover:text-white"
-                      style={{ top }}
-                    >
-                      <span className="text-[10px] uppercase tracking-[0.22em] text-emerald-200">
-                        {anchor.sectionType}
-                      </span>
-                      <span className="line-clamp-2 text-sm font-medium text-slate-100">
-                        {anchor.heading}
-                      </span>
-                    </button>
+                    <div key={anchor.id}>
+                      {connectorHeight > 1 ? (
+                        <div
+                          className="pointer-events-none absolute left-2 w-px bg-emerald-200/30"
+                          style={{ top: connectorTop, height: connectorHeight }}
+                        />
+                      ) : null}
+                      <div
+                        className="pointer-events-none absolute left-1.5 h-2 w-2 -translate-y-1/2 rounded-full bg-emerald-200/80"
+                        style={{ top: anchor.targetTop }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pageHeight = pageMetrics[anchor.page]?.height ?? 0;
+                          if (!pageHeight) return;
+                          const targetY = anchor.y + anchor.height + 5;
+                          applySplit(anchor.page, targetY / pageHeight);
+                          if (animateSplit && animateOnClick) {
+                            window.setTimeout(() => scrollToAnchor(anchor), ANIMATION_MS + 50);
+                            return;
+                          }
+                          scrollToAnchor(anchor);
+                        }}
+                        className="absolute left-0 right-0 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-left text-xs text-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.35)] transition hover:border-emerald-300/40 hover:text-white"
+                        style={{ top: anchor.top }}
+                      >
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-emerald-200">
+                          {anchor.sectionType}
+                        </span>
+                        <span className="line-clamp-2 text-sm font-medium text-slate-100">
+                          {anchor.heading}
+                        </span>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -657,14 +790,15 @@ export function PdfTestPage() {
                         onClick={(event) => handleSplitClick(page, height, event)}
                       >
                           <div className="flex w-full flex-col">
-                            <PageSlice
-                              pageNumber={page}
-                              width={pageWidth}
-                              height={splitY}
-                              offset={0}
-                              highlights={highlights}
-                              onRenderSuccess={handlePageRender(page)}
-                            />
+                          <PageSlice
+                            pageNumber={page}
+                            width={pageWidth}
+                            height={splitY}
+                            offset={0}
+                            highlights={highlights}
+                            onHighlightClick={handleHighlightClick}
+                            onRenderSuccess={handlePageRender(page)}
+                          />
                             <div
                               className={`overflow-hidden ${
                                 animateSplit ? "transition-[height,opacity] duration-500 ease-out" : ""
@@ -676,18 +810,19 @@ export function PdfTestPage() {
                             >
                               <SplitComponent />
                             </div>
-                            <PageSlice
-                              pageNumber={page}
-                              width={pageWidth}
-                              height={Math.max(0, height - splitY)}
-                              offset={splitY}
-                              highlights={highlights}
-                              onRenderSuccess={handlePageRender(page)}
-                            />
-                          </div>
-                          {splitMode ? (
-                            <div className="absolute inset-0 cursor-crosshair bg-transparent" />
-                          ) : null}
+                          <PageSlice
+                            pageNumber={page}
+                            width={pageWidth}
+                            height={Math.max(0, height - splitY)}
+                            offset={splitY}
+                            highlights={highlights}
+                            onHighlightClick={handleHighlightClick}
+                            onRenderSuccess={handlePageRender(page)}
+                          />
+                        </div>
+                        {splitMode ? (
+                          <div className="pointer-events-none absolute inset-0 cursor-crosshair bg-transparent" />
+                        ) : null}
                         </div>
                       </div>
                     );
