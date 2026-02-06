@@ -2,6 +2,18 @@ import { type MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import type { PDFPageProxy } from "pdfjs-dist";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
@@ -195,14 +207,14 @@ function adjustOverlaps(boxes: HighlightBox[]): HighlightBox[] {
 
 function SplitComponent({ label = "Split" }: SplitComponentProps) {
   return (
-    <div className="relative flex h-20 w-full items-center justify-center bg-emerald-500/10">
-      <div className="absolute inset-0 border-y border-emerald-200/30" />
+    <div className="relative flex h-20 w-full items-center justify-center bg-primary/10">
+      <div className="absolute inset-0 border-y border-border/70" />
       <div className="flex items-center gap-3">
-        <div className="h-px w-16 bg-emerald-200/70" />
-        <span className="rounded-full bg-emerald-400/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-emerald-100">
+        <div className="h-px w-16 bg-border" />
+        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-primary">
           {label}
         </span>
-        <div className="h-px w-16 bg-emerald-200/70" />
+        <div className="h-px w-16 bg-border" />
       </div>
     </div>
   );
@@ -237,8 +249,8 @@ function PageSlice({
               key={box.id}
               className={`absolute cursor-pointer rounded-[6px] border ${
                 box.kind === "heading"
-                  ? "border-amber-200/70 bg-amber-200/20"
-                  : "border-sky-200/70 bg-sky-200/15"
+                  ? "border-emerald-400/60 bg-emerald-400/15"
+                  : "border-emerald-300/40 bg-emerald-300/10"
               }`}
               style={{
                 left: box.x,
@@ -260,8 +272,9 @@ export function PdfTestPage() {
   const [pageWidth, setPageWidth] = useState(960);
   const [splitMode, setSplitMode] = useState(false);
   const [split, setSplit] = useState<{ page: number; ratio: number } | null>(null);
-  const [animateSplit, setAnimateSplit] = useState(true);
-  const [animateOnClick, setAnimateOnClick] = useState(true);
+  const [animateSplit, setAnimateSplit] = useState(false);
+  const [animateOnClick, setAnimateOnClick] = useState(false);
+  const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [pendingSplit, setPendingSplit] = useState<{ page: number; ratio: number } | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
   const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
@@ -457,17 +470,36 @@ export function PdfTestPage() {
       })
       .sort((a, b) => a.targetTop - b.targetTop);
 
-    let lastTop = Number.NEGATIVE_INFINITY;
-    items.forEach((item, index) => {
-      if (index === 0) {
-        lastTop = item.top;
-        return;
+    const activeIndex =
+      activeSectionId ? items.findIndex((item) => item.id === activeSectionId) : -1;
+
+    if (activeIndex >= 0) {
+      items[activeIndex].top = items[activeIndex].targetTop;
+
+      for (let i = activeIndex - 1; i >= 0; i -= 1) {
+        const nextTop = items[i + 1].top;
+        const maxTop = nextTop - SIDEBAR_CARD_HEIGHT - SIDEBAR_CARD_GAP;
+        items[i].top = Math.min(items[i].top, maxTop);
       }
 
-      const minTop = lastTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
-      if (item.top < minTop) item.top = minTop;
-      lastTop = item.top;
-    });
+      for (let i = activeIndex + 1; i < items.length; i += 1) {
+        const prevTop = items[i - 1].top;
+        const minTop = prevTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
+        if (items[i].top < minTop) items[i].top = minTop;
+      }
+    } else {
+      let lastTop = Number.NEGATIVE_INFINITY;
+      items.forEach((item, index) => {
+        if (index === 0) {
+          lastTop = item.top;
+          return;
+        }
+
+        const minTop = lastTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
+        if (item.top < minTop) item.top = minTop;
+        lastTop = item.top;
+      });
+    }
 
     const height =
       items.length > 0
@@ -475,7 +507,15 @@ export function PdfTestPage() {
         : documentHeight;
 
     return { items, height };
-  }, [sidebarAnchors, pageMetrics, pageOffsets, split, splitOpen, documentHeight]);
+  }, [
+    sidebarAnchors,
+    pageMetrics,
+    pageOffsets,
+    split,
+    splitOpen,
+    documentHeight,
+    activeSectionId,
+  ]);
 
   const scrollToAnchor = (anchor: SidebarAnchor) => {
     const container = pdfScrollRef.current;
@@ -603,6 +643,7 @@ export function PdfTestPage() {
     highlight: HighlightBox
   ) => {
     event.stopPropagation();
+    setActiveSectionId(highlight.sectionId);
     const pageHeight = pageMetrics[highlight.page]?.height ?? 0;
     if (!pageHeight) return;
 
@@ -650,188 +691,203 @@ export function PdfTestPage() {
   const { items: sidebarItems, height: sidebarHeight } = sidebarLayout;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#1e293b_0%,_#0f172a_45%,_#020617_100%)] text-slate-100">
-      <div className="mx-auto flex w-full max-w-none flex-col gap-6 px-6 py-10">
-        <header className="flex flex-col gap-2">
-          <span className="text-xs uppercase tracking-[0.35em] text-slate-400">
-            Pdf Test
-          </span>
-          <h1 className="text-3xl font-semibold">React PDF Preview</h1>
-          <p className="max-w-2xl text-sm text-slate-300">
-            Rendering <span className="font-semibold text-slate-200">test.pdf</span> from
-            the public folder.
-          </p>
-        </header>
-
-        <section className="rounded-2xl border border-white/10 bg-white/5 shadow-[0_30px_80px_rgba(15,23,42,0.55)] backdrop-blur">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 text-sm text-slate-300">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSplitMode((value) => !value)}
-                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition"
-              >
-                {splitMode ? "Exit Split Mode" : "Split Mode"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingSplit(null);
-                  setSplit(null);
-                  setSplitOpen(false);
-                }}
-                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={!split}
-              >
-                Clear Split
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnimateSplit((value) => !value)}
-                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition"
-              >
-                {animateSplit ? "Animation On" : "Animation Off"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnimateOnClick((value) => !value)}
-                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition"
-              >
-                {animateOnClick ? "Animate Every Click" : "Animate Once"}
-              </button>
+    <div className="relative min-h-screen bg-background text-foreground before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-72 before:bg-[radial-gradient(80%_70%_at_0%_0%,_rgba(16,185,129,0.12)_0%,_transparent_70%)] before:content-['']">
+      <div className="mx-auto flex w-full flex-col gap-8 px-6 py-10">
+        <Card className="animate-in fade-in-0 slide-in-from-bottom-2 duration-700">
+          <CardHeader className="relative overflow-hidden border-b border-border/60 pb-6">
+            <div className="pointer-events-none absolute inset-0 z-0">
+              <div className="absolute -top-10 right-12 h-32 w-32 rounded-full bg-emerald-200/40 blur-3xl" />
+              <div className="absolute left-6 top-8 h-24 w-24 rounded-full bg-emerald-100/40 blur-3xl" />
             </div>
-            <div className="text-right">
-              <div>{numPages > 0 ? `${numPages} pages` : "Loading document..."}</div>
-              {split ? (
-                <div className="text-xs text-emerald-200">
-                  Split: page {split.page} at {Math.round(split.ratio * 100)}%
-                </div>
-              ) : null}
-            </div>
-          </div>
-          <p className="mb-4 px-4 text-xs text-slate-400">
-            {splitMode
-              ? "Click anywhere on a page to set a horizontal split. We keep the PDF immutable and store only the split coordinates."
-              : "Enable split mode to drop a single horizontal split line."}
-          </p>
-          <div className="flex gap-6 px-4 pb-6">
-            <aside className="w-64">
-              <div
-                className="relative"
-                style={{ height: sidebarHeight || "auto" }}
-              >
-                {sidebarItems.map((anchor) => {
-                  const offset = anchor.top - anchor.targetTop;
-                  const connectorTop = Math.min(anchor.top, anchor.targetTop);
-                  const connectorHeight = Math.abs(offset);
-
-                  return (
-                    <div key={anchor.id}>
-                      {connectorHeight > 1 ? (
-                        <div
-                          className="pointer-events-none absolute left-2 w-px bg-emerald-200/30"
-                          style={{ top: connectorTop, height: connectorHeight }}
-                        />
-                      ) : null}
-                      <div
-                        className="pointer-events-none absolute left-1.5 h-2 w-2 -translate-y-1/2 rounded-full bg-emerald-200/80"
-                        style={{ top: anchor.targetTop }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const pageHeight = pageMetrics[anchor.page]?.height ?? 0;
-                          if (!pageHeight) return;
-                          const targetY = anchor.y + anchor.height + 5;
-                          applySplit(anchor.page, targetY / pageHeight);
-                          if (animateSplit && animateOnClick) {
-                            window.setTimeout(() => scrollToAnchor(anchor), ANIMATION_MS + 50);
-                            return;
-                          }
-                          scrollToAnchor(anchor);
-                        }}
-                        className="absolute left-0 right-0 z-10 flex -translate-y-1/2 flex-col gap-1 rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-left text-xs text-slate-100 shadow-[0_12px_30px_rgba(15,23,42,0.35)] transition hover:border-emerald-300/40 hover:text-white"
-                        style={{ top: anchor.top }}
-                      >
-                        <span className="text-[10px] uppercase tracking-[0.22em] text-emerald-200">
-                          {anchor.sectionType}
-                        </span>
-                        <span className="line-clamp-2 text-sm font-medium text-slate-100">
-                          {anchor.heading}
-                        </span>
-                      </button>
-                    </div>
-                  );
-                })}
+            <CardAction className="relative z-10">
+              <Badge variant="outline" className="bg-background/70">
+                Preview
+              </Badge>
+            </CardAction>
+            <div className="relative z-10 space-y-2">
+              <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                Document workflow
+              </span>
+              <CardTitle className="text-2xl">PDF segmentation review</CardTitle>
+              <CardDescription>
+                Keep the document immutable while applying precise, region-level review.
+              </CardDescription>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge variant="secondary">
+                  {numPages > 0 ? `${numPages} pages` : "Loading pages"}
+                </Badge>
+                {split ? (
+                  <Badge className="bg-primary/10 text-primary">
+                    Split on page {split.page} at {Math.round(split.ratio * 100)}%
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">No split selected</Badge>
+                )}
               </div>
-            </aside>
-            <div ref={pdfScrollRef} className="flex-1 rounded-xl bg-slate-950/40">
-              <Document
-                file="/test.pdf"
-                onLoadSuccess={handleLoadSuccess}
-                loading={<span className="text-sm text-slate-300">Loading PDF…</span>}
-                error={<span className="text-sm text-rose-200">Failed to load PDF.</span>}
-              >
-                <div ref={pageContainerRef} className="flex w-full flex-col">
-                {pages.map((page) => {
-                    const height = pageMetrics[page]?.height ?? 0;
-                    const isActiveSplit = split?.page === page && height > 0;
-                    const splitY = isActiveSplit ? Math.round(height * split!.ratio) : 0;
-                    const gapOpen = isActiveSplit && splitOpen;
-                    const highlights = highlightsByPage[page] ?? [];
-
-                    return (
-                      <div
-                        key={`page-${page}`}
-                      className="w-full border-b border-white/10 last:border-b-0"
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            <div className="overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm">
+              <div className="grid lg:grid-cols-[280px_1fr]">
+                <aside className="border-b border-border/60 bg-muted/20 lg:border-b-0 lg:border-r">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+                        Bookmarks
+                      </span>
+                      <Badge variant="outline">{sidebarItems.length} sections</Badge>
+                    </div>
+                    <div
+                      className="relative mt-4"
+                      style={{ height: sidebarHeight || "auto" }}
                     >
-                      <div
-                        className="relative w-full"
-                        onClick={(event) => handleSplitClick(page, height, event)}
-                      >
-                          <div className="flex w-full flex-col">
-                          <PageSlice
-                            pageNumber={page}
-                            width={pageWidth}
-                            height={splitY}
-                            offset={0}
-                            highlights={highlights}
-                            onHighlightClick={handleHighlightClick}
-                            onRenderSuccess={handlePageRender(page)}
-                          />
+                      {sidebarItems.map((anchor) => {
+                        const offset = anchor.top - anchor.targetTop;
+                        const connectorTop = Math.min(anchor.top, anchor.targetTop);
+                        const connectorHeight = Math.abs(offset);
+
+                        return (
+                          <div key={anchor.id}>
+                            {connectorHeight > 1 ? (
+                              <div
+                                className="pointer-events-none absolute left-2 w-px bg-primary/20"
+                                style={{ top: connectorTop, height: connectorHeight }}
+                              />
+                            ) : null}
                             <div
-                              className={`overflow-hidden ${
-                                animateSplit ? "transition-[height,opacity] duration-500 ease-out" : ""
-                              }`}
-                              style={{
-                                height: gapOpen ? GAP_HEIGHT : 0,
-                                opacity: gapOpen ? 1 : 0,
+                              className="pointer-events-none absolute left-1.5 h-2 w-2 -translate-y-1/2 rounded-full bg-primary/70"
+                              style={{ top: anchor.targetTop }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setActiveSectionId(anchor.id);
+                                const pageHeight = pageMetrics[anchor.page]?.height ?? 0;
+                                if (!pageHeight) return;
+                                const targetY = anchor.y + anchor.height + 5;
+                                applySplit(anchor.page, targetY / pageHeight);
+                                if (animateSplit && animateOnClick) {
+                                  window.setTimeout(
+                                    () => scrollToAnchor(anchor),
+                                    ANIMATION_MS + 50
+                                  );
+                                  return;
+                                }
+                                scrollToAnchor(anchor);
                               }}
+                              className="absolute left-0 right-0 z-10 h-auto -translate-y-1/2 flex-col items-start gap-2 rounded-xl border-border/70 bg-background/80 px-3 py-2 text-left text-xs text-foreground shadow-sm hover:bg-background"
+                              style={{ top: anchor.top }}
                             >
-                              <SplitComponent />
-                            </div>
-                          <PageSlice
-                            pageNumber={page}
-                            width={pageWidth}
-                            height={Math.max(0, height - splitY)}
-                            offset={splitY}
-                            highlights={highlights}
-                            onHighlightClick={handleHighlightClick}
-                            onRenderSuccess={handlePageRender(page)}
-                          />
-                        </div>
-                        {splitMode ? (
-                          <div className="pointer-events-none absolute inset-0 cursor-crosshair bg-transparent" />
-                        ) : null}
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] uppercase tracking-[0.22em]"
+                              >
+                                {anchor.sectionType}
+                              </Badge>
+                              <span className="line-clamp-2 text-sm font-medium text-foreground">
+                                {anchor.heading}
+                              </span>
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </aside>
+
+                <div className="flex flex-col">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3 text-xs text-muted-foreground">
+                    <span>Document viewport</span>
+                    <span>Split mode {splitMode ? "enabled" : "disabled"}</span>
+                  </div>
+                  <div ref={pdfScrollRef} className="bg-muted/20">
+                    <Document
+                      file="/test.pdf"
+                      onLoadSuccess={handleLoadSuccess}
+                      loading={
+                        <span className="text-sm text-muted-foreground">
+                          Loading PDF…
+                        </span>
+                      }
+                      error={
+                        <span className="text-sm text-destructive">
+                          Failed to load PDF.
+                        </span>
+                      }
+                    >
+                      <div className="px-4 pb-4">
+                        <div ref={pageContainerRef} className="flex w-full flex-col">
+                          {pages.map((page) => {
+                            const height = pageMetrics[page]?.height ?? 0;
+                            const isActiveSplit = split?.page === page && height > 0;
+                            const splitY = isActiveSplit
+                              ? Math.round(height * split!.ratio)
+                              : 0;
+                            const gapOpen = isActiveSplit && splitOpen;
+                            const highlights = highlightsByPage[page] ?? [];
+
+                            return (
+                              <div
+                                key={`page-${page}`}
+                                className="w-full border-b border-border/60 last:border-b-0"
+                              >
+                                <div
+                                  className="relative w-full"
+                                  onClick={(event) =>
+                                    handleSplitClick(page, height, event)
+                                  }
+                                >
+                                  <div className="flex w-full flex-col">
+                                    <PageSlice
+                                      pageNumber={page}
+                                      width={pageWidth}
+                                      height={splitY}
+                                      offset={0}
+                                      highlights={highlights}
+                                      onHighlightClick={handleHighlightClick}
+                                      onRenderSuccess={handlePageRender(page)}
+                                    />
+                                    <div
+                                      className={`overflow-hidden ${
+                                        animateSplit
+                                          ? "transition-[height,opacity] duration-500 ease-out"
+                                          : ""
+                                      }`}
+                                      style={{
+                                        height: gapOpen ? GAP_HEIGHT : 0,
+                                        opacity: gapOpen ? 1 : 0,
+                                      }}
+                                    >
+                                      <SplitComponent />
+                                    </div>
+                                    <PageSlice
+                                      pageNumber={page}
+                                      width={pageWidth}
+                                      height={Math.max(0, height - splitY)}
+                                      offset={splitY}
+                                      highlights={highlights}
+                                      onHighlightClick={handleHighlightClick}
+                                      onRenderSuccess={handlePageRender(page)}
+                                    />
+                                  </div>
+                                  {splitMode ? (
+                                    <div className="pointer-events-none absolute inset-0 cursor-crosshair bg-transparent" />
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-                    );
-                  })}
+                    </Document>
+                  </div>
                 </div>
-              </Document>
+              </div>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
