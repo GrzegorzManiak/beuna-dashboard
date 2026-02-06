@@ -12,7 +12,7 @@ const EnvPlugin = fp(async (app: FastifyInstance) => {
         properties: {
             NODE_ENV: {
                 type: "string",
-                enum: ["development", "production"],
+                enum: ["development", "production", "test"],
                 default: DEFAULT_NODE_ENV,
             },
             PORT: {
