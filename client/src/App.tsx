@@ -1,7 +1,7 @@
-import { ComponentExample } from "@/components/component-example";
+import { PdfTestPage } from "@/components/pdf-test-page";
 
 export function App() {
-return <ComponentExample />;
+  return <PdfTestPage />;
 }
 
 export default App;
