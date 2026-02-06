@@ -39,6 +39,7 @@ const sessionsRoutes: FastifyPluginAsync = async (app) => {
     }, createSessionHandler);
 
     app.get("/me", {
+        config: { authRequired: true },
         schema: {
             tags: ["sessions"],
             summary: "Get current session + user. Requires x-session-id header.",

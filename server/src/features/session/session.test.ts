@@ -92,4 +92,16 @@ describe("sessions routes", () => {
     expect(meBody.sessionId).toBe(createBody.sessionId);
     expect(meBody.user.id).toBe(userId);
   });
+
+  it("GET /sessions/me returns 401 without auth header", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/sessions/me",
+    });
+
+    expect(res.statusCode).toBe(401);
+
+    const body = res.json() as { error: string };
+    expect(body.error).toBe("Unauthorized");
+  });
 });

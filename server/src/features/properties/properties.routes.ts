@@ -43,8 +43,11 @@ const propertyDetailSchema = {
     additionalProperties: false,
 };
 
+const secureConfig = { authRequired: true };
+
 const propertiesRoutes: FastifyPluginAsync = async (app) => {
     app.get("/", {
+        config: secureConfig,
         schema: {
             tags: ["properties"],
             summary: "List properties for the dashboard. Only returns properties where the user is a manager or accountant.",
@@ -65,6 +68,7 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
     }, listPropertiesHandler);
 
     app.post("/", {
+        config: secureConfig,
         schema: {
             tags: ["properties"],
             summary: "Create a draft property.",
@@ -93,6 +97,7 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
     }, createPropertyHandler);
 
     app.get("/:propertyId", {
+        config: secureConfig,
         schema: {
             tags: ["properties"],
             summary: "Get a property by id.",
@@ -124,6 +129,7 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
     }, getPropertyHandler);
 
     app.patch("/:propertyId", {
+        config: secureConfig,
         schema: {
             tags: ["properties"],
             summary: "Update property general info.",

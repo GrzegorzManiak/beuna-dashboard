@@ -21,7 +21,8 @@ async function handleSessionAuth(
     });
 
     if (!session) {
-        await reply.status(401).send({ error: "Invalid session" });
+        reply.code(401).send({ error: "Invalid session" });
+        reply.hijack();
         return true;
     }
 
@@ -71,15 +72,50 @@ async function handleDevFallbackAuth(
     return true;
 }
 
+async function requireAuth(
+    req: FastifyRequest,
+    reply: FastifyReply
+): Promise<FastifyReply | void> {
+    if (reply.sent) return reply;
+    if (req.user) return;
+
+    const response = reply.code(401).send({ error: "Unauthorized" });
+    reply.hijack();
+    return response;
+}
+
 async function authPlugin(app: FastifyInstance, opts: AuthPluginOpts): Promise<void> {
+
+    // @ts-expect-error
+    app.decorateRequest("user", null);
+    // @ts-expect-error
+    app.decorateRequest("sessionId", null);
+
+    app.addHook("onRoute", (route) => {
+        if (!route.config?.authRequired) return;
+
+        const existing = route.preHandler;
+        if (!existing) {
+            route.preHandler = requireAuth;
+            return;
+        }
+
+        route.preHandler = Array.isArray(existing)
+            ? [requireAuth, ...existing]
+            : [requireAuth, existing];
+    });
+
     app.addHook("preHandler", async (req, reply) => {
         const sid = req.headers["x-session-id"];
         const sessionId = Array.isArray(sid) ? sid[0] : sid;
+        const requiresAuth = req.routeOptions.config?.authRequired === true;
 
         if (sessionId) {
             const handled = await handleSessionAuth(app, req, reply, sessionId);
             if (handled) return;
         }
+
+        if (requiresAuth) return;
 
         await handleDevFallbackAuth(app, req, reply, opts);
     });

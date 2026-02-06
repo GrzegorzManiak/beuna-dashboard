@@ -10,11 +10,7 @@ async function listPropertiesHandler(
     req: FastifyRequest,
     reply: FastifyReply
 ) {
-    const user = req.user;
-
-    if (!user) {
-        return reply.code(401).send({ error: "Unauthorized" });
-    }
+    const user = req.user!;
 
     const properties = await prisma.property.findMany({
         where: {
