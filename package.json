@@ -4,18 +4,22 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "server:dev": "bun run --watch server/src/server.ts"
+    "server:dev": "bun run --watch server/src/server.ts",
+
+    "prisma:dev:init": "dotenv -e .env.development -- bun run --cwd ./server prisma:init",
+    "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
   },
   "dependencies": {
     "@fastify/env": "^5.0.3",
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.5",
-    "@prisma/client": "6.14.0",
+    "@prisma/client": "^6.14.0",
     "fastify": "^5.7.4"
   },
   "devDependencies": {
     "@types/node": "^25.2.1",
-    "prisma": "6.14.0",
+    "dotenv-cli": "^11.0.0",
+    "prisma": "^6.14.0",
     "vitest": "^4.0.18"
   }
 }

@@ -4,9 +4,20 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "dotenv-cli": "^11.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
+  },
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "prisma:init": "bun run prisma:generate && bun run prisma:migrate && bun run prisma:seed"
   }
 }
+  
