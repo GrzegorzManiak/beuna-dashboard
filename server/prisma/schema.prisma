@@ -1,60 +1,72 @@
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
 }
 
 enum UserRole {
-  ADMIN
-  MANAGER
-  ACCOUNTANT
+    ADMIN
+    MANAGER
+    ACCOUNTANT
 }
 
 enum PropertyManagementType {
-  WEG
-  MV
+    WEG
+    MV
 }
 
 enum PropertyStatus {
-  DRAFT
-  ACTIVE
+    DRAFT
+    ACTIVE
 }
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  email     String   @unique @db.VarChar(255)
-  name      String   @db.VarChar(200)
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        String   @id @default(uuid()) @db.Uuid
+    email     String   @unique @db.VarChar(255)
+    name      String   @db.VarChar(200)
+    role      UserRole
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  managedProperties   Property[] @relation("PropertyManager")
-  accountedProperties Property[] @relation("PropertyAccountant")
+    managedProperties   Property[] @relation("PropertyManager")
+    accountedProperties Property[] @relation("PropertyAccountant")
+    Session             Session[]
 
-  @@index([role])
+    @@index([role])
+}
+
+model Session {
+    id        String   @id @default(uuid()) @db.Uuid
+    userId    String   @db.Uuid
+    createdAt DateTime @default(now())
+    lastSeen  DateTime @default(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
 }
 
 model Property {
-  id             String                 @id @default(uuid()) @db.Uuid
-  propertyNumber Int                    @unique
-  name           String                 @db.VarChar(255)
-  managementType PropertyManagementType
-  status         PropertyStatus         @default(DRAFT)
+    id             String                 @id @default(uuid()) @db.Uuid
+    propertyNumber Int                    @unique
+    name           String                 @db.VarChar(255)
+    managementType PropertyManagementType
+    status         PropertyStatus         @default(DRAFT)
 
-  managerId    String @db.Uuid
-  accountantId String @db.Uuid
+    managerId    String @db.Uuid
+    accountantId String @db.Uuid
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  manager    User @relation("PropertyManager", fields: [managerId], references: [id], onDelete: Restrict)
-  accountant User @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
+    manager    User @relation("PropertyManager", fields: [managerId], references: [id], onDelete: Restrict)
+    accountant User @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
 
-  @@index([status])
-  @@index([managementType])
-  @@index([managerId])
-  @@index([accountantId])
+    @@index([status])
+    @@index([managementType])
+    @@index([managerId])
+    @@index([accountantId])
 }

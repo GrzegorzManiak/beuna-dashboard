@@ -26,12 +26,14 @@
     "paths": {
       "@app": ["src/app"],
       "@feature/*": ["src/features/*"],
-      "@plugin/*": ["src/plugins/*"]
+      "@plugin/*": ["src/plugins/*"],
+      "@db": ["src/plugins/db"],
     },
 
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "prisma/**/*.ts"]
 }

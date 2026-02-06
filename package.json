@@ -5,11 +5,13 @@
   "private": true,
   "scripts": {
     "server:dev": "bun run --watch server/src/server.ts",
-
     "prisma:dev:init": "dotenv -e .env.development -- bun run --cwd ./server prisma:init",
-    "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
+    "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:seed",
+    "prisma:dev:generate": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
+    "prisma:dev:migrate": "dotenv -e .env.development -- bun run --cwd ./server prisma:migrate"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@fastify/env": "^5.0.3",
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.5",

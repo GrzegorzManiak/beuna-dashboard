@@ -1,4 +1,4 @@
-import {type FastifyInstance } from "fastify";
+import { type FastifyInstance } from "fastify";
 
 import fp from "fastify-plugin";
 import fastifyEnv from "@fastify/env";
