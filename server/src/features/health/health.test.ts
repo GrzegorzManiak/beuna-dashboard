@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { buildApp } from "../../app";
+import { buildApp } from "@app";
 
 describe("health routes", () => {
   const ctx: { app: Awaited<ReturnType<typeof buildApp>> } = {} as any;

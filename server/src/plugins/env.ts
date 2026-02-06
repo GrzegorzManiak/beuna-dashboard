@@ -1,6 +1,7 @@
+import {type FastifyInstance } from "fastify";
+
 import fp from "fastify-plugin";
 import fastifyEnv from "@fastify/env";
-import { type FastifyInstance } from "fastify";
 
 const DEFAULT_NODE_ENV = "development";
 const DEFAULT_PORT = 3000;

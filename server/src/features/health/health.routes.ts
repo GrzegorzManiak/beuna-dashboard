@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import { healthHandler, readinessHandler } from "./health.handlers";
+import { healthHandler, readinessHandler } from "@feature/health/health.handlers";
 
 const healthRoutes: FastifyPluginAsync = async (app) => {
     app.get("/", {

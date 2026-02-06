@@ -1,4 +1,4 @@
-import { buildApp } from "./app";
+import { buildApp } from "@app";
 
 function getPort(value: number | undefined): number {
     const port = value ?? 3000;

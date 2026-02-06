@@ -1,9 +1,9 @@
 import Fastify, { type FastifyInstance } from "fastify";
 
-import { EnvPlugin } from "./plugins/env";
-import { SwaggerPlugin } from "./plugins/swagger";
+import { EnvPlugin } from "@plugin/env";
+import { SwaggerPlugin } from "@plugin/swagger";
 
-import { healthRoutes } from "./features/health/health.routes";
+import { healthRoutes } from "@feature/health/health.routes";
 
 function registerRoutes(app: FastifyInstance): void {
     void app.register(healthRoutes, { prefix: "/health" });

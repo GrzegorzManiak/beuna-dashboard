@@ -21,6 +21,14 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
+    // Path aliases
+    "baseUrl": ".",
+    "paths": {
+      "@app": ["src/app"],
+      "@feature/*": ["src/features/*"],
+      "@plugin/*": ["src/plugins/*"]
+    },
+
     // Some stricter flags (disabled by default)
     "noUnusedLocals": false,
     "noUnusedParameters": false,
