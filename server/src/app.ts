@@ -8,9 +8,11 @@ import { AuthPlugin } from "@plugin/auth";
 
 import { healthRoutes } from "@feature/health/health.routes";
 import { sessionsRoutes } from "@feature/session/session.routes";
+import { usersRoutes } from "@feature/users/users.routes";
 
 function registerRoutes(app: FastifyInstance): void {
     void app.register(healthRoutes, { prefix: "/health" });
+    void app.register(usersRoutes, { prefix: "/users" });
     void app.register(sessionsRoutes, { prefix: "/sessions" });
 }
 

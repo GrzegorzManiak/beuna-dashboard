@@ -3,6 +3,7 @@ import {
     createSessionHandler,
     meSessionHandler,
     deleteSessionHandler,
+    getSessionByIdHandler,
 } from "@feature/session/session.handlers";
 
 const sessionsRoutes: FastifyPluginAsync = async (app) => {
@@ -90,6 +91,50 @@ const sessionsRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, deleteSessionHandler);
+
+    app.get("/:sessionId", {
+        schema: {
+            tags: ["sessions", "dev"],
+            summary: "Get a session by ID (dev utility).",
+            params: {   
+                type: "object",
+                properties: {
+                    sessionId: { type: "string", format: "uuid" },
+                },
+                required: ["sessionId"],
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        sessionId: { type: "string", format: "uuid" },
+                        createdAt: { type: "string" },
+                        lastSeen: { type: "string" },
+                        user: {
+                            type: "object",
+                            properties: {
+                                id: { type: "string", format: "uuid" },
+                                email: { type: "string" },
+                                name: { type: "string" },
+                                role: { type: "string" },
+                            },
+                            required: ["id", "email", "name", "role"],
+                            additionalProperties: false,
+                        },
+                    },
+                    required: ["sessionId", "user", "createdAt", "lastSeen"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, getSessionByIdHandler);
 };
 
 export {

@@ -84,8 +84,43 @@ async function deleteSessionHandler(
     return reply.code(204).send();
 }
 
+async function getSessionByIdHandler(
+    req: FastifyRequest<{ Params: SessionIdParams }>,
+    reply: FastifyReply
+) {
+    const { sessionId } = req.params;
+
+    const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: {
+            id: true,
+            createdAt: true,
+            lastSeen: true,
+            user: {
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    role: true,
+                },
+            },
+        },
+    });
+
+    if (!session) return reply.code(404)
+        .send({ error: "Session not found" });
+
+    return reply.send({
+        sessionId: session.id,
+        user: session.user,
+        createdAt: session.createdAt,
+        lastSeen: session.lastSeen,
+    });
+}
+
 export {
     createSessionHandler,
     meSessionHandler,
     deleteSessionHandler,
+    getSessionByIdHandler,
 };
