@@ -19,6 +19,7 @@ type SplitComponentProps = {
 };
 
 const GAP_HEIGHT = 80;
+const ANIMATION_MS = 500;
 
 function SplitComponent({ label = "Split" }: SplitComponentProps) {
   return (
@@ -64,6 +65,10 @@ export function PdfTestPage() {
   const [pageWidth, setPageWidth] = useState(960);
   const [splitMode, setSplitMode] = useState(false);
   const [split, setSplit] = useState<{ page: number; ratio: number } | null>(null);
+  const [animateSplit, setAnimateSplit] = useState(true);
+  const [animateOnClick, setAnimateOnClick] = useState(true);
+  const [pendingSplit, setPendingSplit] = useState<{ page: number; ratio: number } | null>(null);
+  const [splitOpen, setSplitOpen] = useState(false);
   const [pageHeights, setPageHeights] = useState<Record<number, number>>({});
   const pageContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -97,6 +102,44 @@ export function PdfTestPage() {
     return Array.from({ length: numPages }, (_, index) => index + 1);
   }, [numPages]);
 
+  useEffect(() => {
+    if (!split) {
+      setSplitOpen(false);
+      setPendingSplit(null);
+      return;
+    }
+
+    if (!animateSplit) {
+      setSplitOpen(true);
+      return;
+    }
+
+    if (!animateOnClick) {
+      setSplitOpen(true);
+      return;
+    }
+
+    if (!splitOpen) return;
+  }, [split, animateSplit, animateOnClick, splitOpen]);
+
+  useEffect(() => {
+    if (!pendingSplit) return;
+    if (splitOpen) return;
+
+    const timer = window.setTimeout(() => {
+      setSplit(pendingSplit);
+      setPendingSplit(null);
+      if (!animateSplit) {
+        setSplitOpen(true);
+        return;
+      }
+
+      requestAnimationFrame(() => setSplitOpen(true));
+    }, ANIMATION_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [pendingSplit, splitOpen, animateSplit]);
+
   const handleSplitClick = (
     page: number,
     height: number | undefined,
@@ -107,15 +150,37 @@ export function PdfTestPage() {
 
     const rect = event.currentTarget.getBoundingClientRect();
     let y = event.clientY - rect.top;
+    const currentGap = split?.page === page && splitOpen ? GAP_HEIGHT : 0;
 
     if (split?.page === page) {
       const splitY = height * split.ratio;
-      if (y >= splitY && y <= splitY + GAP_HEIGHT) return;
-      if (y > splitY + GAP_HEIGHT) y -= GAP_HEIGHT;
+      if (y >= splitY && y <= splitY + currentGap) return;
+      if (y > splitY + currentGap) y -= currentGap;
     }
 
     const ratio = Math.min(0.98, Math.max(0.02, y / height));
-    setSplit({ page, ratio });
+    const nextSplit = { page, ratio };
+
+    if (!split) {
+      setSplit(nextSplit);
+      if (!animateSplit || !animateOnClick) {
+        setSplitOpen(true);
+        return;
+      }
+
+      setSplitOpen(false);
+      requestAnimationFrame(() => setSplitOpen(true));
+      return;
+    }
+
+    if (!animateSplit || !animateOnClick) {
+      setSplit(nextSplit);
+      setSplitOpen(true);
+      return;
+    }
+
+    setPendingSplit(nextSplit);
+    setSplitOpen(false);
   };
 
   const handlePageRender = (pageNumber: number) => (page: PDFPageProxy) => {
@@ -155,11 +220,29 @@ export function PdfTestPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setSplit(null)}
+                onClick={() => {
+                  setPendingSplit(null);
+                  setSplit(null);
+                  setSplitOpen(false);
+                }}
                 className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition disabled:cursor-not-allowed disabled:opacity-40"
                 disabled={!split}
               >
                 Clear Split
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnimateSplit((value) => !value)}
+                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition"
+              >
+                {animateSplit ? "Animation On" : "Animation Off"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAnimateOnClick((value) => !value)}
+                className="rounded-full border border-white/10 bg-white/10 px-4 py-1.5 text-sm text-slate-100 transition"
+              >
+                {animateOnClick ? "Animate Every Click" : "Animate Once"}
               </button>
             </div>
             <div className="text-right">
@@ -185,9 +268,10 @@ export function PdfTestPage() {
             >
               <div ref={pageContainerRef} className="flex w-full flex-col">
                 {pages.map((page) => {
-                  const height = pageHeights[page];
-                  const isSplit = split?.page === page && Boolean(height);
-                  const splitY = isSplit ? Math.round((height ?? 0) * split!.ratio) : 0;
+                  const height = pageHeights[page] ?? 0;
+                  const isActiveSplit = split?.page === page && height > 0;
+                  const splitY = isActiveSplit ? Math.round(height * split!.ratio) : 0;
+                  const gapOpen = isActiveSplit && splitOpen;
 
                   return (
                     <div
@@ -198,31 +282,33 @@ export function PdfTestPage() {
                         className="relative w-full"
                         onClick={(event) => handleSplitClick(page, height, event)}
                       >
-                        {isSplit ? (
-                          <div className="flex w-full flex-col">
-                            <PageSlice
-                              pageNumber={page}
-                              width={pageWidth}
-                              height={splitY}
-                              offset={0}
-                              onRenderSuccess={handlePageRender(page)}
-                            />
-                            <SplitComponent />
-                            <PageSlice
-                              pageNumber={page}
-                              width={pageWidth}
-                              height={(height ?? 0) - splitY}
-                              offset={splitY}
-                              onRenderSuccess={handlePageRender(page)}
-                            />
-                          </div>
-                        ) : (
-                          <Page
+                        <div className="flex w-full flex-col">
+                          <PageSlice
                             pageNumber={page}
                             width={pageWidth}
+                            height={splitY}
+                            offset={0}
                             onRenderSuccess={handlePageRender(page)}
                           />
-                        )}
+                          <div
+                            className={`overflow-hidden ${
+                              animateSplit ? "transition-[height,opacity] duration-500 ease-out" : ""
+                            }`}
+                            style={{
+                              height: gapOpen ? GAP_HEIGHT : 0,
+                              opacity: gapOpen ? 1 : 0,
+                            }}
+                          >
+                            <SplitComponent />
+                          </div>
+                          <PageSlice
+                            pageNumber={page}
+                            width={pageWidth}
+                            height={Math.max(0, height - splitY)}
+                            offset={splitY}
+                            onRenderSuccess={handlePageRender(page)}
+                          />
+                        </div>
                         {splitMode ? (
                           <div className="absolute inset-0 cursor-crosshair bg-transparent" />
                         ) : null}
