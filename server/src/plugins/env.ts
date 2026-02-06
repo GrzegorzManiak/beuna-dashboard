@@ -9,7 +9,7 @@ const DEFAULT_PORT = 3000;
 const EnvPlugin = fp(async (app: FastifyInstance) => {
     const schema = {
         type: "object",
-        required: ["PORT", "DATABASE_URL", "JWT_SECRET"],
+        required: ["PORT", "DATABASE_URL"],
         properties: {
             NODE_ENV: {
                 type: "string",
@@ -21,9 +21,6 @@ const EnvPlugin = fp(async (app: FastifyInstance) => {
                 default: DEFAULT_PORT,
             },
             DATABASE_URL: {
-                type: "string",
-            },
-            JWT_SECRET: {
                 type: "string",
             },
         },

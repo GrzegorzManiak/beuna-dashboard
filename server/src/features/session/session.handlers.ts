@@ -13,7 +13,7 @@ async function createSessionHandler(
         select: { id: true },
     });
 
-    if (!user)return reply.code(404)
+    if (!user) return reply.code(404)
         .send({ error: "User not found" });
 
     const session = await prisma.session.create({
@@ -32,7 +32,7 @@ async function meSessionHandler(
     const header = req.headers["x-session-id"];
     const sessionId = Array.isArray(header) ? header[0] : header;
 
-    if (!sessionId)return reply.code(401)
+    if (!sessionId) return reply.code(401)
         .send({ error: "Missing x-session-id" });
 
     const session = await prisma.session.findUnique({
@@ -52,15 +52,14 @@ async function meSessionHandler(
         },
     });
 
-    if (!session) {
-        return reply.code(401).send({ error: "Invalid session" });
-    }
+    if (!session) return reply.code(401)
+        .send({ error: "Invalid session" });
 
     // Update lastSeen, but don’t fail the request if it errors
     prisma.session.update({
         where: { id: session.id },
         data: { lastSeen: new Date() },
-    }).catch(() => {});
+    }).catch(() => { });
 
     return reply.send({
         sessionId: session.id,
