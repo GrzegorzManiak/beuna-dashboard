@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import type { OnDocumentLoadSuccess, OnRenderSuccess } from "react-pdf/dist/shared/types.js";
 import { Separator } from "./ui/separator";
 
-const PAGE_DIVIDER_HEIGHT = 15;
+const PAGE_DIVIDER_HEIGHT = 1;
 
 // Section stuff START
 type SectionPosition = {
@@ -51,7 +51,18 @@ const mockSections: SectionData[] = [
             x: 300,
             y: 850,
             width: 200,
-            height: 50,
+            height: 500,
+        },
+    },
+    // Triple-Page Section
+    {
+        id: "section-4",
+        textPosition: {
+            page: [1, 2, 3],
+            x: 550,
+            y: 850,
+            width: 50,
+            height: 1100,
         },
     },
 ];
@@ -59,6 +70,8 @@ const mockSections: SectionData[] = [
 
 type RenderedSection = {
     id: string;
+    hasTopBorder: boolean;
+    hasBottomBorder: boolean;
     style: React.CSSProperties;
 };
 
@@ -72,7 +85,11 @@ function SectionHighlights({ sections }: SectionHighlightsProps) {
             {sections.map((section) => (
                 <div
                     key={section.id}
-                    className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
+                    className={cn(
+                        "absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none",
+                        section.hasTopBorder ? "border-t-2" : "border-t-0",
+                        section.hasBottomBorder ? "border-b-2" : "border-b-0",
+                    )}
                     style={section.style}
                 />
             ))}
@@ -191,11 +208,15 @@ function PdfPageRenderer({
 
 type PdfSplitToolbarProps = {
     closeSplit: () => void;
+    splitToolbarRef: React.Ref<HTMLDivElement>;
 };
 function PdfSplitToolbar({
     closeSplit,
+    splitToolbarRef,
 }: PdfSplitToolbarProps) {
-    return (<div className="pointer-events-auto mx-auto gap-2 w-full bg-white p-5 flex justify-center border border-gray-300">
+    return (<div
+        ref={splitToolbarRef}
+        className="pointer-events-auto mx-auto gap-2 w-full bg-white p-5 flex justify-center border border-gray-300">
         <button
             onClick={() => closeSplit()}
             className="rounded bg-red-500 px-3 py-1 text-white">
@@ -232,6 +253,13 @@ function PdfRenderer({
     const [activeSplit, setActiveSplit] = useState<{ pageNumber: number; splitRatio: number } | null>(null);
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [pageWidth, setPageWidth] = useState(960 * pdfScale);
+
+    const splitToolbarRef = useRef<HTMLDivElement>(null);
+    const splitToolbarHeight = useMemo(() => {
+        if (!splitToolbarRef.current) return 0;
+        const rect = splitToolbarRef.current.getBoundingClientRect();
+        return rect.height;
+    }, [splitToolbarRef.current]);
 
     const pages = useMemo(() => {
         if (numPages <= 0) return [];
@@ -277,12 +305,18 @@ function PdfRenderer({
             const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
             const metrics = pageMetrics[pageNumber];
             const pageHeight = metrics ? metrics.height : 0;
-            const splitContent = pageCurrentlySplit ? <PdfSplitToolbar closeSplit={closeSplit} /> : null;
+            const splitContent = pageCurrentlySplit ? <PdfSplitToolbar
+                closeSplit={closeSplit}
+                splitToolbarRef={splitToolbarRef} /> : null;
 
             return (<div key={pageNumber} style={{
-                height: pageHeight + (pageCurrentlySplit ? PAGE_DIVIDER_HEIGHT : 0),
+                height: pageHeight + PAGE_DIVIDER_HEIGHT + (pageCurrentlySplit ? splitToolbarHeight : 0),
                 width: pageWidth,
             }}>
+                <div style={{ height: PAGE_DIVIDER_HEIGHT }} className="w-full">
+                    <Separator />
+                </div>
+
                 <PdfPageRenderer
                     key={pageNumber}
                     pageWidth={pageWidth}
@@ -297,13 +331,6 @@ function PdfRenderer({
                         .map((section) => calculateSectionStyle(pageNumber, section, pageMetrics))
                     }
                 />
-
-                {/* Divider between pages, skips last page */}
-                {pageNumber < numPages &&
-                    <div style={{ height: PAGE_DIVIDER_HEIGHT }} className="w-full">
-                        <Separator />
-                    </div>
-                }
             </div>);
         })}
     </Document>);
@@ -341,6 +368,8 @@ function calculateSectionStyle(
         width: section.textPosition.width,
         top: 0,
         height: 0,
+        hasTopBorder: pageNumber === startPage,
+        hasBottomBorder: pageNumber === section.textPosition.page[section.textPosition.page.length - 1],
     };
 
     // Logic to calculate top/height for multi-page spanning
@@ -370,9 +399,8 @@ function calculateSectionStyle(
                 if (currentPage === startPage) {
                     const consumed = Math.max(0, m.height - section.textPosition.y);
                     remainingHeight -= consumed;
-                } else {
-                    remainingHeight -= m.height;
                 }
+                else remainingHeight -= m.height;
             }
             currentPage++;
         }
@@ -387,6 +415,8 @@ function calculateSectionStyle(
 
     return {
         id: section.id,
+        hasTopBorder: sectionRect.hasTopBorder,
+        hasBottomBorder: sectionRect.hasBottomBorder,
         style: {
             left: sectionRect.left,
             top: sectionRect.top,
