@@ -234,6 +234,12 @@ type PdfRendererProps = {
     loading?: React.ReactNode;
     onLoadSuccess?: OnDocumentLoadSuccess;
     sectionData: Array<SectionData>;
+    pageMetrics: Record<number, PageMetrics>;
+    setPageMetrics: React.Dispatch<React.SetStateAction<Record<number, PageMetrics>>>;
+    activeSplit: { pageNumber: number; splitRatio: number } | null;
+    setActiveSplit: React.Dispatch<React.SetStateAction<{ pageNumber: number; splitRatio: number } | null>>;
+    splitToolbarHeight: number;
+    setSplitToolbarHeight: React.Dispatch<React.SetStateAction<number>>;
 };
 type PageMetrics = {
     originalWidth: number;
@@ -248,18 +254,20 @@ function PdfRenderer({
     error,
     pdfScale,
     loading,
+    pageMetrics,
+    setPageMetrics,
+    activeSplit,
+    setActiveSplit,
+    splitToolbarHeight,
+    setSplitToolbarHeight,
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
-    const [activeSplit, setActiveSplit] = useState<{ pageNumber: number; splitRatio: number } | null>(null);
-    const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [pageWidth, setPageWidth] = useState(960 * pdfScale);
 
-    const splitToolbarRef = useRef<HTMLDivElement>(null);
-    const splitToolbarHeight = useMemo(() => {
-        if (!splitToolbarRef.current) return 0;
-        const rect = splitToolbarRef.current.getBoundingClientRect();
-        return rect.height;
-    }, [splitToolbarRef.current]);
+    const onSplitToolbarRefChange = useCallback((node: HTMLDivElement | null) => {
+        if (node) setSplitToolbarHeight(node.getBoundingClientRect().height);
+        else setSplitToolbarHeight(0);
+    }, [setSplitToolbarHeight]);
 
     const pages = useMemo(() => {
         if (numPages <= 0) return [];
@@ -289,10 +297,10 @@ function PdfRenderer({
     const closeSplit = () => setActiveSplit(null);
 
     useEffect(() => {
-        setActiveSplit({
-            pageNumber: 1,
-            splitRatio: 0.5,
-        });
+        // setActiveSplit({
+        //     pageNumber: 1,
+        //     splitRatio: 0.5,
+        // });
     }, []);
 
     return (<Document
@@ -307,7 +315,7 @@ function PdfRenderer({
             const pageHeight = metrics ? metrics.height : 0;
             const splitContent = pageCurrentlySplit ? <PdfSplitToolbar
                 closeSplit={closeSplit}
-                splitToolbarRef={splitToolbarRef} /> : null;
+                splitToolbarRef={onSplitToolbarRefChange} /> : null;
 
             return (<div key={pageNumber} style={{
                 height: pageHeight + PAGE_DIVIDER_HEIGHT + (pageCurrentlySplit ? splitToolbarHeight : 0),
@@ -337,21 +345,78 @@ function PdfRenderer({
 }
 
 type SectionBarProps = {
+    sectionData: Array<SectionData>;
+    pageMetrics: Record<number, PageMetrics>;
+    activeSplit: { pageNumber: number; splitRatio: number } | null;
+    splitToolbarHeight: number;
 };
-function SectionBar({ }: SectionBarProps) {
-    return (<div className="w-full grow self-stretch max-w-60 bg-gray-200 flex items-center justify-center">
-        <span className="text-sm text-gray-600">Section Bar (placeholder)</span>
+function SectionBar({
+    sectionData,
+    pageMetrics,
+    activeSplit,
+    splitToolbarHeight,
+}: SectionBarProps) {
+    return (<div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex items-center justify-start gap-2 p-4 overflow-auto">
+        {sectionData.map((section) => {
+            const pageNumber = section.textPosition.page[0];
+            const metrics = pageMetrics[pageNumber];
+
+            // Calculate accumulating Y offset
+            let rawY = 0;
+            for (let i = 1; i < pageNumber; i++) {
+                const m = pageMetrics[i];
+                if (m) {
+                    rawY += m.height;
+                    rawY += PAGE_DIVIDER_HEIGHT;
+                    if (activeSplit?.pageNumber === i) rawY += splitToolbarHeight;
+                }
+            }
+
+            let visualY = rawY + PAGE_DIVIDER_HEIGHT;
+
+            if (metrics) {
+                const scaledY = section.textPosition.y * metrics.scale;
+                visualY += scaledY;
+                if (activeSplit?.pageNumber === pageNumber) {
+                    const splitY = metrics.height * activeSplit.splitRatio;
+                    if (scaledY > splitY) visualY += splitToolbarHeight;
+                }
+            }
+
+            return (<span>
+                <div
+                    key={section.id}
+                    className="bg-blue-500/20 border border-blue-500 right-0 rounded absolute pointer-events-none h-8 w-30"
+                    style={{ top: visualY }}
+                />
+            </span>);
+        })}
     </div>);
-}
+};
 
 export function Final() {
+    const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
+    const [activeSplit, setActiveSplit] = useState<{ pageNumber: number; splitRatio: number } | null>(null);
+    const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
+
     return <>
         <div className="w-full bg-gray-300 flex items-center justify-center">
-            <SectionBar />
+            <SectionBar
+                sectionData={mockSections}
+                pageMetrics={pageMetrics}
+                activeSplit={activeSplit}
+                splitToolbarHeight={splitToolbarHeight}
+            />
             <PdfRenderer
                 pdfUrl="/test.pdf"
                 pdfScale={0.7}
                 sectionData={mockSections}
+                pageMetrics={pageMetrics}
+                setPageMetrics={setPageMetrics}
+                activeSplit={activeSplit}
+                setActiveSplit={setActiveSplit}
+                splitToolbarHeight={splitToolbarHeight}
+                setSplitToolbarHeight={setSplitToolbarHeight}
             />
         </div>
     </>;
