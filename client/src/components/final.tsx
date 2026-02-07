@@ -6,6 +6,80 @@ import { Separator } from "./ui/separator";
 
 const PAGE_DIVIDER_HEIGHT = 15;
 
+// Section stuff START
+type SectionPosition = {
+    page: Array<number>;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
+type SectionData = {
+    id: string;
+    textPosition: SectionPosition;
+};
+
+const mockSections: SectionData[] = [
+    // Simple Single Page Section
+    {
+        id: "section-1",
+        textPosition: {
+            page: [1],
+            x: 100,
+            y: 150,
+            width: 200,
+            height: 50,
+        },
+    },
+    // Split Area Section (Spans across split)
+    {
+        id: "section-2",
+        textPosition: {
+            page: [1],
+            x: 100,
+            y: 450,
+            width: 200,
+            height: 50,
+        },
+    },
+    // Multi-Page Section
+    {
+        id: "section-3",
+        textPosition: {
+            page: [1, 2],
+            x: 300,
+            y: 850,
+            width: 200,
+            height: 50,
+        },
+    },
+];
+// Section stuff END
+
+type RenderedSection = {
+    id: string;
+    style: React.CSSProperties;
+};
+
+type SectionHighlightsProps = {
+    sections: Array<RenderedSection>;
+};
+
+function SectionHighlights({ sections }: SectionHighlightsProps) {
+    return (
+        <>
+            {sections.map((section) => (
+                <div
+                    key={section.id}
+                    className="absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none"
+                    style={section.style}
+                />
+            ))}
+        </>
+    );
+}
+
 type PdfPageSliceRendererProps = {
     pageNumber: number;
     pageWidth: number;
@@ -13,6 +87,7 @@ type PdfPageSliceRendererProps = {
     height: number;
     offset: number;
     onRenderSuccess?: OnRenderSuccess;
+    renderedSections: Array<RenderedSection>;
 };
 function PdfPageSliceRenderer({
     pageNumber,
@@ -21,6 +96,7 @@ function PdfPageSliceRenderer({
     offset,
     pageWidth,
     onRenderSuccess,
+    renderedSections,
 }: PdfPageSliceRendererProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +115,8 @@ function PdfPageSliceRenderer({
                 width={pageWidth}
                 onRenderSuccess={onRenderSuccess}
                 pageNumber={pageNumber} />
+
+            <SectionHighlights sections={renderedSections} />
         </div>
     </div>);
 }
@@ -47,7 +125,7 @@ type PdfPageRendererProps = {
     pageNumber: number;
     pageWidth: number;
     onRenderSuccess: (page: pdfjs.PDFPageProxy) => void;
-
+    renderedSections: Array<RenderedSection>;
     splitComponent: React.ReactNode;
     isActiveSplit: boolean;
     splitRatio: number;
@@ -61,6 +139,7 @@ function PdfPageRenderer({
     splitRatio,
     isActiveSplit,
     pageHeight,
+    renderedSections,
 }: PdfPageRendererProps) {
     const splitY = isActiveSplit ? Math.round(pageHeight * splitRatio) : 0;
     const pageLoadRef = useRef<Boolean | null>(null);
@@ -91,6 +170,7 @@ function PdfPageRenderer({
             offset={0}
             pageWidth={pageWidth}
             onRenderSuccess={onPageRenderSuccess}
+            renderedSections={renderedSections}
         />
 
         {/* Split Content */}
@@ -104,6 +184,7 @@ function PdfPageRenderer({
             offset={splitY}
             pageWidth={pageWidth}
             onRenderSuccess={onPageRenderSuccess}
+            renderedSections={renderedSections}
         />
     </span>);
 }
@@ -131,6 +212,7 @@ type PdfRendererProps = {
     error?: React.ReactNode;
     loading?: React.ReactNode;
     onLoadSuccess?: OnDocumentLoadSuccess;
+    sectionData: Array<SectionData>;
 };
 type PageMetrics = {
     originalWidth: number;
@@ -141,6 +223,7 @@ type PageMetrics = {
 function PdfRenderer({
     pdfUrl,
     onLoadSuccess,
+    sectionData,
     error,
     pdfScale,
     loading,
@@ -173,7 +256,7 @@ function PdfRenderer({
                 },
             };
         });
-    }, []);
+    }, [pageWidth]);
 
     const closeSplit = () => setActiveSplit(null);
 
@@ -209,6 +292,10 @@ function PdfRenderer({
                     splitRatio={activeSplit?.splitRatio ?? 0}
                     isActiveSplit={pageCurrentlySplit}
                     splitComponent={splitContent}
+                    renderedSections={sectionData
+                        .filter((section) => section.textPosition.page.includes(pageNumber))
+                        .map((section) => calculateSectionStyle(pageNumber, section, pageMetrics))
+                    }
                 />
 
                 {/* Divider between pages, skips last page */}
@@ -237,7 +324,74 @@ export function Final() {
             <PdfRenderer
                 pdfUrl="/test.pdf"
                 pdfScale={0.7}
+                sectionData={mockSections}
             />
         </div>
     </>;
+}
+
+function calculateSectionStyle(
+    pageNumber: number,
+    section: SectionData,
+    pageMetrics: Record<number, PageMetrics>
+): RenderedSection {
+    const startPage = section.textPosition.page[0];
+    const sectionRect = {
+        left: section.textPosition.x,
+        width: section.textPosition.width,
+        top: 0,
+        height: 0,
+    };
+
+    // Logic to calculate top/height for multi-page spanning
+    if (pageNumber === startPage) {
+        sectionRect.top = section.textPosition.y;
+
+        // Simple case: height is rest of section
+        // For multi-page, on the first page, we take all the height 
+        // until the bottom of the page.
+        const pageHeight = pageMetrics[pageNumber]?.height || 0;
+        const availableHeight = Math.max(0, pageHeight - section.textPosition.y);
+
+        // If height is small enough to fit on page, use it.
+        // Otherwise take available space.
+        sectionRect.height = Math.min(section.textPosition.height, availableHeight);
+    } else {
+        // Subsequent pages
+        sectionRect.top = 0; // Starts at top
+
+        let remainingHeight = section.textPosition.height;
+
+        // Subtract height consumed by previous pages
+        let currentPage = startPage;
+        while (currentPage < pageNumber) {
+            const m = pageMetrics[currentPage];
+            if (m) {
+                if (currentPage === startPage) {
+                    const consumed = Math.max(0, m.height - section.textPosition.y);
+                    remainingHeight -= consumed;
+                } else {
+                    remainingHeight -= m.height;
+                }
+            }
+            currentPage++;
+        }
+
+        // On this page, we take remaining height or full page height
+        const pageHeight = pageMetrics[pageNumber]?.height || 0;
+        sectionRect.height = Math.min(Math.max(0, remainingHeight), pageHeight);
+
+        // If remaining height is <= 0 (metrics might be missing or logic off), hide it
+        if (remainingHeight <= 0) sectionRect.height = 0;
+    }
+
+    return {
+        id: section.id,
+        style: {
+            left: sectionRect.left,
+            top: sectionRect.top,
+            width: sectionRect.width,
+            height: sectionRect.height,
+        },
+    };
 }
