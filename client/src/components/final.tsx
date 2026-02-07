@@ -5,6 +5,8 @@ import type { OnDocumentLoadSuccess, OnRenderSuccess } from "react-pdf/dist/shar
 import { Separator } from "./ui/separator";
 
 const PAGE_DIVIDER_HEIGHT = 1;
+const SIDEBAR_CARD_HEIGHT = 32; // h-8 = 32px
+const SIDEBAR_CARD_GAP = 8; // gap-2 approx
 
 // Section stuff START
 type SectionPosition = {
@@ -27,7 +29,7 @@ const mockSections: SectionData[] = [
         textPosition: {
             page: [1],
             x: 100,
-            y: 150,
+            y: 172,
             width: 200,
             height: 50,
         },
@@ -60,7 +62,7 @@ const mockSections: SectionData[] = [
         textPosition: {
             page: [1, 2, 3],
             x: 550,
-            y: 850,
+            y: 851,
             width: 50,
             height: 1100,
         },
@@ -77,16 +79,20 @@ type RenderedSection = {
 
 type SectionHighlightsProps = {
     sections: Array<RenderedSection>;
+    activeSectionId: string | null;
 };
 
-function SectionHighlights({ sections }: SectionHighlightsProps) {
+function SectionHighlights({ sections, activeSectionId }: SectionHighlightsProps) {
     return (
         <>
             {sections.map((section) => (
                 <div
                     key={section.id}
                     className={cn(
-                        "absolute border-2 border-blue-500 bg-blue-500/20 pointer-events-none",
+                        "absolute border-2 pointer-events-none transition-colors duration-300",
+                        activeSectionId === section.id
+                            ? "border-blue-600 bg-blue-600/40 z-10"
+                            : "border-blue-500 bg-blue-500/20",
                         section.hasTopBorder ? "border-t-2" : "border-t-0",
                         section.hasBottomBorder ? "border-b-2" : "border-b-0",
                     )}
@@ -105,6 +111,7 @@ type PdfPageSliceRendererProps = {
     offset: number;
     onRenderSuccess?: OnRenderSuccess;
     renderedSections: Array<RenderedSection>;
+    activeSectionId: string | null;
 };
 function PdfPageSliceRenderer({
     pageNumber,
@@ -114,6 +121,7 @@ function PdfPageSliceRenderer({
     pageWidth,
     onRenderSuccess,
     renderedSections,
+    activeSectionId,
 }: PdfPageSliceRendererProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -133,7 +141,7 @@ function PdfPageSliceRenderer({
                 onRenderSuccess={onRenderSuccess}
                 pageNumber={pageNumber} />
 
-            <SectionHighlights sections={renderedSections} />
+            <SectionHighlights sections={renderedSections} activeSectionId={activeSectionId} />
         </div>
     </div>);
 }
@@ -147,6 +155,7 @@ type PdfPageRendererProps = {
     isActiveSplit: boolean;
     splitRatio: number;
     pageHeight: number;
+    activeSectionId: string | null;
 };
 function PdfPageRenderer({
     pageNumber,
@@ -157,6 +166,7 @@ function PdfPageRenderer({
     isActiveSplit,
     pageHeight,
     renderedSections,
+    activeSectionId,
 }: PdfPageRendererProps) {
     const splitY = isActiveSplit ? Math.round(pageHeight * splitRatio) : 0;
     const pageLoadRef = useRef<Boolean | null>(null);
@@ -188,6 +198,7 @@ function PdfPageRenderer({
             pageWidth={pageWidth}
             onRenderSuccess={onPageRenderSuccess}
             renderedSections={renderedSections}
+            activeSectionId={activeSectionId}
         />
 
         {/* Split Content */}
@@ -202,6 +213,7 @@ function PdfPageRenderer({
             pageWidth={pageWidth}
             onRenderSuccess={onPageRenderSuccess}
             renderedSections={renderedSections}
+            activeSectionId={activeSectionId}
         />
     </span>);
 }
@@ -229,17 +241,17 @@ function PdfSplitToolbar({
 type PdfRendererProps = {
     pdfUrl: string;
     pdfScale: number;
-
+    pageMetrics: Record<number, PageMetrics>;
+    setPageMetrics: React.Dispatch<React.SetStateAction<Record<number, PageMetrics>>>;
     error?: React.ReactNode;
     loading?: React.ReactNode;
     onLoadSuccess?: OnDocumentLoadSuccess;
     sectionData: Array<SectionData>;
-    pageMetrics: Record<number, PageMetrics>;
-    setPageMetrics: React.Dispatch<React.SetStateAction<Record<number, PageMetrics>>>;
     activeSplit: { pageNumber: number; splitRatio: number } | null;
     setActiveSplit: React.Dispatch<React.SetStateAction<{ pageNumber: number; splitRatio: number } | null>>;
     splitToolbarHeight: number;
     setSplitToolbarHeight: React.Dispatch<React.SetStateAction<number>>;
+    activeSectionId: string | null;
 };
 type PageMetrics = {
     originalWidth: number;
@@ -260,6 +272,7 @@ function PdfRenderer({
     setActiveSplit,
     splitToolbarHeight,
     setSplitToolbarHeight,
+    activeSectionId,
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
     const [pageWidth, setPageWidth] = useState(960 * pdfScale);
@@ -334,6 +347,7 @@ function PdfRenderer({
                     splitRatio={activeSplit?.splitRatio ?? 0}
                     isActiveSplit={pageCurrentlySplit}
                     splitComponent={splitContent}
+                    activeSectionId={activeSectionId}
                     renderedSections={sectionData
                         .filter((section) => section.textPosition.page.includes(pageNumber))
                         .map((section) => calculateSectionStyle(pageNumber, section, pageMetrics))
@@ -349,15 +363,19 @@ type SectionBarProps = {
     pageMetrics: Record<number, PageMetrics>;
     activeSplit: { pageNumber: number; splitRatio: number } | null;
     splitToolbarHeight: number;
+    activeSectionId: string | null;
+    setActiveSectionId: (id: string | null) => void;
 };
 function SectionBar({
     sectionData,
     pageMetrics,
     activeSplit,
     splitToolbarHeight,
+    activeSectionId,
+    setActiveSectionId,
 }: SectionBarProps) {
-    return (<div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex items-center justify-start gap-2 p-4 overflow-auto">
-        {sectionData.map((section) => {
+    const sidebarItems = useMemo(() => {
+        const items = sectionData.map((section) => {
             const pageNumber = section.textPosition.page[0];
             const metrics = pageMetrics[pageNumber];
 
@@ -368,7 +386,11 @@ function SectionBar({
                 if (m) {
                     rawY += m.height;
                     rawY += PAGE_DIVIDER_HEIGHT;
-                    if (activeSplit?.pageNumber === i) rawY += splitToolbarHeight;
+
+                    // Add split toolbar height if this page was split
+                    if (activeSplit?.pageNumber === i) {
+                        rawY += splitToolbarHeight;
+                    }
                 }
             }
 
@@ -377,19 +399,73 @@ function SectionBar({
             if (metrics) {
                 const scaledY = section.textPosition.y * metrics.scale;
                 visualY += scaledY;
+
                 if (activeSplit?.pageNumber === pageNumber) {
                     const splitY = metrics.height * activeSplit.splitRatio;
-                    if (scaledY > splitY) visualY += splitToolbarHeight;
+                    if (scaledY > splitY) {
+                        visualY += splitToolbarHeight;
+                    }
                 }
             }
 
-            return (<span>
+            return {
+                ...section,
+                targetTop: visualY,
+                top: visualY,
+            };
+        }).sort((a, b) => a.targetTop - b.targetTop);
+
+        const activeIndex = activeSectionId ? items.findIndex((item) => item.id === activeSectionId) : -1;
+
+        if (activeIndex >= 0) {
+            items[activeIndex].top = items[activeIndex].targetTop;
+
+            // Push items above upwards
+            for (let i = activeIndex - 1; i >= 0; i -= 1) {
+                const nextTop = items[i + 1].top;
+                const maxTop = nextTop - SIDEBAR_CARD_HEIGHT - SIDEBAR_CARD_GAP;
+                items[i].top = Math.min(items[i].targetTop, maxTop); // Use targetTop as max? No, used math.min in ref
+                // Ref: items[i].top = Math.min(items[i].top, maxTop); which assumes items[i].top was initialized to targetTop
+                if (items[i].top > maxTop) items[i].top = maxTop;
+            }
+
+            // Push items below downwards
+            for (let i = activeIndex + 1; i < items.length; i += 1) {
+                const prevTop = items[i - 1].top;
+                const minTop = prevTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
+                if (items[i].top < minTop) items[i].top = minTop;
+            }
+        } else {
+            let lastTop = Number.NEGATIVE_INFINITY;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const minTop = lastTop + SIDEBAR_CARD_HEIGHT + SIDEBAR_CARD_GAP;
+                if (item.top < minTop) {
+                    item.top = minTop;
+                }
+                lastTop = item.top;
+            }
+        }
+
+        return items;
+    }, [sectionData, pageMetrics, activeSplit, splitToolbarHeight, activeSectionId]);
+
+    return (<div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex flex-col items-start justify-start px-4">
+        {sidebarItems.map((section) => {
+            const isSelected = section.id === activeSectionId;
+            return (
                 <div
                     key={section.id}
-                    className="bg-blue-500/20 border border-blue-500 right-0 rounded absolute pointer-events-none h-8 w-30"
-                    style={{ top: visualY }}
-                />
-            </span>);
+                    onClick={() => setActiveSectionId(section.id)}
+                    className={cn(
+                        "border border-blue-500 rounded absolute h-8 w-30 cursor-pointer transition-all duration-300",
+                        isSelected ? "bg-blue-500/40 z-10 scale-105" : "bg-blue-500/20 hover:bg-blue-500/30"
+                    )}
+                    style={{ top: section.top }}
+                >
+                    <span className="text-xs p-1">{section.id}</span>
+                </div>
+            );
         })}
     </div>);
 };
@@ -398,14 +474,17 @@ export function Final() {
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [activeSplit, setActiveSplit] = useState<{ pageNumber: number; splitRatio: number } | null>(null);
     const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
+    const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
     return <>
-        <div className="w-full bg-gray-300 flex items-center justify-center">
+        <div className="w-full bg-gray-300 flex items-start justify-center">
             <SectionBar
                 sectionData={mockSections}
                 pageMetrics={pageMetrics}
                 activeSplit={activeSplit}
                 splitToolbarHeight={splitToolbarHeight}
+                activeSectionId={activeSectionId}
+                setActiveSectionId={setActiveSectionId}
             />
             <PdfRenderer
                 pdfUrl="/test.pdf"
@@ -417,6 +496,7 @@ export function Final() {
                 setActiveSplit={setActiveSplit}
                 splitToolbarHeight={splitToolbarHeight}
                 setSplitToolbarHeight={setSplitToolbarHeight}
+                activeSectionId={activeSectionId}
             />
         </div>
     </>;
