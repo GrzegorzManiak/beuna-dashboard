@@ -56,7 +56,7 @@ export default function PdfTest() {
         <div className="h-screen w-full flex flex-col">
             <PdfViewer
                 pdfUrl="/test.pdf"
-                pdfScale={0.7}
+                pdfScale={1}
                 sections={sections}
                 onSectionAdd={(newSection) => {
                     setSections((prev) => [...prev, newSection]);

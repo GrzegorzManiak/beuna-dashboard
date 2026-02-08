@@ -11,10 +11,12 @@ function calculateSectionStyle(
     const metrics = pageMetrics[pageNumber];
     const scale = metrics?.scale || 1;
     const startPage = section.textPosition.page[0];
+    const startPageMetrics = pageMetrics[startPage];
+    const startPageScale = startPageMetrics?.scale || scale;
 
     const sectionRect = {
-        left: section.textPosition.x,
-        width: section.textPosition.width,
+        left: section.textPosition.x * startPageScale,
+        width: section.textPosition.width * startPageScale,
         top: 0,
         height: 0,
         hasTopBorder: pageNumber === startPage,

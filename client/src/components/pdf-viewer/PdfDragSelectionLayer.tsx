@@ -389,6 +389,13 @@ function PdfDragSelectionLayer({
             const pageWidthPx = getPageWidthPx(dragSelection.page);
             if (!pageWidthPx) return;
 
+            // Normalize back to original PDF coordinates
+            const scale = metrics.scale; // This is pageWidth / originalWidth
+            const originalX = x / scale;
+            const originalY = y / scale;
+            const originalWidth = width / scale;
+            const originalHeight = height / scale;
+
             const selection: DragSelection = {
                 page: dragSelection.page,
                 startX: dragSelection.startX,
@@ -416,7 +423,13 @@ function PdfDragSelectionLayer({
 
             onSelectionComplete?.({
                 page: dragSelection.page,
-                rect: { x, y, width, height },
+                // Return normalized coordinates (original PDF / unscaled)
+                rect: { 
+                    x: originalX, 
+                    y: originalY, 
+                    width: originalWidth, 
+                    height: originalHeight 
+                },
                 ratios: {
                     x: x / pageWidthPx,
                     y: y / metrics.height,

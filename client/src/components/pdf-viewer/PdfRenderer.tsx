@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Document, pdfjs } from "react-pdf";
 import type { OnDocumentLoadSuccess } from "react-pdf/dist/shared/types.js";
+import "react-pdf/dist/Page/TextLayer.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
 import { Separator } from "../ui/separator";
 import { PAGE_DIVIDER_HEIGHT } from "./constants";
 import { PdfDragSelectionLayer } from "./PdfDragSelectionLayer";
@@ -9,6 +11,12 @@ import { PdfPageRenderer } from "./PdfPageRenderer";
 import { PdfSplitToolbar } from "./PdfSplitToolbar";
 import type { ActiveSplit, DragSelectionResult, PageMetrics, SectionData } from "./types";
 import { calculateSectionStyle } from "./utils";
+
+// Setup PDF worker
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+).toString();
 
 type PdfRendererProps = {
     pdfUrl: string;
