@@ -1,5 +1,8 @@
 import type { PageMetrics, RenderedSection, SectionData } from "./types";
 
+const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
+
 function calculateSectionStyle(
     pageNumber: number,
     section: SectionData,
@@ -74,5 +77,6 @@ function calculateSectionStyle(
 }
 
 export {
-    calculateSectionStyle
+    calculateSectionStyle,
+    clamp
 }

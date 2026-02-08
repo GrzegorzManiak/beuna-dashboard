@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { Document, pdfjs } from "react-pdf";
 import type { OnDocumentLoadSuccess } from "react-pdf/dist/shared/types.js";
 import { Separator } from "../ui/separator";
 import { PAGE_DIVIDER_HEIGHT } from "./constants";
+import { PdfDragSelectionLayer } from "./PdfDragSelectionLayer";
 import { PdfPageRenderer } from "./PdfPageRenderer";
 import { PdfSplitToolbar } from "./PdfSplitToolbar";
-import type { ActiveSplit, PageMetrics, SectionData } from "./types";
+import type { ActiveSplit, DragSelectionResult, PageMetrics, SectionData } from "./types";
 import { calculateSectionStyle } from "./utils";
 
 type PdfRendererProps = {
@@ -23,6 +24,8 @@ type PdfRendererProps = {
     splitToolbarHeight: number;
     setSplitToolbarHeight: Dispatch<SetStateAction<number>>;
     activeSectionId: string | null;
+    dragMode?: boolean;
+    onDragSelection?: (result: DragSelectionResult) => void;
 };
 
 function PdfRenderer({
@@ -39,9 +42,12 @@ function PdfRenderer({
     splitToolbarHeight,
     setSplitToolbarHeight,
     activeSectionId,
+    dragMode = false,
+    onDragSelection,
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
     const [pageWidth] = useState(960 * pdfScale);
+    const pageContainerRef = useRef<HTMLDivElement | null>(null);
 
     const onSplitToolbarRefChange = useCallback(
         (node: HTMLDivElement | null) => {
@@ -99,46 +105,66 @@ function PdfRenderer({
             loading={loading ?? "Loading PDF..."}
             error={error ?? "Failed to load PDF."}
         >
-            {pages.map((pageNumber) => {
-                const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
-                const metrics = pageMetrics[pageNumber];
-                const pageHeight = metrics ? metrics.height : 0;
-                const splitContent = pageCurrentlySplit ? (
-                    <PdfSplitToolbar closeSplit={closeSplit} splitToolbarRef={onSplitToolbarRefChange} />
-                ) : null;
+            <div className="relative">
+                <div ref={pageContainerRef} className="flex w-full flex-col">
+                    {pages.map((pageNumber) => {
+                        const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
+                        const metrics = pageMetrics[pageNumber];
+                        const pageHeight = metrics ? metrics.height : 0;
+                        const splitContent = pageCurrentlySplit ? (
+                            <PdfSplitToolbar
+                                closeSplit={closeSplit}
+                                splitToolbarRef={onSplitToolbarRefChange}
+                            />
+                        ) : null;
 
-                return (
-                    <div
-                        key={pageNumber}
-                        style={{
-                            height:
-                                pageHeight +
-                                PAGE_DIVIDER_HEIGHT +
-                                (pageCurrentlySplit ? splitToolbarHeight : 0),
-                            width: pageWidth,
-                        }}
-                    >
-                        <div style={{ height: PAGE_DIVIDER_HEIGHT }} className="w-full">
-                            <Separator />
-                        </div>
+                        return (
+                            <div
+                                key={pageNumber}
+                                style={{
+                                    height:
+                                        pageHeight +
+                                        PAGE_DIVIDER_HEIGHT +
+                                        (pageCurrentlySplit ? splitToolbarHeight : 0),
+                                    width: pageWidth,
+                                }}
+                            >
+                                <div style={{ height: PAGE_DIVIDER_HEIGHT }} className="w-full">
+                                    <Separator />
+                                </div>
 
-                        <PdfPageRenderer
-                            key={pageNumber}
-                            pageWidth={pageWidth}
-                            pageNumber={pageNumber}
-                            onRenderSuccess={onPageRenderSuccess}
-                            pageHeight={pageHeight}
-                            splitRatio={activeSplit?.splitRatio ?? 0}
-                            isActiveSplit={pageCurrentlySplit}
-                            splitComponent={splitContent}
-                            activeSectionId={activeSectionId}
-                            renderedSections={sectionData
-                                .filter((section) => section.textPosition.page.includes(pageNumber))
-                                .map((section) => calculateSectionStyle(pageNumber, section, pageMetrics))}
-                        />
-                    </div>
-                );
-            })}
+                                <PdfPageRenderer
+                                    key={pageNumber}
+                                    pageWidth={pageWidth}
+                                    pageNumber={pageNumber}
+                                    onRenderSuccess={onPageRenderSuccess}
+                                    pageHeight={pageHeight}
+                                    splitRatio={activeSplit?.splitRatio ?? 0}
+                                    isActiveSplit={pageCurrentlySplit}
+                                    splitComponent={splitContent}
+                                    activeSectionId={activeSectionId}
+                                    renderedSections={sectionData
+                                        .filter((section) =>
+                                            section.textPosition.page.includes(pageNumber),
+                                        )
+                                        .map((section) =>
+                                            calculateSectionStyle(pageNumber, section, pageMetrics),
+                                        )}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+                <PdfDragSelectionLayer
+                    enabled={dragMode}
+                    pages={pages}
+                    pageMetrics={pageMetrics}
+                    activeSplit={activeSplit}
+                    splitToolbarHeight={splitToolbarHeight}
+                    pageContainerRef={pageContainerRef}
+                    onSelectionComplete={onDragSelection}
+                />
+            </div>
         </Document>
     );
 }
