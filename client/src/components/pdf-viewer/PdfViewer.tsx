@@ -64,6 +64,12 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
                     textWrappingEnabled={textWrapping}
                     onDragSelection={(result) => {
                         console.log("Selected:", result);
+
+                        // Open split toolbar below the selected area
+                        setActiveSplit({
+                            pageNumber: result.page,
+                            splitRatio: result.ratios.y + result.ratios.height,
+                        });
                         
                         // Convert DragSelectionResult to SectionData
                         if (onSectionAdd) {
