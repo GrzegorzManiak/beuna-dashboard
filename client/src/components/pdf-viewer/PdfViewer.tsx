@@ -16,6 +16,7 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
     const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
     const [dragMode, setDragMode] = useState(false);
+    const [textWrapping, setTextWrapping] = useState(false);
 
     return (
         <div className="bg-red-500 flex items-start justify-center relative">
@@ -28,13 +29,26 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
                 setActiveSectionId={setActiveSectionId}
             />
             <div className="relative">
-                <button
-                    type="button"
-                    onClick={() => setDragMode((prev) => !prev)}
-                    className="absolute right-4 top-4 z-50 rounded bg-white/90 px-3 py-1 text-xs text-gray-900 shadow border border-gray-200"
-                >
-                    {dragMode ? "Stop Selection" : "Select Text"}
-                </button>
+                <div className="absolute right-4 top-4 z-50 flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setTextWrapping((prev) => !prev)}
+                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${
+                            textWrapping ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
+                        }`}
+                    >
+                        {textWrapping ? "Wrap Enabled" : "Wrap Disabled"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setDragMode((prev) => !prev)}
+                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${
+                            dragMode ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
+                        }`}
+                    >
+                        {dragMode ? "Stop Selection" : "Select Text"}
+                    </button>
+                </div>
                 <PdfRenderer
                     pdfUrl={pdfUrl}
                     pdfScale={pdfScale}
@@ -47,6 +61,7 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
                     setSplitToolbarHeight={setSplitToolbarHeight}
                     activeSectionId={activeSectionId}
                     dragMode={dragMode}
+                    textWrappingEnabled={textWrapping}
                     onDragSelection={(result) => {
                         console.log("Selected:", result);
                         

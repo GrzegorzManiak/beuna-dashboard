@@ -33,6 +33,7 @@ type PdfRendererProps = {
     setSplitToolbarHeight: Dispatch<SetStateAction<number>>;
     activeSectionId: string | null;
     dragMode?: boolean;
+    textWrappingEnabled?: boolean;
     onDragSelection?: (result: DragSelectionResult) => void;
 };
 
@@ -51,6 +52,7 @@ function PdfRenderer({
     setSplitToolbarHeight,
     activeSectionId,
     dragMode = false,
+    textWrappingEnabled,
     onDragSelection,
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
@@ -165,6 +167,7 @@ function PdfRenderer({
                 </div>
                 <PdfDragSelectionLayer
                     enabled={dragMode}
+                    textWrappingEnabled={textWrappingEnabled}
                     pages={pages}
                     pageMetrics={pageMetrics}
                     activeSplit={activeSplit}

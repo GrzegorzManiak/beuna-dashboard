@@ -14,6 +14,7 @@ import { clamp } from "./utils";
 
 type PdfDragSelectionLayerProps = {
     enabled: boolean;
+    textWrappingEnabled?: boolean;
     pages: number[];
     pageMetrics: Record<number, PageMetrics>;
     activeSplit: ActiveSplit;
@@ -24,6 +25,7 @@ type PdfDragSelectionLayerProps = {
 
 function PdfDragSelectionLayer({
     enabled,
+    textWrappingEnabled,
     pages,
     pageMetrics,
     activeSplit,
@@ -421,20 +423,60 @@ function PdfDragSelectionLayer({
                     height: item.intersectionHeight,
                 }));
 
+            // --- Text Wrapping Logic ---
+            let finalRectX = x;
+            let finalRectY = y;
+            let finalRectWidth = width;
+            let finalRectHeight = height;
+
+            if (textWrappingEnabled && textRects.length > 0) {
+                const PADDING = 3;
+                let minCLeft = Infinity;
+                let minCTop = Infinity;
+                let maxCRight = -Infinity;
+                let maxCBottom = -Infinity;
+
+                textRects.forEach((r) => {
+                    minCLeft = Math.min(minCLeft, r.left);
+                    minCTop = Math.min(minCTop, r.top);
+                    maxCRight = Math.max(maxCRight, r.left + r.width);
+                    maxCBottom = Math.max(maxCBottom, r.top + r.height);
+                });
+
+                // Apply Padding
+                minCLeft = Math.max(0, minCLeft - PADDING);
+                minCTop = Math.max(0, minCTop - PADDING);
+                maxCRight += PADDING;
+                maxCBottom += PADDING;
+
+                // X is same in local/container if we assume pages are full width & aligned left=0
+                // Y needs conversion: Container -> Local
+                const localYTop = getLocalYForPage(dragSelection.page, minCTop);
+                const localYBottom = getLocalYForPage(dragSelection.page, maxCBottom);
+
+                if (localYTop !== null && localYBottom !== null) {
+                    finalRectX = minCLeft;
+                    finalRectY = localYTop;
+                    finalRectWidth = maxCRight - minCLeft;
+                    finalRectHeight = localYBottom - localYTop;
+                }
+            }
+            // ---------------------------
+
             onSelectionComplete?.({
                 page: dragSelection.page,
                 // Return normalized coordinates (original PDF / unscaled)
                 rect: { 
-                    x: originalX, 
-                    y: originalY, 
-                    width: originalWidth, 
-                    height: originalHeight 
+                    x: finalRectX / scale, 
+                    y: finalRectY / scale, 
+                    width: finalRectWidth / scale, 
+                    height: finalRectHeight / scale 
                 },
                 ratios: {
-                    x: x / pageWidthPx,
-                    y: y / metrics.height,
-                    width: width / pageWidthPx,
-                    height: height / metrics.height,
+                    x: finalRectX / pageWidthPx,
+                    y: finalRectY / metrics.height,
+                    width: finalRectWidth / pageWidthPx,
+                    height: finalRectHeight / metrics.height,
                 },
                 text: selectedText,
                 textRects,
