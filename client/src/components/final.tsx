@@ -7,6 +7,7 @@ import { Separator } from "./ui/separator";
 const PAGE_DIVIDER_HEIGHT = 1;
 const SIDEBAR_CARD_HEIGHT = 32; // h-8 = 32px
 const SIDEBAR_CARD_GAP = 8; // gap-2 approx
+const SELECTION_OFFSET = SIDEBAR_CARD_HEIGHT / 2;
 
 // Section stuff START
 type SectionPosition = {
@@ -185,7 +186,7 @@ function PdfPageRenderer({
         }
     }, [onRenderSuccess]);
 
-    return (<span
+    return (<div
         className="relative"
         data-page-number={pageNumber}
     >
@@ -215,7 +216,7 @@ function PdfPageRenderer({
             renderedSections={renderedSections}
             activeSectionId={activeSectionId}
         />
-    </span>);
+    </div>);
 }
 
 type PdfSplitToolbarProps = {
@@ -395,10 +396,12 @@ function SectionBar({
             }
 
             let visualY = rawY + PAGE_DIVIDER_HEIGHT;
+            let scaledX = 0;
 
             if (metrics) {
                 const scaledY = section.textPosition.y * metrics.scale;
                 visualY += scaledY;
+                scaledX = section.textPosition.x * metrics.scale;
 
                 if (activeSplit?.pageNumber === pageNumber) {
                     const splitY = metrics.height * activeSplit.splitRatio;
@@ -410,12 +413,11 @@ function SectionBar({
 
             return {
                 ...section,
-                targetTop: visualY,
-                top: visualY,
+                targetTop: visualY - SELECTION_OFFSET,
+                top: visualY - SELECTION_OFFSET,
+                scaledX,
             };
-        }).sort((a, b) => a.targetTop - b.targetTop);
-
-        const activeIndex = activeSectionId ? items.findIndex((item) => item.id === activeSectionId) : -1;
+        }).sort((a, b) => a.targetTop - b.targetTop); const activeIndex = activeSectionId ? items.findIndex((item) => item.id === activeSectionId) : -1;
 
         if (activeIndex >= 0) {
             items[activeIndex].top = items[activeIndex].targetTop;
@@ -450,7 +452,7 @@ function SectionBar({
         return items;
     }, [sectionData, pageMetrics, activeSplit, splitToolbarHeight, activeSectionId]);
 
-    return (<div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex flex-col items-start justify-start px-4">
+    return (<div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex flex-col items-start justify-start px-4 z-20">
         {sidebarItems.map((section) => {
             const isSelected = section.id === activeSectionId;
             return (
@@ -464,6 +466,15 @@ function SectionBar({
                     style={{ top: section.top }}
                 >
                     <span className="text-xs p-1">{section.id}</span>
+                    {/* {isSelected && (
+                        <div
+                            className="absolute top-1/2 left-full h-0.5 bg-blue-600 pointer-events-none"
+                            style={{
+                                width: section.scaledX,
+                                zIndex: -1
+                            }}
+                        />
+                    )} */}
                 </div>
             );
         })}
@@ -477,7 +488,7 @@ export function Final() {
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
     return <>
-        <div className="w-full bg-gray-300 flex items-start justify-center">
+        <div className="bg-red-500 flex items-start justify-center">
             <SectionBar
                 sectionData={mockSections}
                 pageMetrics={pageMetrics}
@@ -507,7 +518,10 @@ function calculateSectionStyle(
     section: SectionData,
     pageMetrics: Record<number, PageMetrics>
 ): RenderedSection {
+    const metrics = pageMetrics[pageNumber];
+    const scale = metrics?.scale || 1;
     const startPage = section.textPosition.page[0];
+
     const sectionRect = {
         left: section.textPosition.x,
         width: section.textPosition.width,
@@ -519,17 +533,18 @@ function calculateSectionStyle(
 
     // Logic to calculate top/height for multi-page spanning
     if (pageNumber === startPage) {
-        sectionRect.top = section.textPosition.y;
+        sectionRect.top = section.textPosition.y * scale;
 
         // Simple case: height is rest of section
         // For multi-page, on the first page, we take all the height 
         // until the bottom of the page.
-        const pageHeight = pageMetrics[pageNumber]?.height || 0;
-        const availableHeight = Math.max(0, pageHeight - section.textPosition.y);
+        const pageOriginalHeight = metrics?.originalHeight || 0;
+        const availableHeight = Math.max(0, pageOriginalHeight - section.textPosition.y);
 
         // If height is small enough to fit on page, use it.
         // Otherwise take available space.
-        sectionRect.height = Math.min(section.textPosition.height, availableHeight);
+        const unscaledHeight = Math.min(section.textPosition.height, availableHeight);
+        sectionRect.height = unscaledHeight * scale;
     } else {
         // Subsequent pages
         sectionRect.top = 0; // Starts at top
@@ -542,20 +557,21 @@ function calculateSectionStyle(
             const m = pageMetrics[currentPage];
             if (m) {
                 if (currentPage === startPage) {
-                    const consumed = Math.max(0, m.height - section.textPosition.y);
+                    const consumed = Math.max(0, m.originalHeight - section.textPosition.y);
                     remainingHeight -= consumed;
                 }
-                else remainingHeight -= m.height;
+                else remainingHeight -= m.originalHeight;
             }
             currentPage++;
         }
 
         // On this page, we take remaining height or full page height
-        const pageHeight = pageMetrics[pageNumber]?.height || 0;
-        sectionRect.height = Math.min(Math.max(0, remainingHeight), pageHeight);
+        const pageOriginalHeight = metrics?.originalHeight || 0;
+        const unscaledHeight = Math.min(Math.max(0, remainingHeight), pageOriginalHeight);
 
         // If remaining height is <= 0 (metrics might be missing or logic off), hide it
         if (remainingHeight <= 0) sectionRect.height = 0;
+        else sectionRect.height = unscaledHeight * scale;
     }
 
     return {
