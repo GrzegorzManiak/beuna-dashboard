@@ -8,9 +8,18 @@ interface PdfViewerProps {
     pdfScale?: number;
     sections: SectionData[];
     onSectionAdd?: (section: SectionData) => void;
+    autoSplitOnSelection?: boolean;
+    autoSplitOnSectionClick?: boolean;
 }
 
-export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: PdfViewerProps) {
+export function PdfViewer({ 
+    pdfUrl, 
+    pdfScale = 0.7, 
+    sections, 
+    onSectionAdd,
+    autoSplitOnSelection = true,
+    autoSplitOnSectionClick = true
+}: PdfViewerProps) {
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [activeSplit, setActiveSplit] = useState<ActiveSplit>(null);
     const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
@@ -26,7 +35,34 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
                 activeSplit={activeSplit}
                 splitToolbarHeight={splitToolbarHeight}
                 activeSectionId={activeSectionId}
-                setActiveSectionId={setActiveSectionId}
+                setActiveSectionId={(id) => {
+                    setActiveSectionId(id);
+                    if (id && autoSplitOnSectionClick) {
+                        const section = sections.find((s) => s.id === id);
+                        if (section && section.textPosition.page.length > 0) {
+                            const pageNumber = section.textPosition.page[0];
+                            const metrics = pageMetrics[pageNumber];
+                            if (metrics) {
+                                // Calculate split ratio: (y + height) / originalHeight
+                                // Note: textPosition is in original PDF coordinates
+                                const splitRatio = (section.textPosition.y + section.textPosition.height) / metrics.originalHeight;
+                                setActiveSplit({
+                                    pageNumber,
+                                    splitRatio: Math.min(splitRatio, 1),
+                                });
+
+                                // Basic scroll into view logic (optional, for better UX)
+                                const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
+                                if (element) {
+                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                            }
+                        }
+                    } else if (id === null) {
+                        // Optional: Clear split when deselected? 
+                        // For now keeping it simple.
+                    }
+                }}
             />
             <div className="relative">
                 <div className="absolute right-4 top-4 z-50 flex gap-2">
@@ -66,10 +102,12 @@ export function PdfViewer({ pdfUrl, pdfScale = 0.7, sections, onSectionAdd }: Pd
                         console.log("Selected:", result);
 
                         // Open split toolbar below the selected area
-                        setActiveSplit({
-                            pageNumber: result.page,
-                            splitRatio: result.ratios.y + result.ratios.height,
-                        });
+                        if (autoSplitOnSelection) {
+                            setActiveSplit({
+                                pageNumber: result.page,
+                                splitRatio: result.ratios.y + result.ratios.height,
+                            });
+                        }
                         
                         // Convert DragSelectionResult to SectionData
                         if (onSectionAdd) {
