@@ -25,6 +25,24 @@ function SectionBar({
     activeSectionId,
     setActiveSectionId,
 }: SectionBarProps) {
+    const getStateClasses = (state: SectionData["state"], isSelected: boolean) => {
+        switch (state) {
+            case "valid":
+                return isSelected
+                    ? "border-emerald-500 bg-emerald-500/40 z-10 scale-105"
+                    : "border-emerald-500 bg-emerald-500/20 hover:bg-emerald-500/30";
+            case "processing":
+                return isSelected
+                    ? "border-amber-500 bg-amber-500/40 z-10 scale-105 animate-pulse"
+                    : "border-amber-400 bg-amber-400/20 hover:bg-amber-400/30 animate-pulse";
+            case "unknown":
+            default:
+                return isSelected
+                    ? "border-blue-500 bg-blue-500/40 z-10 scale-105"
+                    : "border-blue-500 bg-blue-500/20 hover:bg-blue-500/30";
+        }
+    };
+
     const sidebarItems = useMemo(() => {
         const items = sectionData
             .map((section) => {
@@ -108,7 +126,7 @@ function SectionBar({
     }, [sectionData, pageMetrics, activeSplit, splitToolbarHeight, activeSectionId]);
 
     return (
-        <div className="relative w-full grow self-stretch max-w-60 bg-gray-200 flex flex-col items-start justify-start px-4 z-20">
+        <div className="relative w-full grow self-stretch max-w-60 flex flex-col items-start justify-start z-20">
             {sidebarItems.map((section) => {
                 const isSelected = section.id === activeSectionId;
                 return (
@@ -116,14 +134,12 @@ function SectionBar({
                         key={section.id}
                         onClick={() => setActiveSectionId(section.id)}
                         className={cn(
-                            "border border-blue-500 rounded absolute h-8 w-30 cursor-pointer transition-all duration-300",
-                            isSelected
-                                ? "bg-blue-500/40 z-10 scale-105"
-                                : "bg-blue-500/20 hover:bg-blue-500/30",
+                            "border rounded absolute h-8 w-full cursor-pointer transition-all duration-300",
+                            getStateClasses(section.state, isSelected),
                         )}
                         style={{ top: section.top }}
                     >
-                        <span className="text-xs p-1">{section.id}</span>
+                        <span className="text-xs p-1 w-full">{section.id}</span>
                         {/* {isSelected && (
                             <div
                                 className="absolute top-1/2 left-full h-0.5 bg-blue-600 pointer-events-none"

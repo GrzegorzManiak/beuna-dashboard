@@ -2,10 +2,12 @@ import { useState } from "react";
 import { PdfViewer } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 
-const mockSections: SectionData[] = [
+export const mockSections: SectionData[] = [
     // Simple Single Page Section
     {
         id: "section-1",
+        state: "valid",
+        sectionType: "overview",
         textPosition: {
             page: [1],
             x: 100,
@@ -17,6 +19,7 @@ const mockSections: SectionData[] = [
     // Split Area Section (Spans across split)
     {
         id: "section-2",
+        sectionType: "details",
         textPosition: {
             page: [1],
             x: 100,
@@ -28,6 +31,7 @@ const mockSections: SectionData[] = [
     // Multi-Page Section
     {
         id: "section-3",
+        sectionType: "content",
         textPosition: {
             page: [1, 2],
             x: 300,
@@ -39,6 +43,7 @@ const mockSections: SectionData[] = [
     // Triple-Page Section
     {
         id: "section-4",
+        sectionType: "appendix",
         textPosition: {
             page: [1, 2, 3],
             x: 550,
@@ -60,6 +65,13 @@ export default function PdfTest() {
                 sections={sections}
                 onSectionAdd={(newSection) => {
                     setSections((prev) => [...prev, newSection]);
+                }}
+                onSectionUpdate={(sectionId, updates) => {
+                    setSections((prev) =>
+                        prev.map((section) =>
+                            section.id === sectionId ? { ...section, ...updates } : section,
+                        ),
+                    );
                 }}
             />
         </div>

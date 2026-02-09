@@ -11,6 +11,8 @@ type SectionPosition = {
 type SectionData = {
     id: string;
     textPosition: SectionPosition;
+    state?: "valid" | "unknown" | "processing";
+    sectionType?: string;
 };
 
 type RenderedSection = {
@@ -18,6 +20,8 @@ type RenderedSection = {
     hasTopBorder: boolean;
     hasBottomBorder: boolean;
     style: CSSProperties;
+    state?: "valid" | "unknown" | "processing";
+    sectionType?: string;
 };
 
 type PageMetrics = {

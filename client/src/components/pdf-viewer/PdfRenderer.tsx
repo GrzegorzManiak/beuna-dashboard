@@ -121,10 +121,16 @@ function PdfRenderer({
                         const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
                         const metrics = pageMetrics[pageNumber];
                         const pageHeight = metrics ? metrics.height : 0;
+                        const pageSections = sectionData.filter((section) =>
+                            section.textPosition.page.includes(pageNumber),
+                        );
                         const splitContent = pageCurrentlySplit ? (
                             <PdfSplitToolbar
                                 closeSplit={closeSplit}
                                 splitToolbarRef={onSplitToolbarRefChange}
+                                sections={pageSections}
+                                activeSectionId={activeSectionId}
+                                pageNumber={pageNumber}
                             />
                         ) : null;
 

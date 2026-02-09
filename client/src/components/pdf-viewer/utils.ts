@@ -1,4 +1,4 @@
-import type { PageMetrics, RenderedSection, SectionData } from "./types";
+import type { ActiveSplit, PageMetrics, RenderedSection, SectionData } from "./types";
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -67,6 +67,8 @@ function calculateSectionStyle(
 
     return {
         id: section.id,
+        state: section.state,
+        sectionType: section.sectionType,
         hasTopBorder: sectionRect.hasTopBorder,
         hasBottomBorder: sectionRect.hasBottomBorder,
         style: {
@@ -78,7 +80,40 @@ function calculateSectionStyle(
     };
 }
 
+function handleAutoSplit(
+    sectionId: string | null,
+    sections: SectionData[],
+    pageMetrics: Record<number, PageMetrics>,
+    setActiveSplit: (split: ActiveSplit) => void
+) {
+    if (!sectionId) return;
+
+    const section = sections.find((s) => s.id === sectionId);
+    if (section && section.textPosition.page.length > 0) {
+        const pageNumber = section.textPosition.page[0];
+        const metrics = pageMetrics[pageNumber];
+        if (metrics) {
+            // Calculate split ratio: (y + height) / originalHeight
+            // Note: textPosition is in original PDF coordinates
+            const splitRatio = (section.textPosition.y + section.textPosition.height) / metrics.originalHeight;
+            setActiveSplit({ pageNumber, splitRatio: Math.min(splitRatio, 1), });
+
+            // Basic scroll into view logic (optional, for better UX)
+            // Scroll to the split toolbar after a short delay to allow it to render
+            setTimeout(() => {
+                const splitElement = document.getElementById('pdf-split-toolbar');
+                if (splitElement) splitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                else {
+                    const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
+                    if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+                }
+            }, 100);
+        }
+    }
+}
+
 export {
+    clamp,
     calculateSectionStyle,
-    clamp
+    handleAutoSplit,
 }

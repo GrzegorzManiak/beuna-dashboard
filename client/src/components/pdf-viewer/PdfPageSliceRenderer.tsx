@@ -36,7 +36,7 @@ function PdfPageSliceRenderer({
         >
             <div
                 ref={containerRef}
-                className="relative"
+                className="relative border-0"
                 style={{ transform: `translateY(-${offset}px)` }}
             >
                 <Page
@@ -45,7 +45,10 @@ function PdfPageSliceRenderer({
                     pageNumber={pageNumber}
                 />
 
-                <SectionHighlights sections={renderedSections} activeSectionId={activeSectionId} />
+                <SectionHighlights 
+                    sections={renderedSections} 
+                    activeSectionId={activeSectionId} 
+                />
             </div>
         </div>
     );

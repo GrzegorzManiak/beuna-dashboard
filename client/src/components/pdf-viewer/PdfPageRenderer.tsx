@@ -48,7 +48,7 @@ function PdfPageRenderer({
     );
 
     return (
-        <div className="relative" data-page-number={pageNumber}>
+        <div className="relative border-x" data-page-number={pageNumber}>
             {/* TOP Page Slice */}
             <PdfPageSliceRenderer
                 pageNumber={pageNumber}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { PdfRenderer } from "./PdfRenderer";
 import { SectionBar } from "./SectionBar";
+import { handleAutoSplit } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 
 interface PdfViewerProps {
@@ -8,6 +9,7 @@ interface PdfViewerProps {
     pdfScale?: number;
     sections: SectionData[];
     onSectionAdd?: (section: SectionData) => void;
+    onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
 }
@@ -17,8 +19,9 @@ export function PdfViewer({
     pdfScale = 0.7, 
     sections, 
     onSectionAdd,
+    onSectionUpdate,
     autoSplitOnSelection = true,
-    autoSplitOnSectionClick = true
+    autoSplitOnSectionClick = true,
 }: PdfViewerProps) {
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [activeSplit, setActiveSplit] = useState<ActiveSplit>(null);
@@ -28,7 +31,7 @@ export function PdfViewer({
     const [textWrapping, setTextWrapping] = useState(false);
 
     return (
-        <div className="bg-red-500 flex items-start justify-center relative">
+        <div className="flex items-start justify-center relative h-full ">
             <SectionBar
                 sectionData={sections}
                 pageMetrics={pageMetrics}
@@ -37,43 +40,12 @@ export function PdfViewer({
                 activeSectionId={activeSectionId}
                 setActiveSectionId={(id) => {
                     setActiveSectionId(id);
-                    if (id && autoSplitOnSectionClick) {
-                        const section = sections.find((s) => s.id === id);
-                        if (section && section.textPosition.page.length > 0) {
-                            const pageNumber = section.textPosition.page[0];
-                            const metrics = pageMetrics[pageNumber];
-                            if (metrics) {
-                                // Calculate split ratio: (y + height) / originalHeight
-                                // Note: textPosition is in original PDF coordinates
-                                const splitRatio = (section.textPosition.y + section.textPosition.height) / metrics.originalHeight;
-                                setActiveSplit({
-                                    pageNumber,
-                                    splitRatio: Math.min(splitRatio, 1),
-                                });
-
-                                // Basic scroll into view logic (optional, for better UX)
-                                // Scroll to the split toolbar after a short delay to allow it to render
-                                setTimeout(() => {
-                                    const splitElement = document.getElementById('pdf-split-toolbar');
-                                    if (splitElement) {
-                                        splitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    } else {
-                                        // Fallback to scrolling the page into view if split not found
-                                        const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
-                                        if (element) {
-                                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        }
-                                    }
-                                }, 100);
-                            }
-                        }
-                    } else if (id === null) {
-                        // Optional: Clear split when deselected? 
-                        // For now keeping it simple.
-                    }
+                    if (id && autoSplitOnSectionClick) 
+                        handleAutoSplit(id, sections, pageMetrics, setActiveSplit);
+                    else if (id === null) {}
                 }}
             />
-            <div className="relative">
+            <div className="relative ">
                 <div className="absolute right-4 top-4 z-50 flex gap-2">
                     <button
                         type="button"
@@ -122,6 +94,8 @@ export function PdfViewer({
                         if (onSectionAdd) {
                             const newSection: SectionData = {
                                 id: `section-${Date.now()}`, // Or some ID generation logic
+                                sectionType: "identifying",
+                                state: "processing",
                                 textPosition: {
                                     page: [result.page],
                                     x: result.rect.x,
@@ -131,7 +105,18 @@ export function PdfViewer({
                                 }
                             };
                             onSectionAdd(newSection);
+                            setActiveSectionId(newSection.id);
                             setDragMode(false); // Optionally turn off drag mode after selection
+
+                            if (onSectionUpdate) {
+                                // Mock API classification: move from identifying -> unknown
+                                window.setTimeout(() => {
+                                    onSectionUpdate(newSection.id, {
+                                        sectionType: "unknown",
+                                        state: "unknown",
+                                    });
+                                }, 1200);
+                            }
                         }
                     }}
                 />
