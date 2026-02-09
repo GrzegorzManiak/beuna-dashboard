@@ -144,7 +144,7 @@ function PdfRenderer({
             error={error ?? "Failed to load PDF."}
         >
             <div className="relative">
-                <div ref={pageContainerRef} className="flex w-full flex-col">
+                <div ref={pageContainerRef} className="flex flex-col">
                     {pages.map((pageNumber) => {
                         const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
                         const metrics = pageMetrics[pageNumber];

@@ -5,6 +5,7 @@ export { PdfSplitToolbar } from "./PdfSplitToolbar";
 export { PdfDragSelectionLayer } from "./PdfDragSelectionLayer";
 export { SectionBar } from "./SectionBar";
 export { SectionHighlights } from "./SectionHighlights";
+export { Checklist } from "./checklist";
 export { calculateSectionStyle } from "./utils";
 export * from "./constants";
 export * from "./types";

@@ -138,18 +138,22 @@ function SectionBar({
     }, [sectionData, pageMetrics, activeSplit, splitToolbarHeight, activeSectionId]);
 
     return (
-        <div className="relative w-full grow self-stretch max-w-60 flex flex-col items-start justify-start z-20">
+        <div className="relative w-full grow self-stretch max-w-60 flex flex-col items-start justify-start z-10">
             {sidebarItems.map((section) => {
                 const isSelected = section.id === activeSectionId;
                 return (
                     <div
                         key={section.id}
                         onClick={() => setActiveSectionId(section.id)}
+                        
                         className={cn(
-                            "border rounded absolute h-8 w-full cursor-pointer transition-all duration-300",
+                            "border rounded absolute h-8 w-27 cursor-pointer transition-all duration-300 border-l-0 rounded-l-none pl-2",
                             getStateClasses(section.state, isSelected),
                         )}
-                        style={{ top: section.top }}
+                        style={{ 
+                            top: section.top,
+                            transform: ``,
+                        }}
                     >
                         <span className="text-xs p-1 w-full">{section.id}</span>
                         {/* {isSelected && (

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
-import { PdfViewer } from "@/components/pdf-viewer";
+import { PdfViewer, Checklist } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 import { mockSections } from "./pdf-test";
 
@@ -331,9 +331,11 @@ function PropertyDetailsStep({ onNext, onBack }: { onNext: () => void; onBack: (
 
 function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
     const [sections, setSections] = useState<SectionData[]>(mockSections);
+    const [propertyType] = useState<"WEG" | "MV">("WEG");
 
     return (
-            <div className="w-full relative h-[80vh] overflow-auto">
+        <div className=" flex gap-4">
+            <div className=" max-h-[80vh] overflow-y-scroll">
                 <PdfViewer
                     pdfUrl="/test.pdf"
                     pdfScale={1}
@@ -353,6 +355,10 @@ function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
                     }}
                 />
             </div>
+            <div className="w-80 shrink-0 overflow-auto">
+                <Checklist sections={sections} propertyType={propertyType} />
+            </div>
+        </div>
         // <Card className="w-full h-[80vh] max-w-8xl flex flex-col p-0 overflow-hidden">
       
         //     <CardFooter className="flex gap-4 bg-white pt-4 pb-6 border-t z-10 shrink-0">

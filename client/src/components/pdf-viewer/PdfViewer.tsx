@@ -16,10 +16,10 @@ interface PdfViewerProps {
     autoSplitOnSectionClick?: boolean;
 }
 
-export function PdfViewer({ 
-    pdfUrl, 
-    pdfScale = 0.7, 
-    sections, 
+export function PdfViewer({
+    pdfUrl,
+    pdfScale = 0.7,
+    sections,
     onSectionAdd,
     onSectionUpdate,
     onSectionDelete,
@@ -46,33 +46,34 @@ export function PdfViewer({
         onSectionDelete?.(sectionId);
     };
 
-    return (
+    return (<>
+    <div >
+        <SectionBar
+            sectionData={sections}
+            pageMetrics={pageMetrics}
+            activeSplit={activeSplit}
+            splitToolbarHeight={splitToolbarHeight}
+            activeSectionId={activeSectionId}
+            setActiveSectionId={handleSectionSelect}
+        />
+        </div>
         <div className="flex items-start justify-center relative h-full ">
-            <SectionBar
-                sectionData={sections}
-                pageMetrics={pageMetrics}
-                activeSplit={activeSplit}
-                splitToolbarHeight={splitToolbarHeight}
-                activeSectionId={activeSectionId}
-                setActiveSectionId={handleSectionSelect}
-            />
+
             <div className="relative ">
                 <div className="absolute right-4 top-4 z-50 flex gap-2">
                     <button
                         type="button"
                         onClick={() => setTextWrapping((prev) => !prev)}
-                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${
-                            textWrapping ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
-                        }`}
+                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${textWrapping ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
+                            }`}
                     >
                         {textWrapping ? "Wrap Enabled" : "Wrap Disabled"}
                     </button>
                     <button
                         type="button"
                         onClick={() => setDragMode((prev) => !prev)}
-                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${
-                            dragMode ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
-                        }`}
+                        className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${dragMode ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
+                            }`}
                     >
                         {dragMode ? "Stop Selection" : "Select Text"}
                     </button>
@@ -104,7 +105,7 @@ export function PdfViewer({
                                 splitRatio: result.ratios.y + result.ratios.height,
                             });
                         }
-                        
+
                         // Convert DragSelectionResult to SectionData
                         if (onSectionAdd) {
                             const newSection: SectionData = {
@@ -136,5 +137,5 @@ export function PdfViewer({
                 />
             </div>
         </div>
-    );
+    </>);
 }
