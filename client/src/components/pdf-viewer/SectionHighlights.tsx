@@ -13,10 +13,22 @@ function SectionHighlights({ sections, activeSectionId }: SectionHighlightsProps
                 return isActive
                     ? "border-emerald-600 bg-emerald-500/40 z-10"
                     : "border-emerald-500 bg-emerald-500/20";
+            case "needs_review":
+                return isActive
+                    ? "border-amber-600 bg-amber-500/40 z-10"
+                    : "border-amber-500 bg-amber-500/20";
+            case "conflict":
+                return isActive
+                    ? "border-red-600 bg-red-500/40 z-10"
+                    : "border-red-500 bg-red-500/20";
             case "processing":
                 return isActive
                     ? "border-amber-600 bg-amber-500/40 z-10 animate-pulse"
                     : "border-amber-400 bg-amber-400/20 animate-pulse";
+            case "identifying":
+                return isActive
+                    ? "border-indigo-600 bg-indigo-500/40 z-10 animate-pulse"
+                    : "border-indigo-500 bg-indigo-500/20 animate-pulse";
             case "unknown":
             default:
                 return isActive

@@ -9,7 +9,12 @@ import { PAGE_DIVIDER_HEIGHT } from "./constants";
 import { PdfDragSelectionLayer } from "./PdfDragSelectionLayer";
 import { PdfPageRenderer } from "./PdfPageRenderer";
 import { PdfSplitToolbar } from "./PdfSplitToolbar";
-import type { ActiveSplit, DragSelectionResult, PageMetrics, SectionData } from "./types";
+import type {
+    ActiveSplit,
+    DragSelectionResult,
+    PageMetrics,
+    SectionData,
+} from "./types";
 import { calculateSectionStyle } from "./utils";
 
 // Setup PDF worker
@@ -32,6 +37,9 @@ type PdfRendererProps = {
     splitToolbarHeight: number;
     setSplitToolbarHeight: Dispatch<SetStateAction<number>>;
     activeSectionId: string | null;
+    onActiveSectionChange?: (sectionId: string | null) => void;
+    onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
+    propertyType?: "WEG" | "MV";
     dragMode?: boolean;
     textWrappingEnabled?: boolean;
     onDragSelection?: (result: DragSelectionResult) => void;
@@ -51,6 +59,9 @@ function PdfRenderer({
     splitToolbarHeight,
     setSplitToolbarHeight,
     activeSectionId,
+    onActiveSectionChange,
+    onSectionUpdate,
+    propertyType,
     dragMode = false,
     textWrappingEnabled,
     onDragSelection,
@@ -121,15 +132,15 @@ function PdfRenderer({
                         const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
                         const metrics = pageMetrics[pageNumber];
                         const pageHeight = metrics ? metrics.height : 0;
-                        const pageSections = sectionData.filter((section) =>
-                            section.textPosition.page.includes(pageNumber),
-                        );
                         const splitContent = pageCurrentlySplit ? (
                             <PdfSplitToolbar
                                 closeSplit={closeSplit}
                                 splitToolbarRef={onSplitToolbarRefChange}
-                                sections={pageSections}
+                                sections={sectionData}
                                 activeSectionId={activeSectionId}
+                                onActiveSectionChange={onActiveSectionChange}
+                                onSectionUpdate={onSectionUpdate}
+                                propertyType={propertyType}
                                 pageNumber={pageNumber}
                             />
                         ) : null;

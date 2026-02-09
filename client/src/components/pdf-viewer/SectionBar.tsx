@@ -31,10 +31,22 @@ function SectionBar({
                 return isSelected
                     ? "border-emerald-500 bg-emerald-500/40 z-10 scale-105"
                     : "border-emerald-500 bg-emerald-500/20 hover:bg-emerald-500/30";
+            case "needs_review":
+                return isSelected
+                    ? "border-amber-500 bg-amber-500/40 z-10 scale-105"
+                    : "border-amber-500 bg-amber-500/20 hover:bg-amber-500/30";
+            case "conflict":
+                return isSelected
+                    ? "border-red-500 bg-red-500/40 z-10 scale-105"
+                    : "border-red-500 bg-red-500/20 hover:bg-red-500/30";
             case "processing":
                 return isSelected
                     ? "border-amber-500 bg-amber-500/40 z-10 scale-105 animate-pulse"
                     : "border-amber-400 bg-amber-400/20 hover:bg-amber-400/30 animate-pulse";
+            case "identifying":
+                return isSelected
+                    ? "border-indigo-500 bg-indigo-500/40 z-10 scale-105 animate-pulse"
+                    : "border-indigo-400 bg-indigo-400/20 hover:bg-indigo-400/30 animate-pulse";
             case "unknown":
             default:
                 return isSelected

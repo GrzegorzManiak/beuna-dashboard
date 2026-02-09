@@ -10,6 +10,7 @@ interface PdfViewerProps {
     sections: SectionData[];
     onSectionAdd?: (section: SectionData) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
+    propertyType?: "WEG" | "MV";
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
 }
@@ -20,6 +21,7 @@ export function PdfViewer({
     sections, 
     onSectionAdd,
     onSectionUpdate,
+    propertyType = "WEG",
     autoSplitOnSelection = true,
     autoSplitOnSectionClick = true,
 }: PdfViewerProps) {
@@ -77,6 +79,9 @@ export function PdfViewer({
                     splitToolbarHeight={splitToolbarHeight}
                     setSplitToolbarHeight={setSplitToolbarHeight}
                     activeSectionId={activeSectionId}
+                    onActiveSectionChange={setActiveSectionId}
+                    onSectionUpdate={onSectionUpdate}
+                    propertyType={propertyType}
                     dragMode={dragMode}
                     textWrappingEnabled={textWrapping}
                     onDragSelection={(result) => {
@@ -94,8 +99,8 @@ export function PdfViewer({
                         if (onSectionAdd) {
                             const newSection: SectionData = {
                                 id: `section-${Date.now()}`, // Or some ID generation logic
-                                sectionType: "identifying",
-                                state: "processing",
+                                sectionType: "unknown",
+                                state: "identifying",
                                 textPosition: {
                                     page: [result.page],
                                     x: result.rect.x,
@@ -112,7 +117,6 @@ export function PdfViewer({
                                 // Mock API classification: move from identifying -> unknown
                                 window.setTimeout(() => {
                                     onSectionUpdate(newSection.id, {
-                                        sectionType: "unknown",
                                         state: "unknown",
                                     });
                                 }, 1200);

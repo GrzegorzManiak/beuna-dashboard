@@ -8,11 +8,36 @@ type SectionPosition = {
     height: number;
 };
 
+type SectionType =
+    | "core.property_overview"
+    | "core.address"
+    | "core.building"
+    | "core.building_shared_features"
+    | "units.unit_block"
+    | "weg.special_rights_block"
+    | "weg.mea_total_check"
+    | "weg.administration_block"
+    | "mv.owner_entity_block"
+    | "unknown";
+
+type SectionState =
+    | "valid"
+    | "needs_review"
+    | "conflict"
+    | "processing"
+    | "identifying"
+    | "unknown";
+
+type SectionFieldValue = string | number | boolean | null;
+
 type SectionData = {
     id: string;
     textPosition: SectionPosition;
-    state?: "valid" | "unknown" | "processing";
-    sectionType?: string;
+    state?: SectionState;
+    sectionType?: SectionType;
+    subtype?: string;
+    propertyTypeScope?: "WEG" | "MV" | "ANY";
+    fields?: Record<string, SectionFieldValue>;
 };
 
 type RenderedSection = {
@@ -20,8 +45,8 @@ type RenderedSection = {
     hasTopBorder: boolean;
     hasBottomBorder: boolean;
     style: CSSProperties;
-    state?: "valid" | "unknown" | "processing";
-    sectionType?: string;
+    state?: SectionState;
+    sectionType?: SectionType;
 };
 
 type PageMetrics = {
@@ -80,6 +105,9 @@ type TextMatch = {
 };
 
 export type {
+    SectionType,
+    SectionState,
+    SectionFieldValue,
     SectionData,
     RenderedSection,
     PageMetrics,

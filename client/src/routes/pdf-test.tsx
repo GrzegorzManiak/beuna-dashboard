@@ -7,7 +7,12 @@ export const mockSections: SectionData[] = [
     {
         id: "section-1",
         state: "valid",
-        sectionType: "overview",
+        sectionType: "core.property_overview",
+        fields: {
+            propertyName: "Parkside Residences",
+            propertyId: "PK-102",
+            managementTypeHint: "WEG",
+        },
         textPosition: {
             page: [1],
             x: 100,
@@ -19,7 +24,15 @@ export const mockSections: SectionData[] = [
     // Split Area Section (Spans across split)
     {
         id: "section-2",
-        sectionType: "details",
+        sectionType: "core.address",
+        state: "needs_review",
+        fields: {
+            street: "Kaiserstraße",
+            houseNumber: "17A",
+            postalCode: "60311",
+            city: "Frankfurt",
+            country: "DE",
+        },
         textPosition: {
             page: [1],
             x: 100,
@@ -31,7 +44,18 @@ export const mockSections: SectionData[] = [
     // Multi-Page Section
     {
         id: "section-3",
-        sectionType: "content",
+        sectionType: "units.unit_block",
+        state: "needs_review",
+        fields: {
+            unitNumber: "06",
+            unitType: "office",
+            buildingRef: "Haus A",
+            floor: "2",
+            area: 84.2,
+            rooms: "3",
+            meaNumerator: 84,
+            meaDenominator: 1000,
+        },
         textPosition: {
             page: [1, 2],
             x: 300,
@@ -43,7 +67,14 @@ export const mockSections: SectionData[] = [
     // Triple-Page Section
     {
         id: "section-4",
-        sectionType: "appendix",
+        sectionType: "weg.special_rights_block",
+        state: "unknown",
+        fields: {
+            unitRef: "06",
+            rightType: "roof_terrace",
+            description: "Exclusive use of roof terrace",
+            area: 24,
+        },
         textPosition: {
             page: [1, 2, 3],
             x: 550,
