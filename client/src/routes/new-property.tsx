@@ -348,6 +348,9 @@ function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
                             ),
                         );
                     }}
+                    onSectionDelete={(sectionId) => {
+                        setSections((prev) => prev.filter((section) => section.id !== sectionId));
+                    }}
                 />
             </div>
         // <Card className="w-full h-[80vh] max-w-8xl flex flex-col p-0 overflow-hidden">

@@ -1,7 +1,20 @@
 import { useMemo } from "react";
 import type { Ref } from "react";
 import type { SectionData, SectionFieldValue, SectionType } from "./types";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from "../ui/combobox";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+
+type Option = { label: string; value: string };
 
 const SECTION_TYPE_OPTIONS: Array<{ label: string; value: SectionType }> = [
     { label: "Property Overview", value: "core.property_overview" },
@@ -43,7 +56,7 @@ type FieldDef = {
     key: string;
     label: string;
     type: "text" | "number" | "select" | "bool";
-    options?: Array<{ label: string; value: string }>;
+    options?: Option[];
     placeholder?: string;
     hint?: string;
     scope?: "WEG" | "MV" | "ANY";
@@ -52,10 +65,10 @@ type FieldDef = {
 const SECTION_FIELDS: Record<SectionType, FieldDef[]> = {
     "core.property_overview": [
         { key: "propertyName", label: "Property name", type: "text" },
-        { key: "propertyId", label: "Reference", type: "text", placeholder: "Optional" },
+        { key: "propertyId", label: "Internal reference", type: "text", placeholder: "Optional" },
         {
-            key: "managementType",
-            label: "Management type",
+            key: "managementTypeHint",
+            label: "Management type hint",
             type: "select",
             options: MANAGEMENT_HINT_OPTIONS,
             hint: "Optional",
@@ -138,6 +151,7 @@ type PdfSplitToolbarProps = {
     activeSectionId: string | null;
     onActiveSectionChange?: (sectionId: string | null) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
+    onSectionDelete?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     pageNumber: number;
 };
@@ -149,6 +163,7 @@ function PdfSplitToolbar({
     activeSectionId,
     onActiveSectionChange,
     onSectionUpdate,
+    onSectionDelete,
     propertyType = "WEG",
     pageNumber,
 }: PdfSplitToolbarProps) {
@@ -182,6 +197,43 @@ function PdfSplitToolbar({
         onSectionUpdate(activeSection.id, { fields: nextFields });
     };
 
+    const renderCombobox = (
+        field: FieldDef,
+        value: string | undefined,
+        disabled: boolean,
+        onChange: (nextValue: string) => void,
+    ) => {
+        const items = field.options?.map((option) => option.value) ?? [];
+        const labelByValue = new Map(
+            (field.options ?? []).map((option) => [option.value, option.label]),
+        );
+
+        return (
+            <Combobox
+                items={items}
+                value={value}
+                onValueChange={(nextValue) => onChange(nextValue ?? "")}
+                itemToStringLabel={(item) => labelByValue.get(String(item)) ?? String(item)}
+                disabled={disabled}
+            >
+                <ComboboxInput
+                    placeholder={field.placeholder ?? "Select…"}
+                    className="w-full"
+                />
+                <ComboboxContent>
+                    <ComboboxEmpty>No items found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(item) => (
+                            <ComboboxItem key={item} value={item}>
+                                {labelByValue.get(item) ?? item}
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
+        );
+    };
+
     const renderField = (field: FieldDef) => {
         const rawValue = activeSection?.fields?.[field.key];
         const value = rawValue ?? DEFAULT_FIELD_VALUE;
@@ -190,46 +242,43 @@ function PdfSplitToolbar({
         if (field.type === "bool") {
             const checked = Boolean(rawValue);
             return (
-                <label key={field.key} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="text-gray-600">{field.label}</span>
-                    <input
-                        type="checkbox"
-                        checked={checked}
+                <div key={field.key} className="flex items-center justify-between gap-3">
+                    <Label className="text-xs text-gray-600">{field.label}</Label>
+                    <Button
+                        type="button"
+                        size="xs"
+                        variant={checked ? "default" : "outline"}
                         disabled={disabled}
-                        onChange={(event) => updateField(field.key, event.target.checked)}
-                        className="h-4 w-4 accent-emerald-600"
-                    />
-                </label>
+                        onClick={() => updateField(field.key, !checked)}
+                        className="text-[11px]"
+                    >
+                        {checked ? "Yes" : "No"}
+                    </Button>
+                </div>
             );
         }
 
         if (field.type === "select") {
+            const selectValue =
+                value === null || value === undefined || value === "" ? undefined : String(value);
             return (
-                <label key={field.key} className="flex flex-col gap-1 text-xs">
-                    <span className="text-gray-600">{field.label}</span>
-                    <select
-                        value={String(value)}
-                        disabled={disabled}
-                        onChange={(event) => updateField(field.key, event.target.value)}
-                        className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-900"
-                    >
-                        <option value="">Select…</option>
-                        {field.options?.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <div key={field.key} className="flex flex-col gap-1">
+                    <Label className="text-xs text-gray-600">{field.label}</Label>
+                    {renderCombobox(field, selectValue, disabled, (nextValue) =>
+                        updateField(field.key, nextValue),
+                    )}
+                </div>
             );
         }
 
+        const inputValue = value === null || value === undefined ? "" : String(value);
+
         return (
-            <label key={field.key} className="flex flex-col gap-1 text-xs">
-                <span className="text-gray-600">{field.label}</span>
-                <input
+            <div key={field.key} className="flex flex-col gap-1">
+                <Label className="text-xs text-gray-600">{field.label}</Label>
+                <Input
                     type={field.type === "number" ? "number" : "text"}
-                    value={String(value)}
+                    value={inputValue}
                     disabled={disabled}
                     onChange={(event) => {
                         if (field.type === "number") {
@@ -240,9 +289,8 @@ function PdfSplitToolbar({
                         updateField(field.key, event.target.value);
                     }}
                     placeholder={field.placeholder}
-                    className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-900"
                 />
-            </label>
+            </div>
         );
     };
 
@@ -273,13 +321,13 @@ function PdfSplitToolbar({
         }
 
         return (
-            <div className="overflow-hidden rounded-lg border-y border-gray-200">
+            <div className="overflow-hidden rounded-lg border border-gray-200">
                 <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-500">
-                    Unit blocks ({unitSections.length})
+                    {unitSections.length} Unit {unitSections.length > 1 ? "Blocks" : "Block"}
                 </div>
-                <div className="max-h-40 overflow-y-auto">
+                <div className="overflow-y-auto">
                     <table className="w-full text-xs">
-                        <thead className="sticky top-0 bg-white text-[10px] uppercase tracking-wide text-gray-400">
+                        <thead className="bg-white text-[10px] uppercase tracking-wide text-gray-400">
                             <tr>
                                 <th className="px-3 py-2 text-left">Unit</th>
                                 <th className="px-3 py-2 text-left">Type</th>
@@ -328,12 +376,12 @@ function PdfSplitToolbar({
                                             <td className="px-3 py-2 text-right text-gray-600">{meaValue}</td>
                                         ) : null}
                                         <td className="px-3 py-2 text-gray-600">
-                                            <span
-                                                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] ${status?.className ?? "bg-slate-100 text-slate-600"
-                                                    }`}
+                                            <Badge
+                                                variant="outline"
+                                                className={status?.className ?? "bg-slate-100 text-slate-600"}
                                             >
                                                 {status?.label ?? "Unknown"}
-                                            </span>
+                                            </Badge>
                                         </td>
                                     </tr>
                                 );
@@ -345,6 +393,22 @@ function PdfSplitToolbar({
         );
     };
 
+    const handleNext = () => {
+        const candidates = sectionsOnPage.length ? sectionsOnPage : sections;
+        if (!candidates.length) return;
+        const currentId = activeSection?.id ?? candidates[0]?.id;
+        if (!currentId) return;
+        const currentIndex = candidates.findIndex((section) => section.id === currentId);
+        const nextSection = currentIndex >= 0 ? candidates[currentIndex + 1] : candidates[0];
+        if (!nextSection) return;
+        onActiveSectionChange?.(nextSection.id);
+    };
+
+    const handleDelete = () => {
+        if (!activeSection || !onSectionDelete) return;
+        onSectionDelete(activeSection.id);
+    };
+
     return (
         <div
             id="pdf-split-toolbar"
@@ -353,34 +417,36 @@ function PdfSplitToolbar({
         >
             <div className="flex flex-wrap items-center justify-between gap-4 p-4">
                 <div className="flex flex-col gap-1">
-                    <span className="text-sm font-semibold text-gray-900">
-                    </span>
                     <div className="flex flex-wrap items-center gap-2">
-                        <span
-                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] ${stateBadge?.className ?? STATE_BADGES.unknown.className}`}
+                        <Badge
+                            variant="outline"
+                            className={stateBadge?.className ?? STATE_BADGES.unknown.className}
                         >
                             {stateBadge?.label ?? "Unknown"}
+                        </Badge>
+                        <span className="text-sm font-semibold text-gray-900">
+                            {activeSection?.id ?? `Page ${pageNumber}`}
                         </span>
-                        {activeSection?.id ?? `Page ${pageNumber}`}
                     </div>
-
                 </div>
-                <label className="flex flex-col gap-1 text-xs">
-                    <select
-                        value={sectionTypeValue}
-                        onChange={(event) =>
-                            updateSection({ sectionType: event.target.value as SectionType })
-                        }
-                        disabled={!activeSection || !onSectionUpdate}
-                        className="rounded border border-gray-200 bg-white px-2 py-1 text-sm text-gray-900"
-                    >
-                        {SECTION_TYPE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs text-gray-600">Section type</Label>
+                    {renderCombobox(
+                        {
+                            key: "sectionType",
+                            label: "Section type",
+                            type: "select",
+                            options: SECTION_TYPE_OPTIONS.map((option) => ({
+                                label: option.label,
+                                value: option.value,
+                            })),
+                            placeholder: "Select section type",
+                        },
+                        sectionTypeValue,
+                        !activeSection || !onSectionUpdate,
+                        (nextValue) => updateSection({ sectionType: nextValue as SectionType }),
+                    )}
+                </div>
             </div>
 
             <div className="w-full border-t border-gray-200" >
@@ -406,18 +472,23 @@ function PdfSplitToolbar({
                     <Button
                         variant="outline"
                         className="text-lg h-10 px-10 cursor-pointer"
+                        onClick={closeSplit}
                     >
                         Close
                     </Button>
                     <Button
                         variant="destructive"
                         className="text-lg h-10 px-10 cursor-pointer"
+                        onClick={handleDelete}
+                        disabled={!activeSection || !onSectionDelete}
                     >
                         Delete
                     </Button>
                     <Button
                         type="submit"
                         className="grow text-lg h-10 cursor-pointer"
+                        onClick={handleNext}
+                        disabled={!activeSection}
                     >
                         Next
                     </Button>

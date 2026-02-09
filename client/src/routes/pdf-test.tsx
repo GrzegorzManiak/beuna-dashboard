@@ -104,6 +104,9 @@ export default function PdfTest() {
                         ),
                     );
                 }}
+                onSectionDelete={(sectionId) => {
+                    setSections((prev) => prev.filter((section) => section.id !== sectionId));
+                }}
             />
         </div>
     );

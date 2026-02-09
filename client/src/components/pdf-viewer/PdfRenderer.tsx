@@ -39,6 +39,7 @@ type PdfRendererProps = {
     activeSectionId: string | null;
     onActiveSectionChange?: (sectionId: string | null) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
+    onSectionDelete?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     dragMode?: boolean;
     textWrappingEnabled?: boolean;
@@ -61,6 +62,7 @@ function PdfRenderer({
     activeSectionId,
     onActiveSectionChange,
     onSectionUpdate,
+    onSectionDelete,
     propertyType,
     dragMode = false,
     textWrappingEnabled,
@@ -140,6 +142,7 @@ function PdfRenderer({
                                 activeSectionId={activeSectionId}
                                 onActiveSectionChange={onActiveSectionChange}
                                 onSectionUpdate={onSectionUpdate}
+                                onSectionDelete={onSectionDelete}
                                 propertyType={propertyType}
                                 pageNumber={pageNumber}
                             />

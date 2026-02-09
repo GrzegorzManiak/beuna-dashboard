@@ -10,6 +10,7 @@ interface PdfViewerProps {
     sections: SectionData[];
     onSectionAdd?: (section: SectionData) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
+    onSectionDelete?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
@@ -21,6 +22,7 @@ export function PdfViewer({
     sections, 
     onSectionAdd,
     onSectionUpdate,
+    onSectionDelete,
     propertyType = "WEG",
     autoSplitOnSelection = true,
     autoSplitOnSectionClick = true,
@@ -32,6 +34,18 @@ export function PdfViewer({
     const [dragMode, setDragMode] = useState(false);
     const [textWrapping, setTextWrapping] = useState(false);
 
+    const handleSectionSelect = (id: string | null) => {
+        setActiveSectionId(id);
+        if (id && autoSplitOnSectionClick) {
+            handleAutoSplit(id, sections, pageMetrics, setActiveSplit);
+        }
+    };
+
+    const handleSectionDelete = (sectionId: string) => {
+        if (activeSectionId === sectionId) setActiveSectionId(null);
+        onSectionDelete?.(sectionId);
+    };
+
     return (
         <div className="flex items-start justify-center relative h-full ">
             <SectionBar
@@ -40,12 +54,7 @@ export function PdfViewer({
                 activeSplit={activeSplit}
                 splitToolbarHeight={splitToolbarHeight}
                 activeSectionId={activeSectionId}
-                setActiveSectionId={(id) => {
-                    setActiveSectionId(id);
-                    if (id && autoSplitOnSectionClick) 
-                        handleAutoSplit(id, sections, pageMetrics, setActiveSplit);
-                    else if (id === null) {}
-                }}
+                setActiveSectionId={handleSectionSelect}
             />
             <div className="relative ">
                 <div className="absolute right-4 top-4 z-50 flex gap-2">
@@ -79,8 +88,9 @@ export function PdfViewer({
                     splitToolbarHeight={splitToolbarHeight}
                     setSplitToolbarHeight={setSplitToolbarHeight}
                     activeSectionId={activeSectionId}
-                    onActiveSectionChange={setActiveSectionId}
+                    onActiveSectionChange={handleSectionSelect}
                     onSectionUpdate={onSectionUpdate}
+                    onSectionDelete={handleSectionDelete}
                     propertyType={propertyType}
                     dragMode={dragMode}
                     textWrappingEnabled={textWrapping}
