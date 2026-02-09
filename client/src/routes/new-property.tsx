@@ -19,7 +19,8 @@ import {
     FileUp, 
     Grid, 
     Building,
-    Upload
+    Upload,
+    Loader2
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -187,7 +188,7 @@ function PropertyTypePicker({ onNext, onBack }: { onNext: () => void; onBack: ()
             </CardDescription>
 
         </CardHeader>
-        <CardContent className="flex flex-row gap-8">
+        <CardContent className="flex flex-row gap-8 h-full">
             <CardAction className="w-full" onClick={() => setSelectedType("condo")}>
                 <div className={cn(
                     "transition-all rounded-lg border-2 border-transparent cursor-pointer",
@@ -250,8 +251,37 @@ function PropertyTypePicker({ onNext, onBack }: { onNext: () => void; onBack: ()
     );
 }
 
+function ProcessingStep() {
+    return (
+        <Card className="w-full pb-0 max-w-2xl h-120">
+            <CardContent className="flex flex-col items-center justify-center py-12 h-full">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="mb-6"
+                >
+                    <Loader2 className="w-12 h-12 text-emerald-500" />
+                </motion.div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Analyzing Document</h3>
+                <p className="text-gray-500 text-center max-w-sm">
+                    We are extracting property details from your uploaded document. This will just take a moment.
+                </p>
+            </CardContent>
+        </Card>
+    );
+}
+
 function NewProperty() {
     const [step, setStep] = useState(0);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleDocumentUpload = () => {
+        setIsProcessing(true);
+        setTimeout(() => {
+            setIsProcessing(false);
+            setStep(1);
+        }, 2000);
+    };
 
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden">
@@ -259,18 +289,32 @@ function NewProperty() {
             
             <div className="w-full flex justify-center px-4 relative">
                 <AnimatePresence mode="wait">
-                    {step === 0 && (
+                    {step === 0 && !isProcessing && (
                         <motion.div
-                            key="step-0"
+                            key="step-0-upload"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.3 }}
                             className="w-full flex justify-center"
                         >
-                            <UploadDocumentStep onNext={() => setStep(1)} />
+                            <UploadDocumentStep onNext={handleDocumentUpload} />
                         </motion.div>
                     )}
+                    
+                    {step === 0 && isProcessing && (
+                        <motion.div
+                            key="step-0-processing"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.05 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full flex justify-center"
+                        >
+                            <ProcessingStep />
+                        </motion.div>
+                    )}
+
                     {step === 1 && (
                         <motion.div
                             key="step-1"
