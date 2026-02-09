@@ -52,10 +52,19 @@ export function PdfViewer({
                                 });
 
                                 // Basic scroll into view logic (optional, for better UX)
-                                const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
-                                if (element) {
-                                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
+                                // Scroll to the split toolbar after a short delay to allow it to render
+                                setTimeout(() => {
+                                    const splitElement = document.getElementById('pdf-split-toolbar');
+                                    if (splitElement) {
+                                        splitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    } else {
+                                        // Fallback to scrolling the page into view if split not found
+                                        const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
+                                        if (element) {
+                                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                    }
+                                }, 100);
                             }
                         }
                     } else if (id === null) {
