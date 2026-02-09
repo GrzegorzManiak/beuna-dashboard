@@ -74,8 +74,23 @@ function PdfRenderer({
 
     const onSplitToolbarRefChange = useCallback(
         (node: HTMLDivElement | null) => {
-            if (node) setSplitToolbarHeight(node.getBoundingClientRect().height);
-            else setSplitToolbarHeight(0);
+            if (node) {
+                setSplitToolbarHeight(node.getBoundingClientRect().height);
+                
+                const resizeObserver = new ResizeObserver((entries) => {
+                    for (const entry of entries) {
+                        setSplitToolbarHeight(entry.contentRect.height);
+                    }
+                });
+                
+                resizeObserver.observe(node);
+                
+                return () => {
+                    resizeObserver.disconnect();
+                };
+            } else {
+                setSplitToolbarHeight(0);
+            }
         },
         [setSplitToolbarHeight],
     );
