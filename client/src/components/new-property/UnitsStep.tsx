@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 import { mockSections } from "./mockSections";
@@ -13,13 +13,30 @@ export function UnitsStep({ onNext, onBack }: UnitsStepProps) {
     const propertyType: "WEG" | "MV" = "WEG";
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
+    const loadTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
-        if (isLoaded) return;
         const hasMetrics = Object.keys(viewerState.pageMetrics).length > 0;
-        if (!hasMetrics) return;
-        const timer = setTimeout(() => setIsLoaded(true), 300);
-        return () => clearTimeout(timer);
+        
+        if (hasMetrics && !isLoaded) {
+            // Clear any existing timer
+            if (loadTimerRef.current) {
+                clearTimeout(loadTimerRef.current);
+            }
+            
+            // Set new timer
+            loadTimerRef.current = setTimeout(() => {
+                setIsLoaded(true);
+                loadTimerRef.current = null;
+            }, 300);
+        }
+        
+        return () => {
+            if (loadTimerRef.current) {
+                clearTimeout(loadTimerRef.current);
+                loadTimerRef.current = null;
+            }
+        };
     }, [viewerState.pageMetrics, isLoaded]);
 
     function handleSectionAdd(newSection: SectionData) {

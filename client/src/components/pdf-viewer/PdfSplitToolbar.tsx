@@ -22,6 +22,7 @@ import {
     ComboboxList,
 } from "../ui/combobox";
 import { Label } from "../ui/label";
+import { Loader2 } from "lucide-react";
 import {
     CoreAddressEditor,
     CoreBuildingEditor,
@@ -57,7 +58,7 @@ const STATE_BADGES: Record<string, { label: string; className: string }> = {
     conflict: { label: "Conflict", className: "bg-red-100 text-red-700 border-red-200" },
     processing: { label: "Processing", className: "bg-amber-100 text-amber-700 border-amber-200" },
     identifying: { label: "Identifying", className: "bg-indigo-100 text-indigo-700 border-indigo-200" },
-    unknown: { label: "Unknown", className: "bg-slate-100 text-slate-600 border-slate-200" },
+    unknown: { label: "Unknown", className: "bg-orange-100 text-orange-700 border-orange-200" },
 };
 
 type OptionComboboxProps = {
@@ -169,6 +170,9 @@ function PdfSplitToolbar({
         return sectionsOnPage[0] ?? null;
     }, [activeSectionId, sections, sectionsOnPage]);
 
+    const isIdentifying = useMemo(() => activeSection?.state === "identifying", [activeSection]);
+    const isUnknown = useMemo(() => activeSection?.sectionType === "unknown", [activeSection]);
+
     const availableBuildings = useMemo(() => {
         const buildingMap = new Map<string, string>();
         
@@ -214,7 +218,13 @@ function PdfSplitToolbar({
 
     const updateSection = (updates: Partial<SectionData>) => {
         if (!activeSection || !onSectionUpdate) return;
-        onSectionUpdate(activeSection.id, updates);
+        
+        // If section type is being changed, mark as needs_review
+        if (updates.sectionType && updates.sectionType !== activeSection.sectionType) {
+            onSectionUpdate(activeSection.id, { ...updates, state: "needs_review" });
+        } else {
+            onSectionUpdate(activeSection.id, updates);
+        }
     };
 
 
@@ -290,6 +300,9 @@ function PdfSplitToolbar({
                         >
                             {stateBadge?.label ?? "Unknown"}
                         </Badge>
+                        {isIdentifying && (
+                            <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                        )}
                         {/* <span className="text-lg font-semibold text-gray-900">
                             {activeSection?.id ?? `Page ${pageNumber}`}
                         </span> */}
@@ -303,7 +316,7 @@ function PdfSplitToolbar({
                     <OptionCombobox
                         options={SECTION_TYPE_OPTIONS}
                         value={sectionTypeValue}
-                        disabled={!activeSection || !onSectionUpdate}
+                        disabled={!activeSection || !onSectionUpdate || isIdentifying}
                         placeholder="Select section type"
                         onChange={(nextValue) => updateSection({ sectionType: nextValue as SectionType })}
                     />
@@ -311,7 +324,7 @@ function PdfSplitToolbar({
             </div>
 
             <div className="w-full border-t border-gray-200" >
-                <div className="p-4">
+                <div className={cn("p-4", isIdentifying && "opacity-50 pointer-events-none")}>
                     <div>
   
                         {activeSection
@@ -336,6 +349,7 @@ function PdfSplitToolbar({
                         variant="outline"
                         className="text-lg h-10 px-10 py-5 cursor-pointer"
                         onClick={closeSplit}
+                        disabled={isIdentifying}
                     >
                         Close
                     </Button>
@@ -344,7 +358,7 @@ function PdfSplitToolbar({
                             variant="destructive"
                             className="text-lg h-10 px-10 py-5 cursor-pointer"
                             onClick={handleDelete}
-                            disabled={!activeSection || !onSectionDelete}
+                            disabled={!activeSection || !onSectionDelete || isIdentifying}
                         >
                             Delete
                         </Button>
@@ -374,7 +388,7 @@ function PdfSplitToolbar({
                         type="submit"
                         className="grow py-5 text-lg h-10 cursor-pointer"
                         onClick={handleNext}
-                        disabled={!activeSection}
+                        disabled={!activeSection || isIdentifying || isUnknown}
                     >
                         {getActionButtonText()}
                     </Button>

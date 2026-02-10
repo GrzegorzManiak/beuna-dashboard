@@ -28,7 +28,7 @@ function PdfPageRenderer({
     activeSectionId,
 }: PdfPageRendererProps) {
     const splitY = isActiveSplit ? Math.round(pageHeight * splitRatio) : 0;
-    const pageLoadRef = useRef<Boolean | null>(null);
+    const pageLoadRef = useRef<boolean | null>(null);
 
     // We want to call onRenderSuccess only once per page, even
     // though we render the page twice (for top and bottom slices).

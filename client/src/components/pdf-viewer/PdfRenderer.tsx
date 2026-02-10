@@ -17,7 +17,6 @@ import type {
 } from "./types";
 import { calculateSectionStyle } from "./utils";
 
-// Setup PDF worker
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url
@@ -70,26 +69,21 @@ function PdfRenderer({
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
     const [pageWidth] = useState(960 * pdfScale);
-    const [pagesReady, setPagesReady] = useState(false);
     const [showContent, setShowContent] = useState(false);
     const pageContainerRef = useRef<HTMLDivElement | null>(null);
+    const pagesReady = numPages > 0 && Object.keys(pageMetrics).length === numPages;
 
     const onSplitToolbarRefChange = useCallback(
         (node: HTMLDivElement | null) => {
             if (node) {
                 setSplitToolbarHeight(node.getBoundingClientRect().height);
-                
                 const resizeObserver = new ResizeObserver((entries) => {
-                    for (const entry of entries) {
-                        setSplitToolbarHeight(entry.contentRect.height);
-                    }
+                    for (const entry of entries) setSplitToolbarHeight(entry.contentRect.height);
                 });
                 
                 resizeObserver.observe(node);
                 
-                return () => {
-                    resizeObserver.disconnect();
-                };
+                return () => { resizeObserver.disconnect(); };
             } else {
                 setSplitToolbarHeight(0);
             }
@@ -105,8 +99,8 @@ function PdfRenderer({
     const onDocumentLoadSuccess = useCallback(
         (pdf: pdfjs.PDFDocumentProxy) => {
             setNumPages(pdf.numPages);
-            setPagesReady(false);
             setPageMetrics({});
+            setShowContent(false);
             onLoadSuccess?.(pdf);
         },
         [onLoadSuccess, setPageMetrics],
@@ -126,33 +120,22 @@ function PdfRenderer({
                         height: height * (pageWidth / width),
                     },
                 };
-                
-                // Check if all pages have metrics
-                if (numPages > 0 && Object.keys(updated).length === numPages) {
-                    setPagesReady(true);
-                }
-                
                 return updated;
             });
         },
-        [pageWidth, numPages],
+        [pageWidth],
     );
 
     const closeSplit = () => setActiveSplit(null);
 
     useEffect(() => {
-        if (pagesReady) {
-            const timer = setTimeout(() => setShowContent(true), 150);
-            return () => clearTimeout(timer);
+        if (!pagesReady) {
+            setShowContent(false);
+            return;
         }
+        const timer = setTimeout(() => setShowContent(true), 150);
+        return () => clearTimeout(timer);
     }, [pagesReady]);
-
-    useEffect(() => {
-        // setActiveSplit({
-        //     pageNumber: 1,
-        //     splitRatio: 0.5,
-        // });
-    }, []);
 
     return (
         <Document
@@ -162,7 +145,6 @@ function PdfRenderer({
             error={error ?? "Failed to load PDF."}
         >
             <div className="relative">
-                {/* Loading Overlay */}
                 {!showContent && (
                     <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
                         <div className="flex flex-col items-center gap-3">
@@ -171,8 +153,7 @@ function PdfRenderer({
                         </div>
                     </div>
                 )}
-                
-                {/* PDF Content with fade-in animation */}
+
                 <div 
                     className={`transition-opacity duration-500 ${
                         showContent ? 'opacity-100' : 'opacity-0'

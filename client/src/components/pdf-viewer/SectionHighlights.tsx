@@ -32,8 +32,8 @@ function SectionHighlights({ sections, activeSectionId }: SectionHighlightsProps
             case "unknown":
             default:
                 return isActive
-                    ? "border-blue-600 bg-blue-600/40 z-10"
-                    : "border-blue-500 bg-blue-500/20";
+                    ? "border-red-600 bg-red-600/40 z-10"
+                    : "border-red-500 bg-red-500/20";
         }
     };
 

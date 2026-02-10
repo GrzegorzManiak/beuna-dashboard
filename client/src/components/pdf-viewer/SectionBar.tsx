@@ -51,8 +51,8 @@ function SectionBar({
             case "unknown":
             default:
                 return isSelected
-                    ? "border-blue-500 bg-blue-500/40 z-10 scale-105"
-                    : "border-blue-500 bg-blue-500/20 hover:bg-blue-500/30";
+                    ? "border-red-500 bg-red-500/40 z-10 scale-105"
+                    : "border-red-500 bg-red-500/20 hover:bg-red-500/30";
         }
     };
 
