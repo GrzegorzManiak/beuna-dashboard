@@ -7,16 +7,23 @@ import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 
 type UploadDocumentStepProps = {
-    onNext: () => void;
+    onUpload: (file: File) => Promise<void> | void;
+    isSubmitting?: boolean;
+    errorMessage?: string | null;
 };
 
-export function UploadDocumentStep({ onNext }: UploadDocumentStepProps) {
+export function UploadDocumentStep({ onUpload, isSubmitting = false, errorMessage }: UploadDocumentStepProps) {
     const [file, setFile] = useState<File | null>(null);
 
     function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
         const nextFile = event.target.files?.[0];
         if (!nextFile) return;
         setFile(nextFile);
+    }
+
+    function handleSubmit(): void {
+        if (!file) return;
+        void onUpload(file);
     }
 
     return (
@@ -64,9 +71,12 @@ export function UploadDocumentStep({ onNext }: UploadDocumentStepProps) {
                 </label>
             </CardContent>
             <CardFooter className="flex-col gap-2 bg-muted pt-4 pb-6 border-t mt-4">
-                <Button onClick={onNext} className="w-full text-lg h-10" disabled={!file}>
-                    Continue
+                <Button onClick={handleSubmit} className="w-full text-lg h-10" disabled={!file || isSubmitting}>
+                    {isSubmitting ? "Uploading..." : "Continue"}
                 </Button>
+                {errorMessage ? (
+                    <p className="text-xs font-medium text-red-600">{errorMessage}</p>
+                ) : null}
             </CardFooter>
         </Card>
     );

@@ -12,6 +12,16 @@ type DocumentCacheEntry = {
     name: string;
 };
 
+type MultipartFile = {
+    filename?: string;
+    mimetype?: string;
+    toBuffer: () => Promise<Buffer>;
+};
+
+type MultipartBody = {
+    file?: MultipartFile;
+};
+
 const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_PROPERTY_NAME = "Unnamed property";
 const DEFAULT_DOCUMENT_NAME = "property.pdf";
@@ -61,7 +71,8 @@ async function createPropertyHandler(
 ) {
     if (!req.isMultipart()) return reply.code(400).send({ error: "Multipart form data is required" });
 
-    const file = await req.file();
+    const body = req.body as MultipartBody;
+    const file = body?.file;
     if (!file) return reply.code(400).send({ error: "PDF file is required" });
     if (file.mimetype !== "application/pdf") return reply.code(400).send({ error: "Only PDF files are supported" });
 
@@ -137,7 +148,7 @@ async function getPropertyDocumentHandler(
     const mimeType = property.documentMimeType ?? "application/pdf";
 
     documentCache.set(propertyId, {
-        data: property.documentData,
+        data: Buffer.from(property.documentData),
         mimeType,
         name: documentName,
     });

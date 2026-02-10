@@ -77,7 +77,7 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             body: {
                 type: "object",
                 properties: {
-                    file: { type: "string", format: "binary" },
+                    file: { type: "object" },
                 },
                 required: ["file"],
                 additionalProperties: false,

@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { apiFetch } from "./client";
 
 type ApiStatusInfo = {
     title: string;
@@ -15,7 +16,7 @@ type ApiStatusResponse = {
 };
 
 async function fetchApiStatus(): Promise<ApiStatusResponse> {
-    const response = await fetch("/api/help/apistatus");
+    const response = await apiFetch("/api/help/apistatus");
     if (!response.ok) throw new Error(`Failed to load API status (${response.status})`);
     const data = (await response.json()) as ApiStatusResponse;
     return data;

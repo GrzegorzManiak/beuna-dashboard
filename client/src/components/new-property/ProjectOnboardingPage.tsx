@@ -1,58 +1,37 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ProgressBar } from "./ProgressBar";
 import { ApiStatus } from "./ApiStatus";
+import { ProgressBar } from "./ProgressBar";
 import { PropertyDetailsStep } from "./PropertyDetailsStep";
 import { PropertyTypePicker } from "./PropertyTypePicker";
-import { ProcessingStep } from "./ProcessingStep";
 import { UnitsStep } from "./UnitsStep";
-import { UploadDocumentStep } from "./UploadDocumentStep";
+import { SessionSelector } from "@/components/SessionSelector";
 
-export function NewPropertyPage() {
-    const [step, setStep] = useState<number>(3);
-    const [isProcessing, setIsProcessing] = useState<boolean>(false);
+export function ProjectOnboardingPage() {
+    const navigate = useNavigate();
+    const [step, setStep] = useState<number>(1);
 
-    function handleDocumentUpload() {
-        setIsProcessing(true);
-        setTimeout(() => {
-            setIsProcessing(false);
-            setStep(1);
-        }, 2000);
+    function handleStepClick(nextStep: number): void {
+        if (nextStep === 0) {
+            navigate("/new");
+            return;
+        }
+        setStep(nextStep);
+    }
+
+    function handleBackToUpload(): void {
+        navigate("/new");
     }
 
     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden">
-            <ProgressBar currentStep={step} onStepClick={setStep} />
+        <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
+            <SessionSelector className="absolute left-6 top-6 z-20" />
+            <ProgressBar currentStep={step} onStepClick={handleStepClick} />
             <ApiStatus className="self-end pr-6 -mt-4" />
 
             <div className="w-full flex justify-center px-4 relative">
                 <AnimatePresence mode="wait">
-                    {step === 0 && !isProcessing && (
-                        <motion.div
-                            key="step-0-upload"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3 }}
-                            className="w-full flex justify-center"
-                        >
-                            <UploadDocumentStep onNext={handleDocumentUpload} />
-                        </motion.div>
-                    )}
-
-                    {step === 0 && isProcessing && (
-                        <motion.div
-                            key="step-0-processing"
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 1.05 }}
-                            transition={{ duration: 0.3 }}
-                            className="w-full flex justify-center"
-                        >
-                            <ProcessingStep />
-                        </motion.div>
-                    )}
-
                     {step === 1 && (
                         <motion.div
                             key="step-1"
@@ -62,7 +41,7 @@ export function NewPropertyPage() {
                             transition={{ duration: 0.3 }}
                             className="w-full flex justify-center"
                         >
-                            <PropertyTypePicker onNext={() => setStep(2)} onBack={() => setStep(0)} />
+                            <PropertyTypePicker onNext={() => setStep(2)} onBack={handleBackToUpload} />
                         </motion.div>
                     )}
 

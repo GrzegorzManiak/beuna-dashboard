@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { apiFetch } from "./client";
 
 type OpenApiInfo = {
     title: string;
@@ -14,7 +15,7 @@ type OpenApiSpec = {
 };
 
 async function fetchSwaggerSpec(): Promise<OpenApiSpec> {
-    const response = await fetch("/api/openapi.json");
+    const response = await apiFetch("/api/openapi.json");
     if (!response.ok) throw new Error(`Failed to load API spec (${response.status})`);
     const data = (await response.json()) as OpenApiSpec;
     return data;
