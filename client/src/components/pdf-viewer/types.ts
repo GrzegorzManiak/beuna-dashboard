@@ -20,14 +20,15 @@ type SectionPosition = {
 type SectionType =
     | "core.property_overview"
     | "core.address"
+    | "core.buildings"
     | "core.building"
-    | "core.building_shared_features"
+    | "units.unit_blocks"
     | "units.unit_block"
-    | "weg.special_rights_block"
-    | "weg.mea_total_check"
-    | "weg.administration_property_manager"
-    | "weg.administration_accountant"
-    | "mv.owner_entity_block"
+    | "weg.special_rights"
+    | "weg.mea_declaration"
+    | "weg.property_manager"
+    | "weg.accountant"
+    | "mv.owner_entity"
     | "unknown";
 
 type SectionState =

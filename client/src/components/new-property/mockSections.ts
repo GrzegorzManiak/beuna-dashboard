@@ -61,7 +61,7 @@ export const mockSections: SectionData[] = [
     },
     {
         id: "section-4",
-        sectionType: "weg.special_rights_block",
+        sectionType: "weg.special_rights",
         state: "unknown",
         fields: {
             unitRef: "06",

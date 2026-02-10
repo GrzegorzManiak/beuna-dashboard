@@ -21,14 +21,13 @@ type PropertyDetail = {
 type PropertySectionType =
     | "core.property_overview"
     | "core.address"
-    | "core.building"
-    | "core.building_shared_features"
-    | "units.unit_block"
-    | "weg.special_rights_block"
-    | "weg.mea_total_check"
-    | "weg.administration_property_manager"
-    | "weg.administration_accountant"
-    | "mv.owner_entity_block"
+    | "core.buildings"
+    | "units.unit_blocks"
+    | "weg.special_rights"
+    | "weg.mea_declaration"
+    | "weg.property_manager"
+    | "weg.accountant"
+    | "mv.owner_entity"
     | "unknown";
 
 type BasicDetailsField = {
@@ -49,6 +48,20 @@ type BasicDetailsExtract = {
     fields: BasicDetailsField[];
 };
 
+type PropertySectionItem = {
+    id: string;
+    rawText: string;
+    state?: "valid" | "needs_review" | "unknown" | "conflict";
+    confidence?: number;
+    textPosition: Array<{
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }>;
+};
+
 type PropertySection = {
     id: string;
     sectionIndex: number;
@@ -65,6 +78,7 @@ type PropertySection = {
     confidence: number;
     renderable: boolean;
     reusable: boolean;
+    items?: PropertySectionItem[];
 };
 
 type PropertySectionsResponse = {

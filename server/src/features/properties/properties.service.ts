@@ -320,7 +320,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                 textPosition: processed.textPosition,
                 sectionType: processed.sectionType,
                 confidence: processed.confidence,
-                renderable: index !== 0, // Hide first section
+                renderable: index !== 0, // Hide first section (usually title page)
                 items: items === null ? null : JSON.parse(JSON.stringify(items)),
             };
         });

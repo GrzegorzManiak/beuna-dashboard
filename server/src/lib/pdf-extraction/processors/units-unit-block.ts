@@ -5,11 +5,14 @@ import {
     linesToPositions,
     extractHeadingText,
     calculateKeywordConfidence,
+    findLinesForBlock,
 } from "./base";
 
 const UNIT_KEYWORDS = [
     "wohnung",
     "einheit",
+    "einheitenbeschreibung",
+    "aufteilungsplan",
     "sondereigentum",
     "tiefgaragenstellplatz",
     "stellplatz",
@@ -65,20 +68,30 @@ export class UnitsBlocksProcessor implements SectionProcessor {
         const { extractUnitBlocks } = await import("../llm/extract-unit-blocks");
         
         const blocks = await extractUnitBlocks(section);
+        const sectionPositions = linesToPositions(section.lines);
         
-        // Convert blocks to items
-        const items: SectionItem[] = blocks.map((block, index) => ({
-            id: `unit-${index + 1}-${Date.now()}`,
-            rawText: block.blockText.trim(),
-        }));
+        // Compute per-block bounding boxes by matching block text to section lines
+        let cursor = 0;
+        const items: SectionItem[] = blocks.map((block, index) => {
+            const { lines, nextCursor } = findLinesForBlock(section, block.blockText, cursor);
+            cursor = nextCursor;
+            const positions = lines.length ? linesToPositions(lines) : sectionPositions;
+            return {
+                id: `unit-${index + 1}-${Date.now()}`,
+                rawText: block.blockText.trim(),
+                state: "needs_review" as const,
+                confidence: 0.87,
+                textPosition: positions,
+            };
+        });
         
         return {
             rawText: section.rawText.trim(),
             headingText: extractHeadingText(section.heading.text || section.rawText),
             sectionType: this.sectionType,
             confidence: 0.7,
-            renderable: true,
-            textPosition: linesToPositions(section.lines),
+            renderable: false,
+            textPosition: sectionPositions,
             items,
         };
     }

@@ -8,11 +8,17 @@ import { getAllProcessors } from "./registry";
 export async function classifySection(section: PdfSection): Promise<ClassificationResult> {
     const processors = getAllProcessors();
     
+    console.log(`[CLASSIFIER] Classifying section ${section.id}:`, section.heading.text.substring(0, 50));
+    
     let bestMatch: ClassificationResult | null = null;
     let bestConfidence = 0;
     
     for (const processor of processors) {
         const confidence = await Promise.resolve(processor.matches(section));
+        
+        if (confidence !== null && confidence > 0.1) {
+            console.log(`[CLASSIFIER]   - ${processor.sectionType}: ${confidence.toFixed(3)}`);
+        }
         
         if (confidence !== null && confidence > bestConfidence) {
             bestConfidence = confidence;
@@ -30,6 +36,7 @@ export async function classifySection(section: PdfSection): Promise<Classificati
         if (!unknownProcessor) {
             throw new Error("No processors registered");
         }
+        console.log(`[CLASSIFIER]   ✓ Defaulting to: unknown`);
         return {
             sectionId: section.id,
             processor: unknownProcessor,
@@ -37,6 +44,7 @@ export async function classifySection(section: PdfSection): Promise<Classificati
         };
     }
     
+    console.log(`[CLASSIFIER]   ✓ Best match: ${bestMatch.processor.sectionType} (${bestMatch.confidence.toFixed(3)})`);
     return bestMatch;
 }
 

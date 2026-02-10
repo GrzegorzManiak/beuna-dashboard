@@ -26,7 +26,6 @@ import { Loader2 } from "lucide-react";
 import {
     CoreAddressEditor,
     CoreBuildingEditor,
-    CoreBuildingSharedFeaturesEditor,
     CorePropertyOverviewEditor,
     MvOwnerEntityBlockEditor,
     UnitsUnitBlockEditor,
@@ -42,14 +41,15 @@ type Option = { label: string; value: string };
 const SECTION_TYPE_OPTIONS: Array<{ label: string; value: SectionType }> = [
     { label: "Property Overview", value: "core.property_overview" },
     { label: "Address", value: "core.address" },
+    { label: "Buildings", value: "core.buildings" },
     { label: "Building", value: "core.building" },
-    { label: "Shared Building Features", value: "core.building_shared_features" },
+    { label: "Unit Blocks", value: "units.unit_blocks" },
     { label: "Unit Block", value: "units.unit_block" },
-    { label: "Special Rights Block", value: "weg.special_rights_block" },
-    { label: "MEA Total Check", value: "weg.mea_total_check" },
-    { label: "Administration - Property Manager", value: "weg.administration_property_manager" },
-    { label: "Administration - Accountant", value: "weg.administration_accountant" },
-    { label: "Owner Entity Block", value: "mv.owner_entity_block" },
+    { label: "Special Rights", value: "weg.special_rights" },
+    { label: "MEA Declaration", value: "weg.mea_declaration" },
+    { label: "Property Manager", value: "weg.property_manager" },
+    { label: "Accountant", value: "weg.accountant" },
+    { label: "Owner Entity", value: "mv.owner_entity" },
     { label: "Unknown", value: "unknown" },
 ];
 
@@ -85,7 +85,15 @@ function OptionCombobox({ options, value, disabled, placeholder, onChange }: Opt
         <Combobox
             items={items}
             value={value}
-            onValueChange={(nextValue) => onChange(nextValue ?? "")}
+            onValueChange={(nextValue) => {
+                const resolved = nextValue ?? "";
+                // base-ui fires onValueChange during render even when the value
+                // hasn't changed.  Short-circuit to prevent an infinite
+                // setState loop (OptionCombobox → onChange → setSections →
+                // re-render → onValueChange → …).
+                if (resolved === value) return;
+                onChange(resolved);
+            }}
             itemToStringLabel={(item) => labelByValue.get(String(item)) ?? String(item)}
             disabled={disabled}
         >
@@ -110,10 +118,10 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
             return <CorePropertyOverviewEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "core.address":
             return <CoreAddressEditor section={section} onSectionUpdate={onSectionUpdate} />;
+        case "core.buildings":
         case "core.building":
             return <CoreBuildingEditor section={section} onSectionUpdate={onSectionUpdate} />;
-        case "core.building_shared_features":
-            return <CoreBuildingSharedFeaturesEditor section={section} onSectionUpdate={onSectionUpdate} />;
+        case "units.unit_blocks":
         case "units.unit_block":
             return (
                 <UnitsUnitBlockEditor
@@ -123,14 +131,14 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
                     availableBuildings={availableBuildings}
                 />
             );
-        case "weg.special_rights_block":
+        case "weg.special_rights":
             return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
-        case "weg.mea_total_check":
+        case "weg.mea_declaration":
             return <WegMeaTotalCheckEditor />;
-        case "weg.administration_property_manager":
-        case "weg.administration_accountant":
+        case "weg.property_manager":
+        case "weg.accountant":
             return <WegAdministrationBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
-        case "mv.owner_entity_block":
+        case "mv.owner_entity":
             return <MvOwnerEntityBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "unknown":
         default:
@@ -179,7 +187,7 @@ function PdfSplitToolbar({
         const buildingMap = new Map<string, string>();
         
         sections
-            .filter((section) => section.sectionType === "core.building")
+            .filter((section) => section.sectionType === "core.building" || section.sectionType === "core.buildings")
             .forEach((section) => {
                 const uuid = section.fields?.buildingUuid;
                 const label = section.fields?.label;
@@ -205,8 +213,10 @@ function PdfSplitToolbar({
         if (!activeSection) return "Next";
         
         switch (sectionTypeValue) {
+            case "core.buildings":
             case "core.building":
                 return "Confirm building";
+            case "units.unit_blocks":
             case "units.unit_block":
                 return "Confirm unit";
             case "core.property_overview":
@@ -220,6 +230,17 @@ function PdfSplitToolbar({
 
     const updateSection = (updates: Partial<SectionData>) => {
         if (!activeSection || !onSectionUpdate) return;
+
+        // Guard against no-op updates to prevent infinite re-render loops.
+        // The Combobox fires onValueChange on every render with a controlled value,
+        // so skip if the sectionType is the only key and it hasn't actually changed.
+        if (
+            updates.sectionType &&
+            updates.sectionType === activeSection.sectionType &&
+            Object.keys(updates).length === 1
+        ) {
+            return;
+        }
         
         // If section type is being changed, mark as needs_review
         if (updates.sectionType && updates.sectionType !== activeSection.sectionType) {

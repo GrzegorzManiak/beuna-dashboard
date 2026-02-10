@@ -23,6 +23,18 @@ export type SectionItem = {
     id: string;
     /** Raw text content of this specific item */
     rawText: string;
+    /** State of this item */
+    state?: "valid" | "needs_review" | "unknown" | "conflict";
+    /** Confidence score for this item */
+    confidence?: number;
+    /** Position of this item in the PDF */
+    textPosition: Array<{
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }>;
 };
 
 /**

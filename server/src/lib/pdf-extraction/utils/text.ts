@@ -6,8 +6,21 @@ const splitTokens = (value: string) =>
 
 const DIACRITIC_RE = /[\u0300-\u036f]/g;
 
-const stripDiacritics = (value: string) =>
+/**
+ * Convert German umlauts to their digraph equivalents before stripping diacritics.
+ * This ensures both "Gebäude" and "gebaeude" normalize to the same form.
+ */
+const expandUmlauts = (value: string) =>
     value
+        .replace(/ä/g, "ae")
+        .replace(/ö/g, "oe")
+        .replace(/ü/g, "ue")
+        .replace(/Ä/g, "Ae")
+        .replace(/Ö/g, "Oe")
+        .replace(/Ü/g, "Ue");
+
+const stripDiacritics = (value: string) =>
+    expandUmlauts(value)
         .normalize("NFD")
         .replace(DIACRITIC_RE, "")
         .replace(/ß/g, "ss");

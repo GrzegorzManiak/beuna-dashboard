@@ -5,8 +5,8 @@ type ExtractedBlock = {
     blockText: string;
 };
 
-const UNIT_START_REGEX = /^\s*(\d+\.\s*)?einheit\b/i;
-const UNIT_MARKER_REGEX = /einheit\s*nr\.?\s*\d+/i;
+const UNIT_START_REGEX = /^\s*(\d+\.\s*)?einheit(?:en)?\b/i;
+const UNIT_MARKER_REGEX = /einheit(?:en)?\s*nr\.?\s*\d+/i;
 const UNIT_KEYWORDS = [
     "einheit",
     "wohnung",
@@ -129,10 +129,14 @@ const collectUnitMarkers = (section: PdfSection): string[] => {
             markers.push(current);
             continue;
         }
+        // Only use the combined check when the current line is NOT itself
+        // a marker. If the combined (current + next) test matches, record
+        // the combined text and skip the next line to avoid double-counting.
         const next = lines[i + 1]?.trim();
         if (!next) continue;
         if (isUnitMarkerLine(`${current} ${next}`)) {
             markers.push(`${current}\n${next}`);
+            i += 1; // skip next line — it's part of this marker
         }
     }
     return markers;
@@ -148,7 +152,18 @@ const countUnitMarkersInBlock = (blockText: string) => {
     const lines = getBlockLines(blockText);
     let count = 0;
     for (let i = 0; i < lines.length; i += 1) {
-        if (isUnitMarkerAtLines(lines, i)) count += 1;
+        const current = lines[i]?.trim();
+        if (!current) continue;
+        if (isUnitMarkerLine(current)) {
+            count += 1;
+            continue;
+        }
+        // Combined check: if current + next matches, count once and skip next
+        const next = lines[i + 1]?.trim();
+        if (next && isUnitMarkerLine(`${current} ${next}`)) {
+            count += 1;
+            i += 1;
+        }
     }
     return count;
 };
@@ -182,9 +197,11 @@ const splitUnitBlocksFallback = (section: PdfSection): ExtractedBlock[] => {
     for (let i = 0; i < section.lines.length; i += 1) {
         const text = section.lines[i]?.text.trim();
         if (!text) continue;
-        const nextText = section.lines[i + 1]?.text.trim() ?? "";
-        const isStart = isUnitMarkerLine(text)
-            || (nextText ? isUnitMarkerLine(`${text} ${nextText}`) : false);
+        // Only split on lines where the current line itself is a unit marker.
+        // Do NOT use the combined (current + next) check here — it would
+        // incorrectly mark the tail line of the previous unit as a new block
+        // start because the *next* line happens to contain "Einheit Nr. XX".
+        const isStart = isUnitMarkerLine(text);
         if (isStart && current.length) {
             blocks.push(current.join("\n"));
             current = [];

@@ -159,7 +159,7 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
         if (propertyType !== "WEG") return null;
 
         const unitSections = sections.filter((s) => s.sectionType === "units.unit_block");
-        const specialRights = sections.find((s) => s.sectionType === "weg.special_rights_block");
+        const specialRights = sections.find((s) => s.sectionType === "weg.special_rights");
 
         const unitsWithMea = unitSections.filter((u) =>
             u.fields?.meaNumerator && u.fields?.meaDenominator
@@ -198,7 +198,7 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
         if (propertyType !== "MV") return null;
 
         const overview = sections.find((s) => s.sectionType === "core.property_overview");
-        const ownerEntity = sections.find((s) => s.sectionType === "mv.owner_entity_block");
+        const ownerEntity = sections.find((s) => s.sectionType === "mv.owner_entity");
 
         const typeStatus: ItemStatus = overview?.fields?.managementTypeHint === "MV" && overview.state === "valid"
             ? "complete"

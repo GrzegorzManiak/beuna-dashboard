@@ -229,7 +229,7 @@ async function getPropertySectionsStreamHandler(
                 console.log(`[DEBUG] Sending section ${index + 1}/${total} via WebSocket:`, section.sectionType);
                 
                 const sectionData = {
-                    id: `temp-${index}`, // Temporary ID until stored in DB
+                    id: `temp-${index}`,
                     sectionIndex: (section as any)._sectionIndex ?? index,
                     headingText: section.headingText,
                     rawText: section.rawText,
@@ -258,6 +258,9 @@ async function getPropertySectionsStreamHandler(
         return;
     }
 
+    // Always send the final "complete" payload from this handler's socket,
+    // even if this handler joined an already-running task (e.g. due to React
+    // Strict Mode double-mount creating two WebSocket connections).
     console.log('[DEBUG] Section processing complete, sending final payload');
     const sections = await getStoredSections(propertyId);
     const basicDetails = await getBasicDetailsExtract(propertyId);

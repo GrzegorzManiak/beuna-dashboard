@@ -10,9 +10,10 @@ import {
 const OVERVIEW_KEYWORDS = [
     "teilungserklaerung",
     "grundstueck",
-    "objekt",
     "bezeichnung",
     "eigentumsverhaeltnisse",
+    "grundbuch",
+    "teilungsplan",
 ];
 
 export class CorePropertyOverviewProcessor implements SectionProcessor {

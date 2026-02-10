@@ -134,38 +134,84 @@ export function UnitsStep({
 }
 
 function mapPropertySections(sections: PropertySection[]): SectionData[] {
-    return sections.map((section) => {
-        const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
-        const pages = positions.map((position) => position.page);
-        const first = positions[0];
-        const state = section.sectionType === "unknown" ? "unknown" : "needs_review";
-        if (!first) {
-            return {
-                id: section.id,
-                textPosition: { page: [], x: 0, y: 0, width: 0, height: 0 },
-                state,
-                sectionType: section.sectionType,
-                reusable: section.reusable,
-                fields: {},
-            };
-        }
+    const result: SectionData[] = [];
 
-        return {
-            id: section.id,
-            textPosition: {
-                page: pages.length ? pages : [first.page],
-                x: first.x,
-                y: first.y,
-                width: first.width,
-                height: first.height,
-                boxes: positions,
-            },
-            state,
-            sectionType: section.sectionType,
-            reusable: section.reusable,
-            fields: {},
-        };
-    });
+    // Map container types to their singular item-level equivalents
+    const CONTAINER_TO_ITEM_TYPE: Record<string, string> = {
+        "core.buildings": "core.building",
+        "units.unit_blocks": "units.unit_block",
+    };
+    
+    for (const section of sections) {
+        const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
+        
+        if (isArrayContainer) {
+            // For array containers (buildings, units), expand items into individual sections
+            console.log(`[CLIENT] Expanding ${section.sectionType} with ${section.items!.length} items`);
+            const itemType = CONTAINER_TO_ITEM_TYPE[section.sectionType] ?? section.sectionType;
+            
+            for (let i = 0; i < section.items!.length; i++) {
+                const item = section.items![i];
+                if (!item) continue;
+                
+                const itemPositions = item.textPosition || [];
+                const pages = itemPositions.map((pos) => pos.page);
+                const first = itemPositions[0];
+                
+                result.push({
+                    id: item.id || `${section.id}-item-${i}`,
+                    textPosition: first ? {
+                        page: pages.length ? pages : [first.page],
+                        x: first.x,
+                        y: first.y,
+                        width: first.width,
+                        height: first.height,
+                        boxes: itemPositions,
+                    } : { page: [], x: 0, y: 0, width: 0, height: 0 },
+                    state: item.state || "needs_review",
+                    sectionType: itemType as any,
+                    reusable: section.reusable,
+                    fields: {},
+                });
+            }
+        } else {
+            // For single-object sections, map as-is
+            const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
+            const pages = positions.map((position) => position.page);
+            const first = positions[0];
+            const state = section.sectionType === "unknown" ? "unknown" : "needs_review";
+            
+            if (!first) {
+                result.push({
+                    id: section.id,
+                    textPosition: { page: [], x: 0, y: 0, width: 0, height: 0 },
+                    state,
+                    sectionType: section.sectionType,
+                    reusable: section.reusable,
+                    fields: {},
+                });
+            } else {
+                result.push({
+                    id: section.id,
+                    textPosition: {
+                        page: pages.length ? pages : [first.page],
+                        x: first.x,
+                        y: first.y,
+                        width: first.width,
+                        height: first.height,
+                        boxes: positions,
+                    },
+                    state,
+                    sectionType: section.sectionType,
+                    reusable: section.reusable,
+                    fields: {},
+                });
+            }
+        }
+    }
+    
+    console.log(`[CLIENT] Mapped ${sections.length} sections to ${result.length} display items`);
+    return result;
 }
 
 function mergeSectionData(existing: SectionData[], incoming: SectionData[]): SectionData[] {

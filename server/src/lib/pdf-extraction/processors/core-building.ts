@@ -6,15 +6,19 @@ import {
     linesToPositions,
     extractHeadingText,
     calculateKeywordConfidence,
+    findLinesForBlock,
 } from "./base";
 
 const BUILDING_KEYWORDS = [
     "gebaeude",
+    "gebaeudedaten",
+    "objektbeschreibung",
     "haus",
     "wohnanlage",
     "immobilie",
-    "objekt",
     "bauwerk",
+    "anwesen",
+    "liegenschaft",
 ];
 
 const BUILDING_CONTENT_KEYWORDS = [
@@ -25,6 +29,8 @@ const BUILDING_CONTENT_KEYWORDS = [
     "strasse",
     "lage",
     "grundstueck",
+    "wohnflaeche",
+    "nutzflaeche",
 ];
 
 export class CoreBuildingsProcessor implements SectionProcessor {
@@ -62,24 +68,33 @@ export class CoreBuildingsProcessor implements SectionProcessor {
     }
 
     async process(section: PdfSection): Promise<ProcessedSection> {
-        // Import the LLM extractor for detailed processing
         const { extractBuildingBlocks } = await import("../llm/extract-building-blocks");
         
         const blocks = await extractBuildingBlocks(section);
+        const sectionPositions = linesToPositions(section.lines);
         
-        // Convert blocks to items
-        const items: SectionItem[] = blocks.map((block, index) => ({
-            id: `building-${index + 1}-${Date.now()}`,
-            rawText: block.blockText.trim(),
-        }));
+        // Compute per-block bounding boxes by matching block text to section lines
+        let cursor = 0;
+        const items: SectionItem[] = blocks.map((block, index) => {
+            const { lines, nextCursor } = findLinesForBlock(section, block.blockText, cursor);
+            cursor = nextCursor;
+            const positions = lines.length ? linesToPositions(lines) : sectionPositions;
+            return {
+                id: `building-${index + 1}-${Date.now()}`,
+                rawText: block.blockText.trim(),
+                state: "needs_review" as const,
+                confidence: 0.85,
+                textPosition: positions,
+            };
+        });
         
         return {
             rawText: section.rawText.trim(),
             headingText: extractHeadingText(section.heading.text || section.rawText),
             sectionType: this.sectionType,
             confidence: 0.7,
-            renderable: true,
-            textPosition: linesToPositions(section.lines),
+            renderable: false,
+            textPosition: sectionPositions,
             items,
         };
     }

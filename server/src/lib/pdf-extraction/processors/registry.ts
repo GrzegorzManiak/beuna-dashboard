@@ -15,11 +15,7 @@ import { UnknownProcessor } from "./unknown";
  * Processors are checked in order - more specific types should come first
  */
 const PROCESSORS: SectionProcessor[] = [
-    // Core property sections
-    new CorePropertyOverviewProcessor(),
-    new CoreAddressProcessor(),
-    
-    // Array-based sections (buildings, units)
+    // Array-based sections (buildings, units) - check these first as they're more specific
     new CoreBuildingsProcessor(),
     new UnitsBlocksProcessor(),
     
@@ -31,6 +27,10 @@ const PROCESSORS: SectionProcessor[] = [
     
     // MV-specific sections
     new MvOwnerEntityProcessor(),
+    
+    // Core property sections (more generic, check later)
+    new CoreAddressProcessor(),
+    new CorePropertyOverviewProcessor(),
     
     // Fallback
     new UnknownProcessor(),
