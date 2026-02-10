@@ -79,6 +79,4 @@ function PdfPageRenderer({
     );
 }
 
-export {
-    PdfPageRenderer,
-}
+export { PdfPageRenderer };
