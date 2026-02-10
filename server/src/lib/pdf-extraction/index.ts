@@ -5,6 +5,7 @@ import { scoreHeadings, type HeadingConfig } from "./raw/heading-score";
 import { selectPrimaryHeadings } from "./raw/heading-levels";
 import { buildSections, type SectionBuildOptions } from "./raw/sections";
 import type { PdfLine, PdfSection } from "./raw/types";
+import { classifySections, type SectionClassificationResult, type SectionType } from "./llm/classify-sections";
 
 type ExtractSectionsOptions = {
     lineBuild?: LineBuildOptions;
@@ -47,4 +48,7 @@ export {
     extractSectionsFromPdf,
     type ExtractSectionsOptions,
     type ExtractSectionsResult,
+    classifySections,
+    type SectionClassificationResult,
+    type SectionType,
 };

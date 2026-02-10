@@ -9,7 +9,7 @@ const DEFAULT_PORT = 3000;
 const EnvPlugin = fp(async (app: FastifyInstance) => {
     const schema = {
         type: "object",
-        required: ["PORT", "DATABASE_URL"],
+        required: ["PORT", "DATABASE_URL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL"],
         properties: {
             NODE_ENV: {
                 type: "string",
@@ -21,6 +21,15 @@ const EnvPlugin = fp(async (app: FastifyInstance) => {
                 default: DEFAULT_PORT,
             },
             DATABASE_URL: {
+                type: "string",
+            },
+            OPENROUTER_API_KEY: {
+                type: "string",
+            },
+            OPENROUTER_BASE_URL: {
+                type: "string",
+            },
+            OPENROUTER_MODEL: {
                 type: "string",
             },
         },

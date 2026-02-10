@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PdfRenderer } from "./PdfRenderer";
-import { handleAutoSplit } from "../utils";
+import { handleAutoSplit } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 
 interface PdfViewerProps {

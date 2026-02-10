@@ -20,11 +20,11 @@ const createItem = (overrides: Partial<PdfTextItem>): PdfTextItem => ({
 });
 
 const createLine = (overrides: Partial<PdfLine> & { text: string }): PdfLine => {
-    const tokens = overrides.tokens ?? overrides.text.split(" ").filter(Boolean);
-    return {
+    const base: PdfLine = {
         id: 0,
         page: 1,
         text: overrides.text,
+        tokens: overrides.text.split(" ").filter(Boolean),
         x: 0,
         y: 0,
         width: 100,
@@ -32,8 +32,12 @@ const createLine = (overrides: Partial<PdfLine> & { text: string }): PdfLine => 
         fontSize: 10,
         fontName: "Helvetica",
         bold: false,
-        ...overrides,
-        tokens,
+    };
+
+    const merged = { ...base, ...overrides };
+    return {
+        ...merged,
+        tokens: merged.tokens ?? merged.text.split(" ").filter(Boolean),
     };
 };
 

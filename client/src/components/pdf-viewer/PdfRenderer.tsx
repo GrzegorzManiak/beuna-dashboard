@@ -15,7 +15,7 @@ import type {
     PageMetrics,
     SectionData,
 } from "./types";
-import { calculateSectionStyle } from "../utils";
+import { calculateSectionStyle } from "./utils";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
