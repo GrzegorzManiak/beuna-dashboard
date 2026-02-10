@@ -47,7 +47,8 @@ const SECTION_TYPE_OPTIONS: Array<{ label: string; value: SectionType }> = [
     { label: "Unit Block", value: "units.unit_block" },
     { label: "Special Rights Block", value: "weg.special_rights_block" },
     { label: "MEA Total Check", value: "weg.mea_total_check" },
-    { label: "Administration Block", value: "weg.administration_block" },
+    { label: "Administration - Property Manager", value: "weg.administration_property_manager" },
+    { label: "Administration - Accountant", value: "weg.administration_accountant" },
     { label: "Owner Entity Block", value: "mv.owner_entity_block" },
     { label: "Unknown", value: "unknown" },
 ];
@@ -126,7 +127,8 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
             return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "weg.mea_total_check":
             return <WegMeaTotalCheckEditor />;
-        case "weg.administration_block":
+        case "weg.administration_property_manager":
+        case "weg.administration_accountant":
             return <WegAdministrationBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "mv.owner_entity_block":
             return <MvOwnerEntityBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;

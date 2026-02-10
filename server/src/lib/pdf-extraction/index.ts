@@ -6,6 +6,24 @@ import { selectPrimaryHeadings } from "./raw/heading-levels";
 import { buildSections, type SectionBuildOptions } from "./raw/sections";
 import type { PdfLine, PdfSection } from "./raw/types";
 import { classifySections, type SectionClassificationResult, type SectionType } from "./llm/classify-sections";
+import {
+    extractBasicDetails,
+    type BasicDetailsExtract,
+    type BasicFieldKey,
+    type BasicFieldValue,
+} from "./llm/extract-basic-details";
+import {
+    extractBuildingBlocks,
+    type ExtractedBlock as BuildingBlock,
+} from "./llm/extract-building-blocks";
+import {
+    extractUnitBlocks,
+    type ExtractedBlock as UnitBlock,
+} from "./llm/extract-unit-blocks";
+import {
+    extractAdministrationBlocks,
+    type AdministrationBlock,
+} from "./llm/extract-administration-blocks";
 
 type ExtractSectionsOptions = {
     lineBuild?: LineBuildOptions;
@@ -70,9 +88,33 @@ async function extractSectionsFromBuffer(
 export {
     extractSectionsFromPdf,
     extractSectionsFromBuffer,
+    classifySections,
+    extractBasicDetails,
+    extractBuildingBlocks,
+    extractUnitBlocks,
+    extractAdministrationBlocks,
     type ExtractSectionsOptions,
     type ExtractSectionsResult,
-    classifySections,
     type SectionClassificationResult,
-    type SectionType,
+    type SectionType as LegacySectionType,
+    type BasicDetailsExtract,
+    type BasicFieldKey,
+    type BasicFieldValue,
+    type BuildingBlock,
+    type UnitBlock,
+    type AdministrationBlock,
 };
+
+// Export new processor system
+export {
+    classifySection as classifySectionWithProcessor,
+    classifySections as classifySectionsWithProcessors,
+    getAllProcessors,
+    getProcessorByType,
+    getArrayBasedSectionTypes,
+    type SectionProcessor,
+    type ProcessedSection,
+    type ClassificationResult,
+    type SectionType,
+    type SectionItem,
+} from "./processors";

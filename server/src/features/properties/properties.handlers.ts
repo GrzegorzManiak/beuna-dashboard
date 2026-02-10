@@ -7,93 +7,21 @@ import type {
     PropertySectionsQuery,
     PropertySectionsStreamQuery,
 } from "./properties";
-import { createExpiringCache } from "../../lib/expiring-cache";
-import { extractSectionsFromBuffer, classifySections } from "../../lib/pdf-extraction";
-
-type DocumentCacheEntry = {
-    data: Buffer;
-    mimeType: string;
-    name: string;
-};
-
-const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
-const DEFAULT_PROPERTY_NAME = "Unnamed property";
-const DEFAULT_DOCUMENT_NAME = "property.pdf";
+import {
+    DEFAULT_DOCUMENT_NAME,
+    DEFAULT_PROPERTY_NAME,
+    PDF_CACHE_TTL_MS,
+    getPropertyDocument,
+    getStoredSections,
+    getBasicDetailsExtract,
+    startSectionTask,
+} from "./properties.service";
 const SECTION_POLL_INTERVAL_MS = 1_000;
 const SECTION_POLL_MAX_WAIT_MS = 25_000;
-
-const documentCache = createExpiringCache<DocumentCacheEntry>(PDF_CACHE_TTL_MS);
-const sectionTasks = new Map<string, Promise<void>>();
 
 const sleep = (ms: number) => new Promise((resolve) => {
     setTimeout(resolve, ms);
 });
-
-const getStoredSections = async (propertyId: string) => {
-    return prisma.propertySection.findMany({
-        where: { propertyId },
-        orderBy: { sectionIndex: "asc" },
-        select: {
-            id: true,
-            sectionIndex: true,
-            headingText: true,
-            rawText: true,
-            textPosition: true,
-            sectionType: true,
-            confidence: true,
-        },
-    });
-};
-
-const startSectionTask = (propertyId: string) => {
-    const existing = sectionTasks.get(propertyId);
-    if (existing) return existing;
-
-    const task = (async () => {
-        const existingCount = await prisma.propertySection.count({ where: { propertyId } });
-        if (existingCount > 0) return;
-
-        const property = await prisma.property.findUnique({
-            where: { id: propertyId },
-            select: {
-                documentData: true,
-            },
-        });
-
-        if (!property?.documentData) throw new Error("Property document not found");
-
-        const sectionsResult = await extractSectionsFromBuffer(Buffer.from(property.documentData));
-        const classification = await classifySections(sectionsResult.sections, 10);
-        const classificationMap = new Map(
-            classification.classifications.map((entry) => [entry.sectionId, entry]),
-        );
-
-        const rows = sectionsResult.sections.map((section, index) => {
-            const classified = classificationMap.get(section.id);
-            return {
-                propertyId,
-                sectionIndex: index,
-                headingText: section.heading.text,
-                rawText: section.rawText,
-                textPosition: section.textPosition,
-                sectionType: classified?.sectionType ?? "unknown",
-                confidence: classified?.confidence ?? 0,
-            };
-        });
-
-        if (!rows.length) return;
-
-        await prisma.propertySection.createMany({
-            data: rows,
-            skipDuplicates: true,
-        });
-    })().finally(() => {
-        sectionTasks.delete(propertyId);
-    });
-
-    sectionTasks.set(propertyId, task);
-    return task;
-};
 
 async function listPropertiesHandler(
     req: FastifyRequest,
@@ -192,38 +120,13 @@ async function getPropertyDocumentHandler(
 ) {
     const { propertyId } = req.params;
 
-    const cached = documentCache.get(propertyId);
-    if (cached) {
-        reply.header("Content-Type", cached.mimeType);
-        reply.header("Content-Disposition", `inline; filename="${cached.name}"`);
-        reply.header("Cache-Control", `private, max-age=${Math.floor(PDF_CACHE_TTL_MS / 1000)}`);
-        return reply.send(cached.data);
-    }
+    const document = await getPropertyDocument(propertyId);
+    if (!document) return reply.code(404).send({ error: "Property document not found" });
 
-    const property = await prisma.property.findUnique({
-        where: { id: propertyId },
-        select: {
-            documentName: true,
-            documentMimeType: true,
-            documentData: true,
-        },
-    });
-
-    if (!property?.documentData) return reply.code(404).send({ error: "Property document not found" });
-
-    const documentName = property.documentName ?? DEFAULT_DOCUMENT_NAME;
-    const mimeType = property.documentMimeType ?? "application/pdf";
-
-    documentCache.set(propertyId, {
-        data: Buffer.from(property.documentData),
-        mimeType,
-        name: documentName,
-    });
-
-    reply.header("Content-Type", mimeType);
-    reply.header("Content-Disposition", `inline; filename="${documentName}"`);
+    reply.header("Content-Type", document.mimeType);
+    reply.header("Content-Disposition", `inline; filename="${document.name}"`);
     reply.header("Cache-Control", `private, max-age=${Math.floor(PDF_CACHE_TTL_MS / 1000)}`);
-    return reply.send(property.documentData);
+    return reply.send(document.data);
 }
 
 async function getPropertyHandler(
@@ -258,8 +161,13 @@ const sendSocketPayload = (
     socket: WebSocket,
     payload: Record<string, unknown>,
 ) => {
-    if (socket.readyState !== socket.OPEN) return;
-    socket.send(JSON.stringify(payload));
+    if (socket.readyState !== socket.OPEN) {
+        console.log('[DEBUG] Socket not open, state:', socket.readyState);
+        return;
+    }
+    const jsonStr = JSON.stringify(payload);
+    console.log('[DEBUG] Sending WebSocket payload:', jsonStr.substring(0, 200));
+    socket.send(jsonStr);
 };
 
 async function getPropertySectionsStreamHandler(
@@ -297,23 +205,66 @@ async function getPropertySectionsStreamHandler(
         return;
     }
 
-    const existing = await getStoredSections(propertyId);
-    if (existing.length) {
-        sendSocketPayload(socket, { status: "ready", sections: existing });
+    console.log('[DEBUG] WebSocket handler started for propertyId:', propertyId);
+    
+    // Track accumulated sections for streaming updates
+    const accumulatedSections: any[] = [];
+    let latestBasicDetails: any = null;
+    let basicDetailsResolved = false;
+    
+    try {
+        await startSectionTask(propertyId, {
+            awaitBasicDetails: true, // WAIT for basic details to complete
+            onBasicDetailsUpdated: (basicDetails) => {
+                console.log('[DEBUG] onBasicDetailsUpdated callback called with:', basicDetails);
+                latestBasicDetails = basicDetails;
+                basicDetailsResolved = true;
+                sendSocketPayload(socket, { 
+                    status: "update", 
+                    basicDetails,
+                    sections: accumulatedSections.filter(s => s.renderable !== false),
+                });
+            },
+            onSectionProcessed: (section, index, total) => {
+                console.log(`[DEBUG] Sending section ${index + 1}/${total} via WebSocket:`, section.sectionType);
+                
+                const sectionData = {
+                    id: `temp-${index}`, // Temporary ID until stored in DB
+                    sectionIndex: (section as any)._sectionIndex ?? index,
+                    headingText: section.headingText,
+                    rawText: section.rawText,
+                    textPosition: section.textPosition,
+                    sectionType: section.sectionType,
+                    confidence: section.confidence,
+                    renderable: index !== 0,
+                    items: section.items || undefined,
+                };
+                
+                accumulatedSections.push(sectionData);
+                
+                // Send update with all sections so far
+                sendSocketPayload(socket, { 
+                    status: "update", 
+                    sections: accumulatedSections.filter(s => s.renderable !== false),
+                    basicDetails: latestBasicDetails,
+                });
+            },
+        });
+    } catch (error) {
+        console.log('[DEBUG] Error in section task:', error);
+        const message = error instanceof Error ? error.message : "Section processing failed.";
+        sendSocketPayload(socket, { error: message });
         socket.close();
         return;
     }
 
-    try {
-        await startSectionTask(propertyId);
-        const sections = await getStoredSections(propertyId);
-        sendSocketPayload(socket, { status: "ready", sections });
-    } catch (error) {
-        const message = error instanceof Error ? error.message : "Section processing failed.";
-        sendSocketPayload(socket, { error: message });
-    } finally {
-        socket.close();
-    }
+    console.log('[DEBUG] Section processing complete, sending final payload');
+    const sections = await getStoredSections(propertyId);
+    const basicDetails = await getBasicDetailsExtract(propertyId);
+    console.log('[DEBUG] Final sections count:', sections.length);
+    console.log('[DEBUG] Final basicDetails:', basicDetails);
+    sendSocketPayload(socket, { status: "complete", sections, basicDetails });
+    socket.close();
 }
 
 async function getPropertySectionsHandler(
@@ -338,9 +289,13 @@ async function getPropertySectionsHandler(
     while (true) {
         const sections = await getStoredSections(propertyId);
         if (sections.length) {
+            await startSectionTask(propertyId);
+            const refreshedSections = await getStoredSections(propertyId);
+            const refreshedBasicDetails = await getBasicDetailsExtract(propertyId);
             return reply.send({
                 status: "ready",
-                sections,
+                sections: refreshedSections,
+                basicDetails: refreshedBasicDetails,
             });
         }
 
@@ -353,6 +308,7 @@ async function getPropertySectionsHandler(
             return reply.send({
                 status: "pending",
                 sections: [],
+                basicDetails: null,
             });
         }
 

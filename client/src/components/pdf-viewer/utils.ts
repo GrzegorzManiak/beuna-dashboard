@@ -10,6 +10,40 @@ function calculateSectionStyle(
 ): RenderedSection {
     const metrics = pageMetrics[pageNumber];
     const scale = metrics?.scale || 1;
+    const pages = section.textPosition.page;
+    const boxes = section.textPosition.boxes;
+    if (boxes && boxes.length) {
+        const box = boxes.find((entry) => entry.page === pageNumber);
+        if (!box) {
+            return {
+                id: section.id,
+                state: section.state,
+                sectionType: section.sectionType,
+                hasTopBorder: false,
+                hasBottomBorder: false,
+                style: {
+                    left: 0,
+                    top: 0,
+                    width: 0,
+                    height: 0,
+                },
+            };
+        }
+
+        return {
+            id: section.id,
+            state: section.state,
+            sectionType: section.sectionType,
+            hasTopBorder: pageNumber === pages[0],
+            hasBottomBorder: pageNumber === pages[pages.length - 1],
+            style: {
+                left: box.x * scale,
+                top: box.y * scale,
+                width: box.width * scale,
+                height: box.height * scale,
+            },
+        };
+    }
     const startPage = section.textPosition.page[0];
     const startPageMetrics = pageMetrics[startPage];
     const startPageScale = startPageMetrics?.scale || scale;

@@ -1,22 +1,36 @@
 import { useEffect, useState } from "react";
 import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
-import { mockSections } from "./mockSections";
+import type { PropertySection } from "@/api/properties";
 import { usePropertyDocumentQuery } from "@/api/properties";
 
 type UnitsStepProps = {
     onNext: () => void;
     onBack: () => void;
     propertyId: string;
+    sections: PropertySection[];
+    propertyType: "WEG" | "MV";
+    sectionsProcessing: boolean;
 };
 
-export function UnitsStep({ onNext, onBack, propertyId }: UnitsStepProps) {
-    const [sections, setSections] = useState<SectionData[]>(mockSections);
-    const propertyType: "WEG" | "MV" = "WEG";
+export function UnitsStep({
+    onNext,
+    onBack,
+    propertyId,
+    sections: incomingSections,
+    propertyType,
+    sectionsProcessing,
+}: UnitsStepProps) {
+    const [sections, setSections] = useState<SectionData[]>([]);
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
     const { data: documentBlob, isLoading: isDocumentLoading, isError: isDocumentError, error: documentError } = usePropertyDocumentQuery(propertyId);
     const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!incomingSections.length) return;
+        setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
+    }, [incomingSections]);
 
     useEffect(() => {
         if (!documentBlob) return;
@@ -48,6 +62,11 @@ export function UnitsStep({ onNext, onBack, propertyId }: UnitsStepProps) {
 
     return (
         <div className="flex h-[80vh] relative">
+            {sectionsProcessing && (
+                <div className="absolute right-4 top-4 z-40 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+                    Extracting unit and building blocks...
+                </div>
+            )}
             {(!isLoaded || isDocumentLoading || !documentUrl) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm z-50">
                     <div className="flex flex-col items-center gap-3">
@@ -88,6 +107,7 @@ export function UnitsStep({ onNext, onBack, propertyId }: UnitsStepProps) {
                                     pdfUrl={documentUrl}
                                     pdfScale={1}
                                     sections={sections}
+                                    propertyType={propertyType}
                                     onSectionAdd={handleSectionAdd}
                                     onSectionUpdate={handleSectionUpdate}
                                     onSectionDelete={handleSectionDelete}
@@ -111,4 +131,46 @@ export function UnitsStep({ onNext, onBack, propertyId }: UnitsStepProps) {
             </div>
         </div>
     );
+}
+
+function mapPropertySections(sections: PropertySection[]): SectionData[] {
+    return sections.map((section) => {
+        const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
+        const pages = positions.map((position) => position.page);
+        const first = positions[0];
+        const state = section.sectionType === "unknown" ? "unknown" : "needs_review";
+        if (!first) {
+            return {
+                id: section.id,
+                textPosition: { page: [], x: 0, y: 0, width: 0, height: 0 },
+                state,
+                sectionType: section.sectionType,
+                reusable: section.reusable,
+                fields: {},
+            };
+        }
+
+        return {
+            id: section.id,
+            textPosition: {
+                page: pages.length ? pages : [first.page],
+                x: first.x,
+                y: first.y,
+                width: first.width,
+                height: first.height,
+                boxes: positions,
+            },
+            state,
+            sectionType: section.sectionType,
+            reusable: section.reusable,
+            fields: {},
+        };
+    });
+}
+
+function mergeSectionData(existing: SectionData[], incoming: SectionData[]): SectionData[] {
+    const map = new Map<string, SectionData>();
+    for (const section of existing) map.set(section.id, section);
+    for (const section of incoming) map.set(section.id, section);
+    return Array.from(map.values());
 }

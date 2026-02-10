@@ -76,6 +76,9 @@ model Property {
     accountant User? @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
     sections   PropertySection[]
 
+    basicDetailsExtract   Json?
+    basicDetailsExtractedAt DateTime?
+
     @@index([status])
     @@index([managementType])
     @@index([managerId])
@@ -91,6 +94,8 @@ model PropertySection {
     textPosition Json
     sectionType  String   @db.VarChar(80)
     confidence   Float
+    renderable   Boolean  @default(true)
+    items        Json?    // For array-based sections (buildings, units) - stores SectionItem[]
     createdAt    DateTime @default(now())
 
     property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)

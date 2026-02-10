@@ -9,12 +9,13 @@ import { UnitsStep } from "./UnitsStep";
 import { ProcessingStep } from "./ProcessingStep";
 import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery, useUpdatePropertyMutation } from "@/api/properties";
-import type { PropertyManagementType, PropertySection } from "@/api/properties";
+import type { PropertyManagementType, PropertySection, BasicDetailsExtract } from "@/api/properties";
 import { getSessionId } from "@/lib/session-storage";
 
 type PropertyTypeSelection = "condo" | "rental";
 
 export function ProjectOnboardingPage() {
+    const DEFAULT_PROPERTY_NAME = "Unnamed property";
     const STEP_UPLOAD = 0;
     const STEP_PROCESSING = 1;
     const STEP_PROPERTY_TYPE = 2;
@@ -35,10 +36,20 @@ export function ProjectOnboardingPage() {
     const [city, setCity] = useState<string>("");
     const [sections, setSections] = useState<PropertySection[]>([]);
     const [sectionsReady, setSectionsReady] = useState<boolean>(false);
+    const [sectionsProcessing, setSectionsProcessing] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [hasHydrated, setHasHydrated] = useState<boolean>(false);
+    const [basicDetails, setBasicDetails] = useState<BasicDetailsExtract | null>(null);
+    const [prefilledFromExtract, setPrefilledFromExtract] = useState<boolean>(false);
 
     const property = data?.property;
+    const selectedManagementType = selectedType ? mapSelectionToManagementType(selectedType) : null;
+    const resolvedPropertyType =
+        selectedManagementType && selectedManagementType !== "UNKNOWN"
+            ? selectedManagementType
+            : property?.managementType === "MV"
+                ? "MV"
+                : "WEG";
 
     const toProgressIndex = useCallback((value: number): number => {
         if (value <= STEP_PROCESSING) return 0;
@@ -78,6 +89,9 @@ export function ProjectOnboardingPage() {
         setHasHydrated(false);
         setSections([]);
         setSectionsReady(false);
+        setBasicDetails(null);
+        setSectionsProcessing(false);
+        setPrefilledFromExtract(false);
         setStep(STEP_PROCESSING);
     }, [propertyId, STEP_PROCESSING]);
 
@@ -108,6 +122,70 @@ export function ProjectOnboardingPage() {
     }, [sections]);
 
     useEffect(() => {
+        if (!basicDetails) return;
+        console.log("Basic details extract", basicDetails);
+    }, [basicDetails]);
+
+    useEffect(() => {
+        if (!basicDetails) return;
+        if (!property) return;
+        if (prefilledFromExtract) return;
+
+        const fields = new Map(basicDetails.fields.map((field) => [field.key, field]));
+        const managementHint = fields.get("managementTypeHint")?.value ?? null;
+        const nameValue = fields.get("propertyName")?.value ?? null;
+        const streetValue = fields.get("street")?.value ?? null;
+        const postalValue = fields.get("postalCode")?.value ?? null;
+        const cityValue = fields.get("city")?.value ?? null;
+
+        let didPrefill = false;
+
+        if (!selectedType && property.managementType === "UNKNOWN") {
+            if (managementHint === "WEG") {
+                setSelectedType("condo");
+                didPrefill = true;
+            }
+            if (managementHint === "MV") {
+                setSelectedType("rental");
+                didPrefill = true;
+            }
+        }
+
+        if ((propertyName === "" || propertyName === DEFAULT_PROPERTY_NAME) && nameValue) {
+            setPropertyName(nameValue);
+            didPrefill = true;
+        }
+
+        if (!street && streetValue) {
+            setStreet(streetValue);
+            didPrefill = true;
+        }
+
+        if (!postalCode && postalValue) {
+            setPostalCode(postalValue);
+            didPrefill = true;
+        }
+
+        if (!city && cityValue) {
+            setCity(cityValue);
+            didPrefill = true;
+        }
+
+        if (didPrefill) setErrorMessage(null);
+        setPrefilledFromExtract(true);
+    }, [
+        basicDetails,
+        city,
+        DEFAULT_PROPERTY_NAME,
+        postalCode,
+        prefilledFromExtract,
+        property,
+        propertyName,
+        selectedType,
+        street,
+    ]);
+
+    useEffect(() => {
         if (!propertyId) return;
         if (!sessionId) return;
         let isClosed = false;
@@ -117,15 +195,65 @@ export function ProjectOnboardingPage() {
 
         socket.onmessage = (event) => {
             if (isClosed) return;
+            console.log('[CLIENT DEBUG] WebSocket message received:', event.data);
             try {
-                const payload = JSON.parse(event.data) as { status?: string; sections?: PropertySection[]; error?: string };
+                const payload = JSON.parse(event.data) as {
+                    status?: string;
+                    sections?: PropertySection[];
+                    basicDetails?: BasicDetailsExtract | null;
+                    error?: string;
+                };
+                console.log('[CLIENT DEBUG] Parsed payload:', payload);
+                
                 if (payload.error) {
+                    console.log('[CLIENT DEBUG] Error in payload:', payload.error);
                     setErrorMessage(payload.error);
                     return;
                 }
                 if (payload.status === "ready" && payload.sections) {
-                    setSections(payload.sections);
+                    console.log('[CLIENT DEBUG] Status: ready, sections:', payload.sections.length);
+                    const visibleSections = payload.sections.filter((section) => section.renderable !== false);
+                    setSections(visibleSections);
                     setSectionsReady(true);
+                    setBasicDetails(payload.basicDetails ?? null);
+                    setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
+                }
+                if (payload.status === "processing") {
+                    console.log('[CLIENT DEBUG] Status: processing');
+                    setSectionsProcessing(true);
+                }
+                if (payload.status === "update") {
+                    console.log('[CLIENT DEBUG] Status: update, basicDetails:', payload.basicDetails);
+                    console.log('[CLIENT DEBUG] Status: update, sections:', payload.sections?.length);
+                    if (payload.basicDetails) {
+                        console.log('[CLIENT DEBUG] Setting basicDetails:', payload.basicDetails);
+                        setBasicDetails(payload.basicDetails);
+                    }
+                    if (!payload.sections) {
+                        console.log('[CLIENT DEBUG] No sections in update, returning');
+                        return;
+                    }
+                    const visibleSections = payload.sections.filter((section) => section.renderable !== false);
+                    console.log('[CLIENT DEBUG] Visible sections count:', visibleSections.length);
+                    setSections((prev) => {
+                        const merged = mergeSections(prev, visibleSections);
+                        console.log('[CLIENT DEBUG] Merged sections:', merged.length);
+                        return merged;
+                    });
+                }
+                if (payload.status === "complete") {
+                    console.log('[CLIENT DEBUG] Status: complete');
+                    setSectionsProcessing(false);
+                    setSectionsReady(true);
+                    if (payload.sections) {
+                        const visibleSections = payload.sections.filter((section) => section.renderable !== false);
+                        console.log('[CLIENT DEBUG] Final sections count:', visibleSections.length);
+                        setSections(visibleSections);
+                    }
+                    if (payload.basicDetails) {
+                        console.log('[CLIENT DEBUG] Final basicDetails:', payload.basicDetails);
+                        setBasicDetails(payload.basicDetails);
+                    }
                     setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
                     socket.close();
                 }
@@ -137,10 +265,12 @@ export function ProjectOnboardingPage() {
         socket.onerror = () => {
             if (isClosed) return;
             setErrorMessage("Failed to connect to section stream.");
+            setSectionsProcessing(false);
         };
 
         socket.onclose = () => {
             isClosed = true;
+            setSectionsProcessing(false);
         };
 
         return () => {
@@ -149,13 +279,12 @@ export function ProjectOnboardingPage() {
         };
     }, [propertyId, sessionId, STEP_PROCESSING, STEP_PROPERTY_TYPE]);
 
-    if (!propertyId) {
-        return (
-            <div className="h-screen w-full flex items-center justify-center bg-gray-50/50">
-                <p className="text-sm text-gray-600">Project ID is missing.</p>
-            </div>
-        );
-    }
+    if (!propertyId) return (
+        <div className="h-screen w-full flex items-center justify-center bg-gray-50/50">
+            <p className="text-sm text-gray-600">Project ID is missing.</p>
+        </div>
+    );
+
 
     async function handleTypeNext(): Promise<void> {
         if (!property) return;
@@ -298,6 +427,9 @@ export function ProjectOnboardingPage() {
                             >
                                 <UnitsStep
                                     propertyId={propertyId}
+                                    sections={sections}
+                                    propertyType={resolvedPropertyType}
+                                    sectionsProcessing={sectionsProcessing}
                                     onNext={() => setStep(STEP_UNITS + 1)}
                                     onBack={() => setStep(STEP_DETAILS)}
                                 />
@@ -318,4 +450,11 @@ function mapManagementTypeToSelection(type: PropertyManagementType): PropertyTyp
 
 function mapSelectionToManagementType(selection: PropertyTypeSelection): PropertyManagementType {
     return selection === "condo" ? "WEG" : "MV";
+}
+
+function mergeSections(existing: PropertySection[], incoming: PropertySection[]): PropertySection[] {
+    const map = new Map<string, PropertySection>();
+    for (const section of existing) map.set(section.id, section);
+    for (const section of incoming) map.set(section.id, section);
+    return Array.from(map.values()).sort((a, b) => a.sectionIndex - b.sectionIndex);
 }

@@ -52,6 +52,54 @@ const propertyDetailSchema = {
     additionalProperties: false,
 };
 
+const sectionPositionSchema = {
+    type: "object",
+    properties: {
+        page: { type: "integer" },
+        x: { type: "number" },
+        y: { type: "number" },
+        width: { type: "number" },
+        height: { type: "number" },
+    },
+    required: ["page", "x", "y", "width", "height"],
+    additionalProperties: false,
+};
+
+const basicDetailsFieldSchema = {
+    type: "object",
+    properties: {
+        key: { type: "string" },
+        value: { type: ["string", "null"] },
+        sourceText: { type: ["string", "null"] },
+        sectionIndex: { type: ["integer", "null"] },
+        position: {
+            anyOf: [
+                sectionPositionSchema,
+                { type: "null" },
+            ],
+        },
+    },
+    required: ["key", "value", "sourceText", "sectionIndex", "position"],
+    additionalProperties: false,
+};
+
+const basicDetailsSchema = {
+    anyOf: [
+        { type: "null" },
+        {
+            type: "object",
+            properties: {
+                fields: {
+                    type: "array",
+                    items: basicDetailsFieldSchema,
+                },
+            },
+            required: ["fields"],
+            additionalProperties: false,
+        },
+    ],
+};
+
 const secureConfig = { authRequired: true };
 
 const propertiesRoutes: FastifyPluginAsync = async (app) => {
@@ -167,9 +215,11 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
                                     sectionIndex: { type: "integer" },
                                     headingText: { type: "string" },
                                     rawText: { type: "string" },
-                                    textPosition: { type: "array" },
+                                    textPosition: { type: "array", items: sectionPositionSchema },
                                     sectionType: { type: "string" },
                                     confidence: { type: "number" },
+                                    renderable: { type: "boolean" },
+                                    reusable: { type: "boolean" },
                                 },
                                 required: [
                                     "id",
@@ -179,12 +229,15 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
                                     "textPosition",
                                     "sectionType",
                                     "confidence",
+                                    "renderable",
+                                    "reusable",
                                 ],
                                 additionalProperties: false,
                             },
                         },
+                        basicDetails: basicDetailsSchema,
                     },
-                    required: ["status", "sections"],
+                    required: ["status", "sections", "basicDetails"],
                     additionalProperties: false,
                 },
                 404: {

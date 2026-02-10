@@ -26,9 +26,28 @@ type PropertySectionType =
     | "units.unit_block"
     | "weg.special_rights_block"
     | "weg.mea_total_check"
-    | "weg.administration_block"
+    | "weg.administration_property_manager"
+    | "weg.administration_accountant"
     | "mv.owner_entity_block"
     | "unknown";
+
+type BasicDetailsField = {
+    key: string;
+    value: string | null;
+    sourceText: string | null;
+    sectionIndex: number | null;
+    position: {
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null;
+};
+
+type BasicDetailsExtract = {
+    fields: BasicDetailsField[];
+};
 
 type PropertySection = {
     id: string;
@@ -44,11 +63,14 @@ type PropertySection = {
     }>;
     sectionType: PropertySectionType;
     confidence: number;
+    renderable: boolean;
+    reusable: boolean;
 };
 
 type PropertySectionsResponse = {
     status: "ready" | "pending";
     sections: PropertySection[];
+    basicDetails?: BasicDetailsExtract | null;
 };
 
 type CreatePropertyResponse = {
@@ -198,6 +220,8 @@ export {
     type PropertySection,
     type PropertySectionType,
     type PropertySectionsResponse,
+    type BasicDetailsExtract,
+    type BasicDetailsField,
     type CreatePropertyResponse,
     type GetPropertyResponse,
     type UpdatePropertyBody,

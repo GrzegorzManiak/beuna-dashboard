@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type ProcessingStepProps = {
     title?: string;
@@ -7,11 +8,27 @@ type ProcessingStepProps = {
     errorMessage?: string | null;
 };
 
+const LOADING_MESSAGES = [
+    "Detecting sections",
+    "Identifying buildings",
+    "Extracting units",
+];
+
 export function ProcessingStep({
     title = "Preparing your property",
     description = "We are extracting sections and classifying the document. This should only take a moment.",
     errorMessage,
 }: ProcessingStepProps) {
+    const [messageIndex, setMessageIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <Card className="w-full pb-0 max-w-2xl">
             <CardHeader className="mb-2">
@@ -23,7 +40,7 @@ export function ProcessingStep({
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
                         <Loader2 className="h-6 w-6 animate-spin" />
                     </div>
-                    <p className="text-sm font-medium text-gray-600">Processing sections…</p>
+                    <p className="text-sm font-medium text-gray-600">{LOADING_MESSAGES[messageIndex]}…</p>
                 </div>
                 {errorMessage ? (
                     <p className="mt-4 text-xs font-medium text-red-600">{errorMessage}</p>

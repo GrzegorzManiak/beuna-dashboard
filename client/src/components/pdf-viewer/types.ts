@@ -1,11 +1,20 @@
 import type { CSSProperties } from "react";
 
+type SectionBox = {
+    page: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+};
+
 type SectionPosition = {
     page: Array<number>;
     x: number;
     y: number;
     width: number;
     height: number;
+    boxes?: SectionBox[];
 };
 
 type SectionType =
@@ -16,7 +25,8 @@ type SectionType =
     | "units.unit_block"
     | "weg.special_rights_block"
     | "weg.mea_total_check"
-    | "weg.administration_block"
+    | "weg.administration_property_manager"
+    | "weg.administration_accountant"
     | "mv.owner_entity_block"
     | "unknown";
 
@@ -38,6 +48,7 @@ type SectionData = {
     subtype?: string;
     propertyTypeScope?: "WEG" | "MV" | "ANY";
     fields?: Record<string, SectionFieldValue>;
+    reusable?: boolean;
 };
 
 type RenderedSection = {
@@ -105,6 +116,7 @@ type TextMatch = {
 };
 
 export type {
+    SectionBox,
     SectionType,
     SectionState,
     SectionFieldValue,

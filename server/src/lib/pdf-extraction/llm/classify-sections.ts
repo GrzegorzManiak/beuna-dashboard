@@ -9,7 +9,8 @@ type SectionType =
     | "units.unit_block"
     | "weg.special_rights_block"
     | "weg.mea_total_check"
-    | "weg.administration_block"
+    | "weg.administration_property_manager"
+    | "weg.administration_accountant"
     | "mv.owner_entity_block"
     | "unknown";
 
@@ -32,7 +33,8 @@ const SECTION_TYPE_DESCRIPTIONS: Record<SectionType, string> = {
     "units.unit_block": "Unit block descriptions or lists of units (apartments, parking, etc.).",
     "weg.special_rights_block": "Special usage rights (Sondernutzungsrechte) sections.",
     "weg.mea_total_check": "MEA totals or checks for co-ownership shares.",
-    "weg.administration_block": "Administration or manager appointment details.",
+    "weg.administration_property_manager": "Property manager appointment details (Verwalter), including combined Verwaltung/Buchhaltung appointment sections such as 'Erstbestellung von Verwaltung und Buchhaltung'.",
+    "weg.administration_accountant": "Accountant or finance appointment details (Buchhaltung/Abrechnung).",
     "mv.owner_entity_block": "Owner or landlord entity information.",
     "unknown": "Does not match any known type.",
 };
@@ -63,6 +65,7 @@ const buildMessages = (section: PdfSection): LlmMessage[] => {
                 "Choose the single best sectionType from the list.",
                 "Return JSON that matches the schema.",
                 "Use unknown when unsure.",
+                "If a section mentions both Verwaltung/Verwalter and Buchhaltung/Abrechnung, choose weg.administration_property_manager.",
                 "Section types:",
                 typeHints,
             ].join("\n"),
