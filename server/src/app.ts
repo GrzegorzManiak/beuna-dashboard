@@ -10,12 +10,14 @@ import { healthRoutes } from "@feature/health/health.routes";
 import { sessionsRoutes } from "@feature/session/session.routes";
 import { usersRoutes } from "@feature/users/users.routes";
 import { propertiesRoutes } from "@feature/properties/properties.routes";
+import { helpRoutes } from "@feature/help/help.routes";
 
 function registerRoutes(app: FastifyInstance): void {
     void app.register(healthRoutes, { prefix: "/health" });
     void app.register(usersRoutes, { prefix: "/users" });
     void app.register(sessionsRoutes, { prefix: "/sessions" });
     void app.register(propertiesRoutes, { prefix: "/properties" });
+    void app.register(helpRoutes, { prefix: "/help" });
 }
 
 async function buildApp(): Promise<FastifyInstance> {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ProgressBar } from "./ProgressBar";
+import { ApiStatus } from "./ApiStatus";
 import { PropertyDetailsStep } from "./PropertyDetailsStep";
 import { PropertyTypePicker } from "./PropertyTypePicker";
 import { ProcessingStep } from "./ProcessingStep";
@@ -22,6 +23,7 @@ export function NewPropertyPage() {
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden">
             <ProgressBar currentStep={step} onStepClick={setStep} />
+            <ApiStatus className="self-end pr-6 -mt-4" />
 
             <div className="w-full flex justify-center px-4 relative">
                 <AnimatePresence mode="wait">

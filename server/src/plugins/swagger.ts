@@ -30,6 +30,8 @@ const SwaggerPlugin = fp(async (app) => {
             persistAuthorization: true,
         },
     });
+
+    app.get("/openapi.json", async () => app.swagger());
 });
 
 
