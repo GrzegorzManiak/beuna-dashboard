@@ -124,13 +124,19 @@ function handleAutoSplit(
 
     const section = sections.find((s) => s.id === sectionId);
     if (section && section.textPosition.page.length > 0) {
-        const pageNumber = section.textPosition.page[0];
-        const metrics = pageMetrics[pageNumber];
+        // Use the last page the section appears on so the toolbar opens below it.
+        const pages = section.textPosition.page;
+        const lastPage = pages[pages.length - 1];
+        const metrics = pageMetrics[lastPage];
         if (metrics) {
-            // Calculate split ratio: (y + height) / originalHeight
-            // Note: textPosition is in original PDF coordinates
-            const splitRatio = (section.textPosition.y + section.textPosition.height) / metrics.originalHeight;
-            setActiveSplit({ pageNumber, splitRatio: Math.min(splitRatio, 1), });
+            // Prefer the per-page box if available, otherwise fall back to
+            // the top-level bounding box (which may span multiple pages).
+            const box = section.textPosition.boxes?.find((b) => b.page === lastPage);
+            const y = box ? box.y : section.textPosition.y;
+            const h = box ? box.height : section.textPosition.height;
+
+            const splitRatio = (y + h) / metrics.originalHeight;
+            setActiveSplit({ pageNumber: lastPage, splitRatio: Math.min(splitRatio, 1) });
 
             // Basic scroll into view logic (optional, for better UX)
             // Scroll to the split toolbar after a short delay to allow it to render

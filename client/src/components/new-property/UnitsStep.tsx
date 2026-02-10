@@ -31,6 +31,11 @@ export function UnitsStep({
         if (!incomingSections.length) return;
         setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
     }, [incomingSections]);
+    
+    useEffect(() => {
+        if (!isLoaded || !incomingSections.length) return;
+        setSections(mapPropertySections(incomingSections));
+    }, [isLoaded]);
 
     useEffect(() => {
         if (!documentBlob) return;
@@ -135,19 +140,26 @@ export function UnitsStep({
 
 /**
  * Compute an overall bounding box from an array of per-page position boxes.
- * The top-level x/y/width/height should encompass all boxes so that
- * handleAutoSplit and the fallback path in calculateSectionStyle work correctly.
+ *
+ * The top-level x/y/width/height uses the FIRST page's box so that
+ * SectionBar (which positions cards relative to the first page) and
+ * the fallback path in calculateSectionStyle work correctly.  The full
+ * per-page boxes array is preserved for per-page highlight rendering.
  */
 function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; width: number; height: number }>) {
     if (!boxes.length) return { page: [] as number[], x: 0, y: 0, width: 0, height: 0, boxes: undefined as any };
 
     const pages = [...new Set(boxes.map((b) => b.page))].sort((a, b) => a - b);
+    const firstPage = pages[0];
+
+    // Use the first page's box for the top-level bounding box.
+    const firstPageBoxes = boxes.filter((b) => b.page === firstPage);
     let minX = Infinity;
     let minY = Infinity;
     let maxRight = -Infinity;
     let maxBottom = -Infinity;
 
-    for (const box of boxes) {
+    for (const box of firstPageBoxes) {
         minX = Math.min(minX, box.x);
         minY = Math.min(minY, box.y);
         maxRight = Math.max(maxRight, box.x + box.width);

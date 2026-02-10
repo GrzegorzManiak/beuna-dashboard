@@ -36,7 +36,13 @@ const extractTextItemsFromData = async (data: Uint8Array): Promise<PdfTextItem[]
             const fontSize = Math.hypot(transform[0], transform[1]);
             const x = transform[4] ?? 0;
             const yBottom = transform[5] ?? 0;
-            const y = viewport.height - yBottom;
+            // transform[5] is the text baseline measured from the page bottom.
+            // Convert to top-origin by subtracting from viewport height, then
+            // shift up by the glyph height so `y` is the top edge of the text
+            // (not the baseline).  This matches how react-pdf's TextLayer
+            // positions <span> elements via CSS transforms.
+            const itemHeight = item.height ?? 0;
+            const y = viewport.height - yBottom - itemHeight;
 
             items.push({
                 page: pageNum,
