@@ -12,11 +12,10 @@ const getStandardFontDataUrl = () => {
     return path.join(pdfjsDir, "standard_fonts/");
 };
 
-async function extractPdfTextItems(pdfPath: string): Promise<PdfTextItem[]> {
+const extractTextItemsFromData = async (data: Uint8Array): Promise<PdfTextItem[]> => {
     const { getDocument } = await getResolvedPDFJS();
-    const buffer = await readFile(pdfPath);
     const pdf = await getDocument({
-        data: new Uint8Array(buffer),
+        data,
         standardFontDataUrl: getStandardFontDataUrl(),
     }).promise;
 
@@ -54,8 +53,23 @@ async function extractPdfTextItems(pdfPath: string): Promise<PdfTextItem[]> {
     }
 
     return items;
+};
+
+async function extractPdfTextItems(pdfPath: string): Promise<PdfTextItem[]> {
+    const buffer = await readFile(pdfPath);
+    return extractTextItemsFromData(new Uint8Array(buffer));
+}
+
+async function extractPdfTextItemsFromBuffer(buffer: Buffer | Uint8Array): Promise<PdfTextItem[]> {
+    const data = Buffer.isBuffer(buffer)
+        ? new Uint8Array(buffer)
+        : buffer instanceof Uint8Array
+            ? buffer
+            : new Uint8Array(buffer);
+    return extractTextItemsFromData(data);
 }
 
 export {
     extractPdfTextItems,
+    extractPdfTextItemsFromBuffer,
 };

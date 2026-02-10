@@ -4,6 +4,8 @@ import {
     createPropertyHandler,
     getPropertyDocumentHandler,
     getPropertyHandler,
+    getPropertySectionsStreamHandler,
+    getPropertySectionsHandler,
     updatePropertyHandler,
 } from "@feature/properties/properties.handlers";
 
@@ -130,6 +132,94 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, getPropertyHandler);
+
+    app.get("/:propertyId/sections", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Get extracted sections for a property (long poll).",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            querystring: {
+                type: "object",
+                properties: {
+                    waitMs: { type: "integer", minimum: 0, maximum: 25000 },
+                },
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        status: { type: "string", enum: ["ready", "pending"] },
+                        sections: {
+                            type: "array",
+                            items: {
+                                type: "object",
+                                properties: {
+                                    id: { type: "string", format: "uuid" },
+                                    sectionIndex: { type: "integer" },
+                                    headingText: { type: "string" },
+                                    rawText: { type: "string" },
+                                    textPosition: { type: "array" },
+                                    sectionType: { type: "string" },
+                                    confidence: { type: "number" },
+                                },
+                                required: [
+                                    "id",
+                                    "sectionIndex",
+                                    "headingText",
+                                    "rawText",
+                                    "textPosition",
+                                    "sectionType",
+                                    "confidence",
+                                ],
+                                additionalProperties: false,
+                            },
+                        },
+                    },
+                    required: ["status", "sections"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, getPropertySectionsHandler);
+
+    app.get("/:propertyId/sections/stream", {
+        websocket: true,
+        schema: {
+            tags: ["properties"],
+            summary: "Stream extracted sections for a property via WebSocket.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            querystring: {
+                type: "object",
+                properties: {
+                    sessionId: { type: "string" },
+                },
+                required: ["sessionId"],
+                additionalProperties: false,
+            },
+        },
+    }, getPropertySectionsStreamHandler);
 
     app.get("/:propertyId/document", {
         config: secureConfig,

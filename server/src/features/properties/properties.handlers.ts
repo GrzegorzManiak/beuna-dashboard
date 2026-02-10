@@ -1,10 +1,14 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import type { WebSocket } from "ws";
 import { prisma } from "@db";
 import type {
     UpdatePropertyBody,
     PropertyIdParams,
+    PropertySectionsQuery,
+    PropertySectionsStreamQuery,
 } from "./properties";
 import { createExpiringCache } from "../../lib/expiring-cache";
+import { extractSectionsFromBuffer, classifySections } from "../../lib/pdf-extraction";
 
 type DocumentCacheEntry = {
     data: Buffer;
@@ -15,8 +19,81 @@ type DocumentCacheEntry = {
 const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_PROPERTY_NAME = "Unnamed property";
 const DEFAULT_DOCUMENT_NAME = "property.pdf";
+const SECTION_POLL_INTERVAL_MS = 1_000;
+const SECTION_POLL_MAX_WAIT_MS = 25_000;
 
 const documentCache = createExpiringCache<DocumentCacheEntry>(PDF_CACHE_TTL_MS);
+const sectionTasks = new Map<string, Promise<void>>();
+
+const sleep = (ms: number) => new Promise((resolve) => {
+    setTimeout(resolve, ms);
+});
+
+const getStoredSections = async (propertyId: string) => {
+    return prisma.propertySection.findMany({
+        where: { propertyId },
+        orderBy: { sectionIndex: "asc" },
+        select: {
+            id: true,
+            sectionIndex: true,
+            headingText: true,
+            rawText: true,
+            textPosition: true,
+            sectionType: true,
+            confidence: true,
+        },
+    });
+};
+
+const startSectionTask = (propertyId: string) => {
+    const existing = sectionTasks.get(propertyId);
+    if (existing) return existing;
+
+    const task = (async () => {
+        const existingCount = await prisma.propertySection.count({ where: { propertyId } });
+        if (existingCount > 0) return;
+
+        const property = await prisma.property.findUnique({
+            where: { id: propertyId },
+            select: {
+                documentData: true,
+            },
+        });
+
+        if (!property?.documentData) throw new Error("Property document not found");
+
+        const sectionsResult = await extractSectionsFromBuffer(Buffer.from(property.documentData));
+        const classification = await classifySections(sectionsResult.sections, 10);
+        const classificationMap = new Map(
+            classification.classifications.map((entry) => [entry.sectionId, entry]),
+        );
+
+        const rows = sectionsResult.sections.map((section, index) => {
+            const classified = classificationMap.get(section.id);
+            return {
+                propertyId,
+                sectionIndex: index,
+                headingText: section.heading.text,
+                rawText: section.rawText,
+                textPosition: section.textPosition,
+                sectionType: classified?.sectionType ?? "unknown",
+                confidence: classified?.confidence ?? 0,
+            };
+        });
+
+        if (!rows.length) return;
+
+        await prisma.propertySection.createMany({
+            data: rows,
+            skipDuplicates: true,
+        });
+    })().finally(() => {
+        sectionTasks.delete(propertyId);
+    });
+
+    sectionTasks.set(propertyId, task);
+    return task;
+};
 
 async function listPropertiesHandler(
     req: FastifyRequest,
@@ -177,6 +254,112 @@ async function getPropertyHandler(
     return reply.send({ property });
 }
 
+const sendSocketPayload = (
+    socket: WebSocket,
+    payload: Record<string, unknown>,
+) => {
+    if (socket.readyState !== socket.OPEN) return;
+    socket.send(JSON.stringify(payload));
+};
+
+async function getPropertySectionsStreamHandler(
+    socket: WebSocket,
+    req: FastifyRequest<{ Params: PropertyIdParams; Querystring: PropertySectionsStreamQuery }>
+) {
+    const { propertyId } = req.params;
+    const sessionId = req.query?.sessionId?.trim();
+
+    if (!sessionId) {
+        sendSocketPayload(socket, { error: "Missing sessionId." });
+        socket.close();
+        return;
+    }
+
+    const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        select: { id: true },
+    });
+
+    if (!session) {
+        sendSocketPayload(socket, { error: "Invalid session." });
+        socket.close();
+        return;
+    }
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+
+    if (!property) {
+        sendSocketPayload(socket, { error: "Property not found." });
+        socket.close();
+        return;
+    }
+
+    const existing = await getStoredSections(propertyId);
+    if (existing.length) {
+        sendSocketPayload(socket, { status: "ready", sections: existing });
+        socket.close();
+        return;
+    }
+
+    try {
+        await startSectionTask(propertyId);
+        const sections = await getStoredSections(propertyId);
+        sendSocketPayload(socket, { status: "ready", sections });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Section processing failed.";
+        sendSocketPayload(socket, { error: message });
+    } finally {
+        socket.close();
+    }
+}
+
+async function getPropertySectionsHandler(
+    req: FastifyRequest<{ Params: PropertyIdParams; Querystring: PropertySectionsQuery }>,
+    reply: FastifyReply
+) {
+    const { propertyId } = req.params;
+    const waitMsRaw = req.query?.waitMs;
+    const waitMs = Number.isFinite(waitMsRaw)
+        ? Math.min(Math.max(waitMsRaw ?? 0, 0), SECTION_POLL_MAX_WAIT_MS)
+        : 0;
+    const deadline = waitMs ? Date.now() + waitMs : 0;
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+
+    if (!property) return reply.code(404).send({ error: "Property not found" });
+
+    let started = false;
+    while (true) {
+        const sections = await getStoredSections(propertyId);
+        if (sections.length) {
+            return reply.send({
+                status: "ready",
+                sections,
+            });
+        }
+
+        if (!started) {
+            started = true;
+            startSectionTask(propertyId).catch(() => null);
+        }
+
+        if (!waitMs || Date.now() >= deadline) {
+            return reply.send({
+                status: "pending",
+                sections: [],
+            });
+        }
+
+        await sleep(SECTION_POLL_INTERVAL_MS);
+    }
+}
+
 async function updatePropertyHandler(
     req: FastifyRequest<{ Params: PropertyIdParams; Body: UpdatePropertyBody }>,
     reply: FastifyReply
@@ -243,5 +426,7 @@ export {
     createPropertyHandler,
     getPropertyDocumentHandler,
     getPropertyHandler,
+    getPropertySectionsStreamHandler,
+    getPropertySectionsHandler,
     updatePropertyHandler,
 };

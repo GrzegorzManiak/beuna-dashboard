@@ -1,4 +1,4 @@
-import { extractPdfTextItems } from "./raw/pdf";
+import { extractPdfTextItems, extractPdfTextItemsFromBuffer } from "./raw/pdf";
 import { buildLines, type LineBuildOptions } from "./raw/lines";
 import { computeLineStats } from "./raw/line-stats";
 import { scoreHeadings, type HeadingConfig } from "./raw/heading-score";
@@ -44,8 +44,32 @@ async function extractSectionsFromPdf(
     };
 }
 
+async function extractSectionsFromBuffer(
+    buffer: Buffer | Uint8Array,
+    options: ExtractSectionsOptions = {},
+): Promise<ExtractSectionsResult> {
+    const items = await extractPdfTextItemsFromBuffer(buffer);
+    const lines = buildLines(items, options.lineBuild);
+    const stats = computeLineStats(lines);
+    const headingResult = scoreHeadings(lines, stats, options.heading);
+    const headingCandidates = headingResult.headings.map((entry) => entry.line);
+    const headings =
+        options.headingLevel === "all"
+            ? headingCandidates
+            : selectPrimaryHeadings(headingCandidates);
+    const sections = buildSections(lines, headings, stats, options.section);
+
+    return {
+        sections,
+        lines,
+        headings,
+        headingThreshold: headingResult.threshold,
+    };
+}
+
 export {
     extractSectionsFromPdf,
+    extractSectionsFromBuffer,
     type ExtractSectionsOptions,
     type ExtractSectionsResult,
     classifySections,

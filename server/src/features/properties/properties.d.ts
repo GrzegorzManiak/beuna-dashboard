@@ -13,7 +13,17 @@ type PropertyIdParams = {
     propertyId: string;
 };
 
+type PropertySectionsQuery = {
+    waitMs?: number;
+};
+
+type PropertySectionsStreamQuery = {
+    sessionId?: string;
+};
+
 export {
     type UpdatePropertyBody,
     type PropertyIdParams,
+    type PropertySectionsQuery,
+    type PropertySectionsStreamQuery,
 };

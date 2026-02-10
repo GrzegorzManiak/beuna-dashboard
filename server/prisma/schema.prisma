@@ -74,11 +74,29 @@ model Property {
 
     manager    User? @relation("PropertyManager", fields: [managerId], references: [id], onDelete: Restrict)
     accountant User? @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
+    sections   PropertySection[]
 
     @@index([status])
     @@index([managementType])
     @@index([managerId])
     @@index([accountantId])
+}
+
+model PropertySection {
+    id           String   @id @default(uuid()) @db.Uuid
+    propertyId   String   @db.Uuid
+    sectionIndex Int
+    headingText  String   @db.Text
+    rawText      String   @db.Text
+    textPosition Json
+    sectionType  String   @db.VarChar(80)
+    confidence   Float
+    createdAt    DateTime @default(now())
+
+    property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+    @@index([propertyId])
+    @@unique([propertyId, sectionIndex])
 }
 
 model PropertyCounter {

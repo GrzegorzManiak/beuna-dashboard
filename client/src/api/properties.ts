@@ -18,6 +18,39 @@ type PropertyDetail = {
     addressCity: string | null;
 };
 
+type PropertySectionType =
+    | "core.property_overview"
+    | "core.address"
+    | "core.building"
+    | "core.building_shared_features"
+    | "units.unit_block"
+    | "weg.special_rights_block"
+    | "weg.mea_total_check"
+    | "weg.administration_block"
+    | "mv.owner_entity_block"
+    | "unknown";
+
+type PropertySection = {
+    id: string;
+    sectionIndex: number;
+    headingText: string;
+    rawText: string;
+    textPosition: Array<{
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }>;
+    sectionType: PropertySectionType;
+    confidence: number;
+};
+
+type PropertySectionsResponse = {
+    status: "ready" | "pending";
+    sections: PropertySection[];
+};
+
 type CreatePropertyResponse = {
     property: PropertyDetail;
 };
@@ -107,6 +140,13 @@ async function fetchPropertyDocument(propertyId: string): Promise<Blob> {
     return response.blob();
 }
 
+async function fetchPropertySections(propertyId: string, waitMs = 25_000): Promise<PropertySectionsResponse> {
+    const response = await apiFetch(`/api/properties/${propertyId}/sections?waitMs=${waitMs}`);
+    if (!response.ok) throw new Error(`Failed to load sections (${response.status})`);
+    const data = (await response.json()) as PropertySectionsResponse;
+    return data;
+}
+
 function useCreatePropertyMutation() {
     return useMutation<CreatePropertyResponse, Error, File>({
         mutationFn: createPropertyFromPdf,
@@ -151,9 +191,13 @@ export {
     useUpdatePropertyMutation,
     fetchPropertyDocument,
     usePropertyDocumentQuery,
+    fetchPropertySections,
     type PropertyDetail,
     type PropertyManagementType,
     type PropertyStatus,
+    type PropertySection,
+    type PropertySectionType,
+    type PropertySectionsResponse,
     type CreatePropertyResponse,
     type GetPropertyResponse,
     type UpdatePropertyBody,
