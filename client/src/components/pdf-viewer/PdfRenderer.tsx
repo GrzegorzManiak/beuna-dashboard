@@ -70,6 +70,7 @@ function PdfRenderer({
 }: PdfRendererProps) {
     const [numPages, setNumPages] = useState(0);
     const [pageWidth] = useState(960 * pdfScale);
+    const [pagesReady, setPagesReady] = useState(false);
     const pageContainerRef = useRef<HTMLDivElement | null>(null);
 
     const onSplitToolbarRefChange = useCallback(
@@ -103,9 +104,11 @@ function PdfRenderer({
     const onDocumentLoadSuccess = useCallback(
         (pdf: pdfjs.PDFDocumentProxy) => {
             setNumPages(pdf.numPages);
+            setPagesReady(false);
+            setPageMetrics({});
             onLoadSuccess?.(pdf);
         },
-        [onLoadSuccess],
+        [onLoadSuccess, setPageMetrics],
     );
 
     const onPageRenderSuccess = useCallback(
@@ -113,7 +116,7 @@ function PdfRenderer({
             const { width, height } = page.getViewport({ scale: 1 });
             setPageMetrics((prev) => {
                 if (prev[page.pageNumber]) return prev;
-                return {
+                const updated = {
                     ...prev,
                     [page.pageNumber]: {
                         originalWidth: width,
@@ -122,9 +125,16 @@ function PdfRenderer({
                         height: height * (pageWidth / width),
                     },
                 };
+                
+                // Check if all pages have metrics
+                if (numPages > 0 && Object.keys(updated).length === numPages) {
+                    setPagesReady(true);
+                }
+                
+                return updated;
             });
         },
-        [pageWidth],
+        [pageWidth, numPages],
     );
 
     const closeSplit = () => setActiveSplit(null);
@@ -188,13 +198,13 @@ function PdfRenderer({
                                     isActiveSplit={pageCurrentlySplit}
                                     splitComponent={splitContent}
                                     activeSectionId={activeSectionId}
-                                    renderedSections={sectionData
+                                    renderedSections={pagesReady ? sectionData
                                         .filter((section) =>
                                             section.textPosition.page.includes(pageNumber),
                                         )
                                         .map((section) =>
                                             calculateSectionStyle(pageNumber, section, pageMetrics),
-                                        )}
+                                        ) : []}
                                 />
                             </div>
                         );

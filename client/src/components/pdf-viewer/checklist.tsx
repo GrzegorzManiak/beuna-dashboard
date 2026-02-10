@@ -124,32 +124,35 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
     const units = useMemo(() => {
         const unitSections = sections.filter((s) => s.sectionType === "units.unit_block");
         const count = unitSections.length;
-        const validCount = unitSections.filter((u) => u.state === "valid").length;
-        const conflictCount = unitSections.filter((u) => u.state === "conflict").length;
-        const needsReviewCount = count - validCount - conflictCount;
+        const validUnits = unitSections.filter((u) => u.state === "valid");
+        const conflictUnits = unitSections.filter((u) => u.state === "conflict");
+        const needsReviewUnits = unitSections.filter((u) => !u.state || ["needs_review", "processing", "identifying", "unknown"].includes(u.state));
         
         const items: ChecklistItemProps[] = [];
-        if (validCount > 0) {
+        if (validUnits.length > 0) {
             items.push({ 
-                label: `${validCount} confirmed`, 
-                status: "complete" 
+                label: `${validUnits.length} confirmed`, 
+                status: "complete",
+                onClick: validUnits[0] ? () => onSectionClick?.(validUnits[0].id) : undefined
             });
         }
-        if (conflictCount > 0) {
+        if (conflictUnits.length > 0) {
             items.push({ 
-                label: `${conflictCount} conflict${conflictCount > 1 ? 's' : ''}`, 
-                status: "conflict" 
+                label: `${conflictUnits.length} conflict${conflictUnits.length > 1 ? 's' : ''}`, 
+                status: "conflict",
+                onClick: conflictUnits[0] ? () => onSectionClick?.(conflictUnits[0].id) : undefined
             });
         }
-        if (needsReviewCount > 0) {
+        if (needsReviewUnits.length > 0) {
             items.push({ 
-                label: `${needsReviewCount} need${needsReviewCount > 1 ? '' : 's'} review`, 
-                status: "warning" 
+                label: `${needsReviewUnits.length} need${needsReviewUnits.length > 1 ? '' : 's'} review`, 
+                status: "warning",
+                onClick: needsReviewUnits[0] ? () => onSectionClick?.(needsReviewUnits[0].id) : undefined
             });
         }
         
         return { count, items };
-    }, [sections]);
+    }, [sections, onSectionClick]);
 
     const ownership = useMemo(() => {
         if (propertyType !== "WEG") return null;
@@ -159,6 +162,9 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
         
         const unitsWithMea = unitSections.filter((u) => 
             u.fields?.meaNumerator && u.fields?.meaDenominator
+        );
+        const unitsWithoutMea = unitSections.filter((u) => 
+            !u.fields?.meaNumerator || !u.fields?.meaDenominator
         );
         
         const meaStatus: ItemStatus = unitsWithMea.length === unitSections.length && unitSections.length > 0
@@ -174,10 +180,18 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
             : "warning";
         
         return [
-            { label: "MEA values assigned", status: meaStatus },
-            { label: "Special rights reviewed", status: specialRightsStatus },
+            { 
+                label: "MEA values assigned", 
+                status: meaStatus,
+                onClick: unitsWithoutMea[0] ? () => onSectionClick?.(unitsWithoutMea[0].id) : unitSections[0] ? () => onSectionClick?.(unitSections[0].id) : undefined
+            },
+            { 
+                label: "Special rights reviewed", 
+                status: specialRightsStatus,
+                onClick: specialRights ? () => onSectionClick?.(specialRights.id) : undefined
+            },
         ];
-    }, [sections, propertyType]);
+    }, [sections, propertyType, onSectionClick]);
 
     const mvOwnership = useMemo(() => {
         if (propertyType !== "MV") return null;
@@ -196,10 +210,18 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
             : "warning";
         
         return [
-            { label: "Property type confirmed", status: typeStatus },
-            { label: "Owner entity detected", status: ownerStatus },
+            { 
+                label: "Property type confirmed", 
+                status: typeStatus,
+                onClick: overview ? () => onSectionClick?.(overview.id) : undefined
+            },
+            { 
+                label: "Owner entity detected", 
+                status: ownerStatus,
+                onClick: ownerEntity ? () => onSectionClick?.(ownerEntity.id) : undefined
+            },
         ];
-    }, [sections, propertyType]);
+    }, [sections, propertyType, onSectionClick]);
 
     return (
         <div className="space-y-4 bg-white rounded-lg border border-gray-200">

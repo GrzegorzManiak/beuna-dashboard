@@ -57,6 +57,10 @@ function SectionBar({
     };
 
     const sidebarItems = useMemo(() => {
+        // Don't render items until we have page metrics
+        const hasMetrics = Object.keys(pageMetrics).length > 0;
+        if (!hasMetrics) return [];
+        
         const items = sectionData
             .map((section) => {
                 const pageNumber = section.textPosition.page[0];
@@ -140,6 +144,11 @@ function SectionBar({
 
     return (
         <div className="relative grow self-stretch w-34 flex flex-col items-end justify-end z-10">
+            {sidebarItems.length === 0 && sectionData.length > 0 && (
+                <div className="flex items-center justify-center w-full py-4">
+                    <div className="text-xs text-gray-400 animate-pulse">Loading sections...</div>
+                </div>
+            )}
             {sidebarItems.map((section) => {
                 const isSelected = section.id === activeSectionId;
                 return (
