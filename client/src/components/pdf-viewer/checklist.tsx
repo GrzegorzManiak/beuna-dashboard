@@ -194,6 +194,38 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
         ];
     }, [sections, propertyType, onSectionClick]);
 
+    const administration = useMemo(() => {
+        if (propertyType !== "WEG") return null;
+
+        const manager = sections.find((s) => s.sectionType === "weg.property_manager");
+        const accountant = sections.find((s) => s.sectionType === "weg.accountant");
+
+        const managerStatus: ItemStatus = manager?.state === "valid"
+            ? "complete"
+            : manager
+                ? "warning"
+                : "warning";
+
+        const accountantStatus: ItemStatus = accountant?.state === "valid"
+            ? "complete"
+            : accountant
+                ? "warning"
+                : "warning";
+
+        return [
+            {
+                label: "Property Manager",
+                status: managerStatus,
+                onClick: manager ? () => onSectionClick?.(manager.id) : undefined,
+            },
+            {
+                label: "Accountant",
+                status: accountantStatus,
+                onClick: accountant ? () => onSectionClick?.(accountant.id) : undefined,
+            },
+        ];
+    }, [sections, propertyType, onSectionClick]);
+
     const mvOwnership = useMemo(() => {
         if (propertyType !== "MV") return null;
 
@@ -269,6 +301,13 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
                     <ChecklistSection
                         title="Ownership Structure"
                         items={ownership}
+                    />
+                )}
+
+                {propertyType === "WEG" && administration && (
+                    <ChecklistSection
+                        title="Administration"
+                        items={administration}
                     />
                 )}
 

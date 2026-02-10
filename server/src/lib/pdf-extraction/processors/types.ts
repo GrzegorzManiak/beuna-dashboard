@@ -10,6 +10,7 @@ export type SectionType =
     | "units.unit_blocks"
     | "weg.mea_declaration"
     | "weg.special_rights"
+    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
@@ -23,6 +24,8 @@ export type SectionItem = {
     id: string;
     /** Raw text content of this specific item */
     rawText: string;
+    /** Optional sub-type for heterogeneous containers (e.g. administration → property_manager / accountant) */
+    sectionType?: SectionType;
     /** State of this item */
     state?: "valid" | "needs_review" | "unknown" | "conflict";
     /** Confidence score for this item */

@@ -25,6 +25,7 @@ type PropertySectionType =
     | "units.unit_blocks"
     | "weg.special_rights"
     | "weg.mea_declaration"
+    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
@@ -51,6 +52,7 @@ type BasicDetailsExtract = {
 type PropertySectionItem = {
     id: string;
     rawText: string;
+    sectionType?: string;
     state?: "valid" | "needs_review" | "unknown" | "conflict";
     confidence?: number;
     textPosition: Array<{

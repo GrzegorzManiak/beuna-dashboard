@@ -6,6 +6,7 @@ import { describe, expect, test, beforeAll } from "bun:test";
 import path from "node:path";
 import { extractSectionsFromPdf } from "../index";
 import { classifySection } from "../processors/classifier";
+import { WegAdministrationCombinedProcessor } from "../processors/weg-administration-combined";
 import { extractUnitBlocks } from "../llm/extract-unit-blocks";
 import { extractBuildingBlocks } from "../llm/extract-building-blocks";
 import type { PdfSection } from "../raw/types";
@@ -62,12 +63,12 @@ describe("section classification", () => {
         expect(result.confidence).toBeGreaterThan(0.1);
     });
 
-    test("§ 5 Erstbestellung von Verwaltung und Buchhaltung → weg.property_manager", async () => {
+    test("§ 5 Erstbestellung von Verwaltung und Buchhaltung → weg.administration", async () => {
         const section = allSections[4]!;
         expect(section.heading.text).toContain("Verwaltung");
         
         const result = await classifySection(section);
-        expect(result.processor.sectionType).toBe("weg.property_manager");
+        expect(result.processor.sectionType).toBe("weg.administration");
         expect(result.confidence).toBeGreaterThan(0.1);
     });
 
@@ -121,6 +122,60 @@ describe("unit block splitting", () => {
         const gardenBlock = blocks[9]!;
         expect(gardenBlock.blockText).toContain("Einheit Nr. 14");
         expect(gardenBlock.blockText).toContain("Garden");
+    });
+});
+
+describe("administration splitting", () => {
+    test("splits §5 into 2 items (property_manager + accountant)", async () => {
+        const section = allSections[4]!;
+        const processor = new WegAdministrationCombinedProcessor();
+        const processed = await processor.process(section);
+
+        expect(processed.items).toBeDefined();
+        expect(processed.items!.length).toBe(2);
+    });
+
+    test("first item is weg.property_manager (starts at sub-block, not heading)", async () => {
+        const section = allSections[4]!;
+        const processor = new WegAdministrationCombinedProcessor();
+        const processed = await processor.process(section);
+
+        const manager = processed.items![0]!;
+        expect(manager.sectionType).toBe("weg.property_manager");
+        expect(manager.rawText).toContain("Verwalter");
+        // Must NOT include the heading or the intro paragraph
+        expect(manager.rawText).not.toContain("Erstbestellung");
+        expect(manager.rawText).not.toContain("Abweichend");
+        expect(manager.textPosition.length).toBeGreaterThan(0);
+    });
+
+    test("second item is weg.accountant", async () => {
+        const section = allSections[4]!;
+        const processor = new WegAdministrationCombinedProcessor();
+        const processed = await processor.process(section);
+
+        const accountant = processed.items![1]!;
+        expect(accountant.sectionType).toBe("weg.accountant");
+        expect(accountant.rawText).toContain("Buchhaltung");
+        expect(accountant.textPosition.length).toBeGreaterThan(0);
+    });
+
+    test("items have different bounding boxes", async () => {
+        const section = allSections[4]!;
+        const processor = new WegAdministrationCombinedProcessor();
+        const processed = await processor.process(section);
+
+        const managerPos = processed.items![0]!.textPosition;
+        const accountantPos = processed.items![1]!.textPosition;
+
+        // They should not be identical (different y/height at minimum)
+        const same = managerPos.length === accountantPos.length &&
+            managerPos.every((p, i) =>
+                p.page === accountantPos[i]!.page &&
+                p.y === accountantPos[i]!.y &&
+                p.height === accountantPos[i]!.height
+            );
+        expect(same).toBe(false);
     });
 });
 

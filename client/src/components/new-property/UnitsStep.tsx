@@ -133,6 +133,37 @@ export function UnitsStep({
     );
 }
 
+/**
+ * Compute an overall bounding box from an array of per-page position boxes.
+ * The top-level x/y/width/height should encompass all boxes so that
+ * handleAutoSplit and the fallback path in calculateSectionStyle work correctly.
+ */
+function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; width: number; height: number }>) {
+    if (!boxes.length) return { page: [] as number[], x: 0, y: 0, width: 0, height: 0, boxes: undefined as any };
+
+    const pages = [...new Set(boxes.map((b) => b.page))].sort((a, b) => a - b);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxRight = -Infinity;
+    let maxBottom = -Infinity;
+
+    for (const box of boxes) {
+        minX = Math.min(minX, box.x);
+        minY = Math.min(minY, box.y);
+        maxRight = Math.max(maxRight, box.x + box.width);
+        maxBottom = Math.max(maxBottom, box.y + box.height);
+    }
+
+    return {
+        page: pages,
+        x: minX,
+        y: minY,
+        width: Math.max(0, maxRight - minX),
+        height: Math.max(0, maxBottom - minY),
+        boxes,
+    };
+}
+
 function mapPropertySections(sections: PropertySection[]): SectionData[] {
     const result: SectionData[] = [];
 
@@ -146,28 +177,24 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
         const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
         
         if (isArrayContainer) {
-            // For array containers (buildings, units), expand items into individual sections
+            // For array containers (buildings, units, administration), expand items into individual sections
             console.log(`[CLIENT] Expanding ${section.sectionType} with ${section.items!.length} items`);
-            const itemType = CONTAINER_TO_ITEM_TYPE[section.sectionType] ?? section.sectionType;
+            const containerItemType = CONTAINER_TO_ITEM_TYPE[section.sectionType] ?? section.sectionType;
             
             for (let i = 0; i < section.items!.length; i++) {
                 const item = section.items![i];
                 if (!item) continue;
                 
+                // Prefer item-level sectionType (e.g. weg.administration items carry their
+                // own type: weg.property_manager / weg.accountant).  Fall back to the
+                // container→singular mapping for homogeneous arrays (buildings, units).
+                const itemType = (item.sectionType ?? containerItemType) as any;
+                
                 const itemPositions = item.textPosition || [];
-                const pages = itemPositions.map((pos) => pos.page);
-                const first = itemPositions[0];
                 
                 result.push({
                     id: item.id || `${section.id}-item-${i}`,
-                    textPosition: first ? {
-                        page: pages.length ? pages : [first.page],
-                        x: first.x,
-                        y: first.y,
-                        width: first.width,
-                        height: first.height,
-                        boxes: itemPositions,
-                    } : { page: [], x: 0, y: 0, width: 0, height: 0 },
+                    textPosition: computeBoundingBox(itemPositions),
                     state: item.state || "needs_review",
                     sectionType: itemType as any,
                     reusable: section.reusable,
@@ -177,36 +204,16 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
         } else {
             // For single-object sections, map as-is
             const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
-            const pages = positions.map((position) => position.page);
-            const first = positions[0];
             const state = section.sectionType === "unknown" ? "unknown" : "needs_review";
-            
-            if (!first) {
-                result.push({
-                    id: section.id,
-                    textPosition: { page: [], x: 0, y: 0, width: 0, height: 0 },
-                    state,
-                    sectionType: section.sectionType,
-                    reusable: section.reusable,
-                    fields: {},
-                });
-            } else {
-                result.push({
-                    id: section.id,
-                    textPosition: {
-                        page: pages.length ? pages : [first.page],
-                        x: first.x,
-                        y: first.y,
-                        width: first.width,
-                        height: first.height,
-                        boxes: positions,
-                    },
-                    state,
-                    sectionType: section.sectionType,
-                    reusable: section.reusable,
-                    fields: {},
-                });
-            }
+
+            result.push({
+                id: section.id,
+                textPosition: computeBoundingBox(positions),
+                state,
+                sectionType: section.sectionType,
+                reusable: section.reusable,
+                fields: {},
+            });
         }
     }
     

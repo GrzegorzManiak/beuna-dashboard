@@ -47,6 +47,7 @@ const SECTION_TYPE_OPTIONS: Array<{ label: string; value: SectionType }> = [
     { label: "Unit Block", value: "units.unit_block" },
     { label: "Special Rights", value: "weg.special_rights" },
     { label: "MEA Declaration", value: "weg.mea_declaration" },
+    { label: "Administration", value: "weg.administration" },
     { label: "Property Manager", value: "weg.property_manager" },
     { label: "Accountant", value: "weg.accountant" },
     { label: "Owner Entity", value: "mv.owner_entity" },
@@ -135,6 +136,7 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
             return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "weg.mea_declaration":
             return <WegMeaTotalCheckEditor />;
+        case "weg.administration":
         case "weg.property_manager":
         case "weg.accountant":
             return <WegAdministrationBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
@@ -223,6 +225,10 @@ function PdfSplitToolbar({
                 return "Confirm property";
             case "core.address":
                 return "Confirm address";
+            case "weg.administration":
+            case "weg.property_manager":
+            case "weg.accountant":
+                return "Confirm administration";
             default:
                 return "Save and continue";
         }

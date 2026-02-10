@@ -26,6 +26,7 @@ type SectionType =
     | "units.unit_block"
     | "weg.special_rights"
     | "weg.mea_declaration"
+    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
