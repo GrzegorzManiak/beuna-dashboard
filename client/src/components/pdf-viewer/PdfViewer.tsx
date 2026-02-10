@@ -1,6 +1,6 @@
 import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { PdfRenderer } from "./PdfRenderer";
-import { SectionBar } from "./SectionBar";
 import { handleAutoSplit } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 
@@ -14,19 +14,40 @@ interface PdfViewerProps {
     propertyType?: "WEG" | "MV";
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
+    // State can be provided externally or managed internally
+    pageMetrics?: Record<number, PageMetrics>;
+    setPageMetrics?: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
+    activeSplit?: ActiveSplit;
+    setActiveSplit?: Dispatch<SetStateAction<ActiveSplit>>;
+    splitToolbarHeight?: number;
+    setSplitToolbarHeight?: Dispatch<SetStateAction<number>>;
+    activeSectionId?: string | null;
+    setActiveSectionId?: (id: string | null) => void;
+    dragMode?: boolean;
+    setDragMode?: Dispatch<SetStateAction<boolean>>;
+    textWrapping?: boolean;
+    setTextWrapping?: Dispatch<SetStateAction<boolean>>;
 }
 
-export function PdfViewer({
-    pdfUrl,
-    pdfScale = 0.7,
-    sections,
-    onSectionAdd,
-    onSectionUpdate,
-    onSectionDelete,
-    propertyType = "WEG",
-    autoSplitOnSelection = true,
-    autoSplitOnSectionClick = true,
-}: PdfViewerProps) {
+export interface PdfViewerState {
+    pageMetrics: Record<number, PageMetrics>;
+    activeSplit: ActiveSplit;
+    splitToolbarHeight: number;
+    activeSectionId: string | null;
+    dragMode: boolean;
+    textWrapping: boolean;
+}
+
+export interface PdfViewerActions {
+    setPageMetrics: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
+    setActiveSplit: Dispatch<SetStateAction<ActiveSplit>>;
+    setSplitToolbarHeight: Dispatch<SetStateAction<number>>;
+    setActiveSectionId: (id: string | null) => void;
+    setDragMode: Dispatch<SetStateAction<boolean>>;
+    setTextWrapping: Dispatch<SetStateAction<boolean>>;
+}
+
+export function usePdfViewerState(sections: SectionData[], autoSplitOnSectionClick = true): [PdfViewerState, PdfViewerActions] {
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [activeSplit, setActiveSplit] = useState<ActiveSplit>(null);
     const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
@@ -41,29 +62,46 @@ export function PdfViewer({
         }
     };
 
+    return [
+        { pageMetrics, activeSplit, splitToolbarHeight, activeSectionId, dragMode, textWrapping },
+        { setPageMetrics, setActiveSplit, setSplitToolbarHeight, setActiveSectionId: handleSectionSelect, setDragMode, setTextWrapping }
+    ];
+}
+
+export function PdfViewer({
+    pdfUrl,
+    pdfScale = 0.7,
+    sections,
+    onSectionAdd,
+    onSectionUpdate,
+    onSectionDelete,
+    propertyType = "WEG",
+    autoSplitOnSelection = true,
+    pageMetrics,
+    setPageMetrics,
+    activeSplit,
+    setActiveSplit,
+    splitToolbarHeight,
+    setSplitToolbarHeight,
+    activeSectionId,
+    setActiveSectionId,
+    dragMode,
+    setDragMode,
+    textWrapping,
+    setTextWrapping,
+}: PdfViewerProps & PdfViewerState & PdfViewerActions) {
     const handleSectionDelete = (sectionId: string) => {
         if (activeSectionId === sectionId) setActiveSectionId(null);
         onSectionDelete?.(sectionId);
     };
 
-    return (<>
-    <div >
-        <SectionBar
-            sectionData={sections}
-            pageMetrics={pageMetrics}
-            activeSplit={activeSplit}
-            splitToolbarHeight={splitToolbarHeight}
-            activeSectionId={activeSectionId}
-            setActiveSectionId={handleSectionSelect}
-        />
-        </div>
-        <div className="flex items-start justify-center relative h-full ">
-
-            <div className="relative ">
+    return (
+        <div className="flex items-start justify-center relative h-full">
+            <div className="relative">
                 <div className="absolute right-4 top-4 z-50 flex gap-2">
                     <button
                         type="button"
-                        onClick={() => setTextWrapping((prev) => !prev)}
+                        onClick={() => setTextWrapping?.(!textWrapping)}
                         className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${textWrapping ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
                             }`}
                     >
@@ -71,7 +109,7 @@ export function PdfViewer({
                     </button>
                     <button
                         type="button"
-                        onClick={() => setDragMode((prev) => !prev)}
+                        onClick={() => setDragMode?.(!dragMode)}
                         className={`rounded px-3 py-1 text-xs shadow border border-gray-200 transition-colors ${dragMode ? "bg-blue-600 text-white" : "bg-white/90 text-gray-900"
                             }`}
                     >
@@ -89,7 +127,7 @@ export function PdfViewer({
                     splitToolbarHeight={splitToolbarHeight}
                     setSplitToolbarHeight={setSplitToolbarHeight}
                     activeSectionId={activeSectionId}
-                    onActiveSectionChange={handleSectionSelect}
+                    onActiveSectionChange={setActiveSectionId}
                     onSectionUpdate={onSectionUpdate}
                     onSectionDelete={handleSectionDelete}
                     propertyType={propertyType}
@@ -121,8 +159,8 @@ export function PdfViewer({
                                 }
                             };
                             onSectionAdd(newSection);
-                            setActiveSectionId(newSection.id);
-                            setDragMode(false); // Optionally turn off drag mode after selection
+                            setActiveSectionId?.(newSection.id);
+                            setDragMode?.(false); // Optionally turn off drag mode after selection
 
                             if (onSectionUpdate) {
                                 // Mock API classification: move from identifying -> unknown
@@ -137,5 +175,5 @@ export function PdfViewer({
                 />
             </div>
         </div>
-    </>);
+    );
 }

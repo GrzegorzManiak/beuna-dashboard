@@ -383,4 +383,7 @@ function PdfSplitToolbar({
     );
 }
 
-export { PdfSplitToolbar };
+export { 
+    PdfSplitToolbar,
+    SECTION_TYPE_OPTIONS
+};

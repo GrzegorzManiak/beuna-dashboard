@@ -9,4 +9,5 @@ export { Checklist } from "./checklist";
 export { calculateSectionStyle } from "./utils";
 export * from "./constants";
 export * from "./types";
-export { PdfViewer } from "./PdfViewer";
+export { PdfViewer, usePdfViewerState } from "./PdfViewer";
+export type { PdfViewerState, PdfViewerActions } from "./PdfViewer";

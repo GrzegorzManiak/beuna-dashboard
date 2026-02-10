@@ -7,6 +7,7 @@ import {
     SIDEBAR_CARD_HEIGHT,
 } from "./constants";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
+import { SECTION_TYPE_OPTIONS } from "./PdfSplitToolbar";
 
 type SectionBarProps = {
     sectionData: Array<SectionData>;
@@ -138,33 +139,26 @@ function SectionBar({
     }, [sectionData, pageMetrics, activeSplit, splitToolbarHeight, activeSectionId]);
 
     return (
-        <div className="relative w-full grow self-stretch max-w-60 flex flex-col items-start justify-start z-10">
+        <div className="relative grow self-stretch w-34 flex flex-col items-end justify-end z-10">
             {sidebarItems.map((section) => {
                 const isSelected = section.id === activeSectionId;
                 return (
                     <div
                         key={section.id}
                         onClick={() => setActiveSectionId(section.id)}
-                        
                         className={cn(
-                            "border rounded absolute h-8 w-27 cursor-pointer transition-all duration-300 border-l-0 rounded-l-none pl-2",
+                            "border rounded absolute h-7 w-32 cursor-pointer transition-all duration-300 border-r-0 rounded-r-none pl-2",
                             getStateClasses(section.state, isSelected),
                         )}
                         style={{ 
                             top: section.top,
-                            transform: ``,
+                            transform: `translateX(-${isSelected ? 2 : 0}px)`,
                         }}
                     >
-                        <span className="text-xs p-1 w-full">{section.id}</span>
-                        {/* {isSelected && (
-                            <div
-                                className="absolute top-1/2 left-full h-0.5 bg-blue-600 pointer-events-none"
-                                style={{
-                                    width: section.scaledX,
-                                    zIndex: -1
-                                }}
-                            />
-                        )} */}
+                        <span className="text-xs w-full font">
+                            {/* {section.sectionType} */}
+                            {SECTION_TYPE_OPTIONS.find((option) => option.value === section.sectionType)?.label || section.sectionType || "Unknown type"}
+                        </span>
                     </div>
                 );
             })}

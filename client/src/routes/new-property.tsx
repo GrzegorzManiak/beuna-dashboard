@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
-import { PdfViewer, Checklist } from "@/components/pdf-viewer";
+import { PdfViewer, Checklist, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 import { mockSections } from "./pdf-test";
 
@@ -332,30 +332,53 @@ function PropertyDetailsStep({ onNext, onBack }: { onNext: () => void; onBack: (
 function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
     const [sections, setSections] = useState<SectionData[]>(mockSections);
     const [propertyType] = useState<"WEG" | "MV">("WEG");
+    const [viewerState, viewerActions] = usePdfViewerState(sections, true);
 
     return (
-        <div className=" flex gap-4">
-            <div className=" max-h-[80vh] overflow-y-scroll">
-                <PdfViewer
-                    pdfUrl="/test.pdf"
-                    pdfScale={1}
-                    sections={sections}
-                    onSectionAdd={(newSection) => {
-                        setSections((prev) => [...prev, newSection]);
-                    }}
-                    onSectionUpdate={(sectionId, updates) => {
-                        setSections((prev) =>
-                            prev.map((section) =>
-                                section.id === sectionId ? { ...section, ...updates } : section,
-                            ),
-                        );
-                    }}
-                    onSectionDelete={(sectionId) => {
-                        setSections((prev) => prev.filter((section) => section.id !== sectionId));
-                    }}
-                />
+        <div className="flex h-[80vh]">
+            {/* PDF Viewer with Section Bar - Combined scrollable area */}
+            <div className="flex-1 overflow-y-scroll">
+                <div className="flex relative">
+                    {/* Section Bar - Left (scrolls with content) */}
+                    <div className="w-34 shrink-0">
+                        <SectionBar
+                            sectionData={sections}
+                            pageMetrics={viewerState.pageMetrics}
+                            activeSplit={viewerState.activeSplit}
+                            splitToolbarHeight={viewerState.splitToolbarHeight}
+                            activeSectionId={viewerState.activeSectionId}
+                            setActiveSectionId={viewerActions.setActiveSectionId}
+                        />
+                    </div>
+
+                    {/* PDF Viewer */}
+                    <div className="flex-1">
+                        <PdfViewer
+                            pdfUrl="/test.pdf"
+                            pdfScale={1}
+                            sections={sections}
+                            onSectionAdd={(newSection) => {
+                                setSections((prev) => [...prev, newSection]);
+                            }}
+                            onSectionUpdate={(sectionId, updates) => {
+                                setSections((prev) =>
+                                    prev.map((section) =>
+                                        section.id === sectionId ? { ...section, ...updates } : section,
+                                    ),
+                                );
+                            }}
+                            onSectionDelete={(sectionId) => {
+                                setSections((prev) => prev.filter((section) => section.id !== sectionId));
+                            }}
+                            {...viewerState}
+                            {...viewerActions}
+                        />
+                    </div>
+                </div>
             </div>
-            <div className="w-80 shrink-0 overflow-auto">
+
+            {/* Checklist - Right */}
+            <div className="w-80 shrink-0 overflow-auto ml-4">
                 <Checklist sections={sections} propertyType={propertyType} />
             </div>
         </div>
