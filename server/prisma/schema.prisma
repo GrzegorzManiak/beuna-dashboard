@@ -57,8 +57,12 @@ model Property {
     managementType PropertyManagementType
     status         PropertyStatus         @default(DRAFT)
 
-    managerId    String @db.Uuid
-    accountantId String @db.Uuid
+    managerId    String? @db.Uuid
+    accountantId String? @db.Uuid
+
+    addressStreet     String? @db.VarChar(255)
+    addressPostalCode String? @db.VarChar(20)
+    addressCity       String? @db.VarChar(100)
 
     documentName       String?   @db.VarChar(255)
     documentMimeType   String?   @db.VarChar(100)
@@ -68,8 +72,8 @@ model Property {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    manager    User @relation("PropertyManager", fields: [managerId], references: [id], onDelete: Restrict)
-    accountant User @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
+    manager    User? @relation("PropertyManager", fields: [managerId], references: [id], onDelete: Restrict)
+    accountant User? @relation("PropertyAccountant", fields: [accountantId], references: [id], onDelete: Restrict)
 
     @@index([status])
     @@index([managementType])

@@ -12,16 +12,6 @@ type DocumentCacheEntry = {
     name: string;
 };
 
-type MultipartFile = {
-    filename?: string;
-    mimetype?: string;
-    toBuffer: () => Promise<Buffer>;
-};
-
-type MultipartBody = {
-    file?: MultipartFile;
-};
-
 const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_PROPERTY_NAME = "Unnamed property";
 const DEFAULT_DOCUMENT_NAME = "property.pdf";
@@ -32,7 +22,8 @@ async function listPropertiesHandler(
     req: FastifyRequest,
     reply: FastifyReply
 ) {
-    const user = req.user!;
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
 
     const properties = await prisma.property.findMany({
         where: {
@@ -71,15 +62,13 @@ async function createPropertyHandler(
 ) {
     if (!req.isMultipart()) return reply.code(400).send({ error: "Multipart form data is required" });
 
-    const body = req.body as MultipartBody;
-    const file = body?.file;
+    const file = await req.file();
     if (!file) return reply.code(400).send({ error: "PDF file is required" });
     if (file.mimetype !== "application/pdf") return reply.code(400).send({ error: "Only PDF files are supported" });
 
     const buffer = await file.toBuffer();
     if (buffer.length === 0) return reply.code(400).send({ error: "PDF file is empty" });
 
-    const user = req.user!;
     const trimmedName = file.filename?.trim();
     const documentName = trimmedName ? trimmedName : DEFAULT_DOCUMENT_NAME;
 
@@ -97,8 +86,6 @@ async function createPropertyHandler(
                 name: DEFAULT_PROPERTY_NAME,
                 managementType: "UNKNOWN",
                 status: "DRAFT",
-                managerId: user.id,
-                accountantId: user.id,
                 documentName,
                 documentMimeType: file.mimetype,
                 documentData: buffer,
@@ -112,6 +99,9 @@ async function createPropertyHandler(
                 status: true,
                 managerId: true,
                 accountantId: true,
+                addressStreet: true,
+                addressPostalCode: true,
+                addressCity: true,
             },
         });
     });
@@ -175,6 +165,9 @@ async function getPropertyHandler(
             status: true,
             managerId: true,
             accountantId: true,
+            addressStreet: true,
+            addressPostalCode: true,
+            addressCity: true,
         },
     });
 
@@ -189,11 +182,23 @@ async function updatePropertyHandler(
     reply: FastifyReply
 ) {
     const { propertyId } = req.params;
-    const { name, managementType, managerId, accountantId, status } = req.body;
+    const {
+        name,
+        managementType,
+        addressStreet,
+        addressPostalCode,
+        addressCity,
+        managerId,
+        accountantId,
+        status,
+    } = req.body;
 
     const data: UpdatePropertyBody = {
         name,
         managementType,
+        addressStreet,
+        addressPostalCode,
+        addressCity,
         managerId,
         accountantId,
         status,
@@ -224,6 +229,9 @@ async function updatePropertyHandler(
             status: true,
             managerId: true,
             accountantId: true,
+            addressStreet: true,
+            addressPostalCode: true,
+            addressCity: true,
         },
     });
 

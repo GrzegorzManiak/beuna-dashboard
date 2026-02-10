@@ -29,8 +29,11 @@ const propertyDetailSchema = {
         name: { type: "string" },
         managementType: { type: "string", enum: ["UNKNOWN", "WEG", "MV"] },
         status: { type: "string", enum: ["DRAFT", "ACTIVE"] },
-        managerId: { type: "string", format: "uuid" },
-        accountantId: { type: "string", format: "uuid" },
+        managerId: { type: ["string", "null"], format: "uuid" },
+        accountantId: { type: ["string", "null"], format: "uuid" },
+        addressStreet: { type: ["string", "null"] },
+        addressPostalCode: { type: ["string", "null"] },
+        addressCity: { type: ["string", "null"] },
     },
     required: [
         "id",
@@ -40,6 +43,9 @@ const propertyDetailSchema = {
         "status",
         "managerId",
         "accountantId",
+        "addressStreet",
+        "addressPostalCode",
+        "addressCity",
     ],
     additionalProperties: false,
 };
@@ -74,14 +80,6 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             tags: ["properties"],
             summary: "Create a draft property from a PDF upload.",
             consumes: ["multipart/form-data"],
-            body: {
-                type: "object",
-                properties: {
-                    file: { type: "object" },
-                },
-                required: ["file"],
-                additionalProperties: false,
-            },
             response: {
                 201: {
                     type: "object",
@@ -179,6 +177,9 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
                 properties: {
                     name: { type: "string" },
                     managementType: { type: "string", enum: ["WEG", "MV"] },
+                    addressStreet: { type: ["string", "null"] },
+                    addressPostalCode: { type: ["string", "null"] },
+                    addressCity: { type: ["string", "null"] },
                     managerId: { type: "string", format: "uuid" },
                     accountantId: { type: "string", format: "uuid" },
                     status: { type: "string", enum: ["DRAFT", "ACTIVE"] },

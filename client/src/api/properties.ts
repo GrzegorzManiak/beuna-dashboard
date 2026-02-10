@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
 
 type PropertyManagementType = "UNKNOWN" | "WEG" | "MV";
@@ -11,13 +11,39 @@ type PropertyDetail = {
     name: string;
     managementType: PropertyManagementType;
     status: PropertyStatus;
-    managerId: string;
-    accountantId: string;
+    managerId: string | null;
+    accountantId: string | null;
+    addressStreet: string | null;
+    addressPostalCode: string | null;
+    addressCity: string | null;
 };
 
 type CreatePropertyResponse = {
     property: PropertyDetail;
 };
+
+type GetPropertyResponse = {
+    property: PropertyDetail;
+};
+
+type UpdatePropertyBody = {
+    name?: string;
+    managementType?: PropertyManagementType;
+    addressStreet?: string | null;
+    addressPostalCode?: string | null;
+    addressCity?: string | null;
+};
+
+type UpdatePropertyResponse = {
+    property: PropertyDetail;
+};
+
+type UpdatePropertyInput = {
+    propertyId: string;
+    updates: UpdatePropertyBody;
+};
+
+const DOCUMENT_CACHE_MS = 15 * 60 * 1000;
 
 async function createPropertyFromPdf(file: File): Promise<CreatePropertyResponse> {
     const formData = new FormData();
@@ -44,17 +70,93 @@ async function createPropertyFromPdf(file: File): Promise<CreatePropertyResponse
     throw new Error(message);
 }
 
+async function fetchProperty(propertyId: string): Promise<GetPropertyResponse> {
+    const response = await apiFetch(`/api/properties/${propertyId}`);
+    if (!response.ok) throw new Error(`Failed to load property (${response.status})`);
+    const data = (await response.json()) as GetPropertyResponse;
+    return data;
+}
+
+async function updateProperty(input: UpdatePropertyInput): Promise<UpdatePropertyResponse> {
+    const response = await apiFetch(`/api/properties/${input.propertyId}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input.updates),
+    });
+
+    if (!response.ok) {
+        let message = `Failed to update property (${response.status})`;
+        try {
+            const payload = (await response.json()) as { error?: string };
+            if (payload.error) message = payload.error;
+        } catch {
+            message = `Failed to update property (${response.status})`;
+        }
+        throw new Error(message);
+    }
+
+    const data = (await response.json()) as UpdatePropertyResponse;
+    return data;
+}
+
+async function fetchPropertyDocument(propertyId: string): Promise<Blob> {
+    const response = await apiFetch(`/api/properties/${propertyId}/document`);
+    if (!response.ok) throw new Error(`Failed to load document (${response.status})`);
+    return response.blob();
+}
+
 function useCreatePropertyMutation() {
     return useMutation<CreatePropertyResponse, Error, File>({
         mutationFn: createPropertyFromPdf,
     });
 }
 
+function usePropertyQuery(propertyId: string | undefined, enabled = true) {
+    return useQuery<GetPropertyResponse, Error>({
+        queryKey: ["property", propertyId],
+        queryFn: () => fetchProperty(propertyId ?? ""),
+        enabled: Boolean(propertyId) && enabled,
+    });
+}
+
+function useUpdatePropertyMutation() {
+    const queryClient = useQueryClient();
+
+    return useMutation<UpdatePropertyResponse, Error, UpdatePropertyInput>({
+        mutationFn: updateProperty,
+        onSuccess: (data, variables) => {
+            queryClient.setQueryData(["property", variables.propertyId], data);
+        },
+    });
+}
+
+function usePropertyDocumentQuery(propertyId: string | undefined, enabled = true) {
+    return useQuery<Blob, Error>({
+        queryKey: ["property-document", propertyId],
+        queryFn: () => fetchPropertyDocument(propertyId ?? ""),
+        enabled: Boolean(propertyId) && enabled,
+        staleTime: DOCUMENT_CACHE_MS,
+        gcTime: DOCUMENT_CACHE_MS,
+    });
+}
+
 export {
     createPropertyFromPdf,
     useCreatePropertyMutation,
+    fetchProperty,
+    updateProperty,
+    usePropertyQuery,
+    useUpdatePropertyMutation,
+    fetchPropertyDocument,
+    usePropertyDocumentQuery,
     type PropertyDetail,
     type PropertyManagementType,
     type PropertyStatus,
     type CreatePropertyResponse,
+    type GetPropertyResponse,
+    type UpdatePropertyBody,
+    type UpdatePropertyResponse,
+    type UpdatePropertyInput,
 };

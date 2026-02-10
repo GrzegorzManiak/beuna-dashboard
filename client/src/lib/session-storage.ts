@@ -9,11 +9,13 @@ function getSessionId(): string | null {
 function setSessionId(value: string): void {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SESSION_ID_KEY, value);
+    window.dispatchEvent(new CustomEvent("session-change", { detail: value }));
 }
 
 function clearSessionId(): void {
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(SESSION_ID_KEY);
+    window.dispatchEvent(new CustomEvent("session-change", { detail: null }));
 }
 
 function getSessionUserId(): string | null {

@@ -2,24 +2,35 @@ import { useEffect, useState } from "react";
 import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 import { mockSections } from "./mockSections";
+import { usePropertyDocumentQuery } from "@/api/properties";
 
 type UnitsStepProps = {
     onNext: () => void;
     onBack: () => void;
+    propertyId: string;
 };
 
-export function UnitsStep({ onNext, onBack }: UnitsStepProps) {
+export function UnitsStep({ onNext, onBack, propertyId }: UnitsStepProps) {
     const [sections, setSections] = useState<SectionData[]>(mockSections);
     const propertyType: "WEG" | "MV" = "WEG";
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
+    const { data: documentBlob, isLoading: isDocumentLoading, isError: isDocumentError, error: documentError } = usePropertyDocumentQuery(propertyId);
+    const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+
     useEffect(() => {
-        if (isLoaded) return;
+        if (!documentBlob) return;
+        const url = URL.createObjectURL(documentBlob);
+        setDocumentUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [documentBlob]);
+    useEffect(() => {
+        if (isLoaded || !documentUrl) return;
         const hasMetrics = Object.keys(viewerState.pageMetrics).length > 0;
         if (!hasMetrics) return;
         const timer = setTimeout(() => setIsLoaded(true), 300);
         return () => clearTimeout(timer);
-    }, [viewerState.pageMetrics, isLoaded]);
+    }, [viewerState.pageMetrics, isLoaded, documentUrl]);
 
     function handleSectionAdd(newSection: SectionData) {
         setSections((prev) => [...prev, newSection]);
@@ -37,7 +48,7 @@ export function UnitsStep({ onNext, onBack }: UnitsStepProps) {
 
     return (
         <div className="flex h-[80vh] relative">
-            {!isLoaded && (
+            {(!isLoaded || isDocumentLoading || !documentUrl) && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm z-50">
                     <div className="flex flex-col items-center gap-3">
                         <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -65,16 +76,25 @@ export function UnitsStep({ onNext, onBack }: UnitsStepProps) {
                         </div>
 
                         <div className="flex-1">
-                            <PdfViewer
-                                pdfUrl="/test.pdf"
-                                pdfScale={1}
-                                sections={sections}
-                                onSectionAdd={handleSectionAdd}
-                                onSectionUpdate={handleSectionUpdate}
-                                onSectionDelete={handleSectionDelete}
-                                {...viewerState}
-                                {...viewerActions}
-                            />
+                            {isDocumentError && (
+                                <div className="flex items-center justify-center h-full">
+                                    <p className="text-sm text-red-600">
+                                        {documentError?.message ?? "Failed to load document."}
+                                    </p>
+                                </div>
+                            )}
+                            {!isDocumentError && documentUrl && (
+                                <PdfViewer
+                                    pdfUrl={documentUrl}
+                                    pdfScale={1}
+                                    sections={sections}
+                                    onSectionAdd={handleSectionAdd}
+                                    onSectionUpdate={handleSectionUpdate}
+                                    onSectionDelete={handleSectionDelete}
+                                    {...viewerState}
+                                    {...viewerActions}
+                                />
+                            )}
                         </div>
                     </div>
                 </div>

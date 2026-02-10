@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,11 +9,20 @@ type PropertyTypeSelection = "condo" | "rental";
 type PropertyTypePickerProps = {
     onNext: () => void;
     onBack: () => void;
+    selectedType: PropertyTypeSelection | null;
+    onSelect: (value: PropertyTypeSelection) => void;
+    isSubmitting?: boolean;
+    errorMessage?: string | null;
 };
 
-export function PropertyTypePicker({ onNext, onBack }: PropertyTypePickerProps) {
-    const [selectedType, setSelectedType] = useState<PropertyTypeSelection | null>(null);
-
+export function PropertyTypePicker({
+    onNext,
+    onBack,
+    selectedType,
+    onSelect,
+    isSubmitting = false,
+    errorMessage,
+}: PropertyTypePickerProps) {
     return (
         <Card className="w-full pb-0 max-w-2xl">
             <CardHeader className="mb-2">
@@ -24,7 +32,7 @@ export function PropertyTypePicker({ onNext, onBack }: PropertyTypePickerProps) 
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-row gap-8 h-full">
-                <CardAction className="w-full" onClick={() => setSelectedType("condo")}>
+                <CardAction className="w-full" onClick={() => onSelect("condo")}>
                     <div
                         className={cn(
                             "transition-all rounded-lg border-2 border-transparent cursor-pointer",
@@ -51,7 +59,7 @@ export function PropertyTypePicker({ onNext, onBack }: PropertyTypePickerProps) 
                     </div>
                 </CardAction>
 
-                <CardAction className="w-full" onClick={() => setSelectedType("rental")}>
+                <CardAction className="w-full" onClick={() => onSelect("rental")}>
                     <div
                         className={cn(
                             "transition-all rounded-lg border-2 border-transparent cursor-pointer",
@@ -78,18 +86,21 @@ export function PropertyTypePicker({ onNext, onBack }: PropertyTypePickerProps) 
                     </div>
                 </CardAction>
             </CardContent>
-            <CardFooter className="flex gap-4 bg-muted pt-4 pb-6 border-t mt-2">
-                <Button onClick={onBack} variant="ghost" className="text-lg h-10 px-10 cursor-pointer">
-                    Back
-                </Button>
-                <Button
-                    onClick={onNext}
-                    type="submit"
-                    className="grow text-lg h-10 cursor-pointer"
-                    disabled={!selectedType}
-                >
-                    Continue
-                </Button>
+            <CardFooter className="flex flex-col gap-2 bg-muted pt-4 pb-6 border-t mt-2">
+                <div className="flex gap-4 w-full">
+                    <Button onClick={onBack} variant="ghost" className="text-lg h-10 px-10 cursor-pointer">
+                        Back
+                    </Button>
+                    <Button
+                        onClick={onNext}
+                        type="submit"
+                        className="grow text-lg h-10 cursor-pointer"
+                        disabled={!selectedType || isSubmitting}
+                    >
+                        {isSubmitting ? "Saving..." : "Continue"}
+                    </Button>
+                </div>
+                {errorMessage ? <p className="text-xs font-medium text-red-600">{errorMessage}</p> : null}
             </CardFooter>
         </Card>
     );

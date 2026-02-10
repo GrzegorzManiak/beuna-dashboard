@@ -16,7 +16,7 @@ type ProgressBarProps = {
 const STEPS: StepDefinition[] = [
     { label: "Upload Document", icon: FileUp },
     { label: "Property Type", icon: Building },
-    { label: "Details", icon: ClipboardList },
+    { label: "Basic Details", icon: ClipboardList },
     { label: "Units", icon: Grid },
     { label: "Review", icon: CheckCircle },
 ];
