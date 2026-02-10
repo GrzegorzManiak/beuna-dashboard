@@ -272,6 +272,7 @@ function PdfSplitToolbar({
         if (!activeSection || !onSectionDelete) return;
         onSectionDelete(activeSection.id);
         setShowDeleteDialog(false);
+        closeSplit();
     };
 
     return (

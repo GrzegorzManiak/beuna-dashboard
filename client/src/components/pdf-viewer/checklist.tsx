@@ -1,10 +1,14 @@
 import { useMemo } from "react";
 import { CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import type { SectionData } from "./types";
+import { Button } from "../ui/button";
 
 type ChecklistProps = {
     sections: SectionData[];
     propertyType: "WEG" | "MV";
+    onSectionClick?: (sectionId: string) => void;
+    onNext?: () => void;
+    onBack?: () => void;
 };
 
 type ItemStatus = "complete" | "warning" | "conflict";
@@ -12,6 +16,8 @@ type ItemStatus = "complete" | "warning" | "conflict";
 type ChecklistItemProps = {
     label: string;
     status: ItemStatus;
+    sectionId?: string;
+    onClick?: () => void;
 };
 
 type ChecklistSectionProps = {
@@ -26,9 +32,12 @@ function getStatusIcon(status: ItemStatus) {
     return <XCircle className="h-4 w-4 text-red-600" />;
 }
 
-function ChecklistItem({ label, status }: ChecklistItemProps) {
+function ChecklistItem({ label, status, onClick }: ChecklistItemProps) {
     return (
-        <div className="flex items-center gap-2 py-1">
+        <div 
+            className={`flex items-center gap-2 py-1 ${onClick ? 'cursor-pointer hover:bg-gray-50 rounded px-2 -mx-2 transition-colors' : ''}`}
+            onClick={onClick}
+        >
             {getStatusIcon(status)}
             <span className="text-sm text-gray-700">{label}</span>
         </div>
@@ -44,14 +53,19 @@ function ChecklistSection({ title, subtitle, items }: ChecklistSectionProps) {
             </div>
             <div className="pl-1 space-y-0.5">
                 {items.map((item, index) => (
-                    <ChecklistItem key={index} label={item.label} status={item.status} />
+                    <ChecklistItem 
+                        key={index} 
+                        label={item.label} 
+                        status={item.status}
+                        onClick={item.onClick}
+                    />
                 ))}
             </div>
         </div>
     );
 }
 
-function Checklist({ sections, propertyType }: ChecklistProps) {
+function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: ChecklistProps) {
     const propertyOverview = useMemo(() => {
         const overview = sections.find((s) => s.sectionType === "core.property_overview");
         const address = sections.find((s) => s.sectionType === "core.address");
@@ -63,17 +77,27 @@ function Checklist({ sections, propertyType }: ChecklistProps) {
             : overview?.state === "conflict" 
             ? "conflict" 
             : "warning";
-        items.push({ label: "Name", status: nameStatus });
+        items.push({ 
+            label: "Name", 
+            status: nameStatus,
+            sectionId: overview?.id,
+            onClick: overview?.id ? () => onSectionClick?.(overview.id) : undefined
+        });
         
         const addressStatus = address?.state === "valid" 
             ? "complete" 
             : address?.state === "conflict" 
             ? "conflict" 
             : "warning";
-        items.push({ label: "Address", status: addressStatus });
+        items.push({ 
+            label: "Address", 
+            status: addressStatus,
+            sectionId: address?.id,
+            onClick: address?.id ? () => onSectionClick?.(address.id) : undefined
+        });
         
         return items;
-    }, [sections]);
+    }, [sections, onSectionClick]);
 
     const buildings = useMemo(() => {
         const buildingSections = sections.filter((s) => s.sectionType === "core.building");
@@ -86,11 +110,16 @@ function Checklist({ sections, propertyType }: ChecklistProps) {
                 : building.state === "conflict" 
                 ? "conflict" 
                 : "warning";
-            return { label: String(name), status };
+            return { 
+                label: String(name), 
+                status,
+                sectionId: building.id,
+                onClick: () => onSectionClick?.(building.id)
+            };
         });
         
         return { count, items };
-    }, [sections]);
+    }, [sections, onSectionClick]);
 
     const units = useMemo(() => {
         const unitSections = sections.filter((s) => s.sectionType === "units.unit_block");
@@ -173,11 +202,12 @@ function Checklist({ sections, propertyType }: ChecklistProps) {
     }, [sections, propertyType]);
 
     return (
-        <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
-            <div className="border-b border-gray-200 pb-2">
-                <h2 className="text-base font-semibold text-gray-900">Structure Verification</h2>
+        <div className="space-y-4 bg-white rounded-lg border border-gray-200">
+            <div className="p-4 space-y-4">
+                <div className="border-b border-gray-200 pb-2">
+                <h2 className="text-base font-semibold text-gray-900">Structure Checklist</h2>
                 <p className="text-xs text-gray-500 mt-1">
-                    Confirm the property structure is mapped correctly
+                    This checklist provides an overview of the detected sections and their status. Use it to identify areas that may require review or further attention.
                 </p>
             </div>
 
@@ -211,6 +241,23 @@ function Checklist({ sections, propertyType }: ChecklistProps) {
                     items={mvOwnership}
                 />
             )}
+            </div>
+
+            <div className="px-4 py-5 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex justify-end gap-2">
+                      <Button
+                    variant="outline"
+                    className="text-lg h-10 px-6 cursor-pointer"
+                    onClick={onBack}
+                >
+                    Back
+                </Button>
+                <Button
+                    className="grow text-lg h-10 cursor-pointer"
+                    onClick={onNext}
+                >
+                    Continue
+                </Button>
+            </div>
         </div>
     );
 }

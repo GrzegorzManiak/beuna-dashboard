@@ -379,28 +379,15 @@ function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
 
             {/* Checklist - Right */}
             <div className="w-80 shrink-0 overflow-auto ml-4">
-                <Checklist sections={sections} propertyType={propertyType} />
+                <Checklist 
+                    sections={sections} 
+                    propertyType={propertyType}
+                    onSectionClick={viewerActions.setActiveSectionId}
+                    onNext={onNext}
+                    onBack={onBack}
+                />
             </div>
         </div>
-        // <Card className="w-full h-[80vh] max-w-8xl flex flex-col p-0 overflow-hidden">
-      
-        //     <CardFooter className="flex gap-4 bg-white pt-4 pb-6 border-t z-10 shrink-0">
-        //         <Button
-        //             onClick={onBack}
-        //             variant="ghost"
-        //             className="text-lg h-10 px-10 cursor-pointer"
-        //         >
-        //             Back
-        //         </Button>
-        //         <div className="grow" />
-        //          <Button
-        //             onClick={onNext}
-        //             className="text-lg h-10 cursor-pointer px-8"
-        //         >
-        //             Review & Finish
-        //         </Button>
-        //     </CardFooter>
-        // </Card>
     );
 }
 
