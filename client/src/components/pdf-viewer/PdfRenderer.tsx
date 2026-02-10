@@ -71,6 +71,7 @@ function PdfRenderer({
     const [numPages, setNumPages] = useState(0);
     const [pageWidth] = useState(960 * pdfScale);
     const [pagesReady, setPagesReady] = useState(false);
+    const [showContent, setShowContent] = useState(false);
     const pageContainerRef = useRef<HTMLDivElement | null>(null);
 
     const onSplitToolbarRefChange = useCallback(
@@ -140,6 +141,13 @@ function PdfRenderer({
     const closeSplit = () => setActiveSplit(null);
 
     useEffect(() => {
+        if (pagesReady) {
+            const timer = setTimeout(() => setShowContent(true), 150);
+            return () => clearTimeout(timer);
+        }
+    }, [pagesReady]);
+
+    useEffect(() => {
         // setActiveSplit({
         //     pageNumber: 1,
         //     splitRatio: 0.5,
@@ -154,7 +162,24 @@ function PdfRenderer({
             error={error ?? "Failed to load PDF."}
         >
             <div className="relative">
-                <div ref={pageContainerRef} className="flex flex-col">
+                {/* Loading Overlay */}
+                {!showContent && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white z-50">
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                            <p className="text-sm text-gray-600">Loading document...</p>
+                        </div>
+                    </div>
+                )}
+                
+                {/* PDF Content with fade-in animation */}
+                <div 
+                    className={`transition-opacity duration-500 ${
+                        showContent ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    ref={pageContainerRef}
+                >
+                    <div className="flex flex-col">
                     {pages.map((pageNumber) => {
                         const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
                         const metrics = pageMetrics[pageNumber];
@@ -209,6 +234,7 @@ function PdfRenderer({
                             </div>
                         );
                     })}
+                </div>
                 </div>
                 <PdfDragSelectionLayer
                     enabled={dragMode}

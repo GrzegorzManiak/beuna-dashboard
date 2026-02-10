@@ -11,7 +11,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
     CheckCircle, 
@@ -333,9 +333,33 @@ function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
     const [sections, setSections] = useState<SectionData[]>(mockSections);
     const [propertyType] = useState<"WEG" | "MV">("WEG");
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Trigger loaded state when page metrics are available
+    useEffect(() => {
+        const hasMetrics = Object.keys(viewerState.pageMetrics).length > 0;
+        if (hasMetrics && !isLoaded) {
+            const timer = setTimeout(() => setIsLoaded(true), 300);
+            return () => clearTimeout(timer);
+        }
+    }, [viewerState.pageMetrics, isLoaded]);
 
     return (
-        <div className="flex h-[80vh]">
+        <div className="flex h-[80vh] relative">
+            {/* Loading Overlay */}
+            {!isLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50/80 backdrop-blur-sm z-50">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-sm font-medium text-gray-700">Preparing document...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Main Content with fade-in */}
+            <div className={`flex w-full h-full transition-opacity duration-700 ${
+                isLoaded ? 'opacity-100' : 'opacity-0'
+            }`}>
             {/* PDF Viewer with Section Bar - Combined scrollable area */}
             <div className="flex-1 overflow-y-scroll">
                 <div className="flex relative">
@@ -386,6 +410,7 @@ function UnitsStep({ onNext, onBack }: { onNext: () => void; onBack: () => void 
                     onNext={onNext}
                     onBack={onBack}
                 />
+            </div>
             </div>
         </div>
     );
