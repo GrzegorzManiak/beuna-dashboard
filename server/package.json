@@ -19,6 +19,8 @@
     "prisma:seed": "prisma db seed",
     "prisma:reset": "prisma migrate reset --force",
     "prisma:init": "bun run prisma:generate && bun run prisma:migrate && bun run prisma:seed"
+  },
+  "dependencies": {
+    "unpdf": "^1.4.0"
   }
 }
-  

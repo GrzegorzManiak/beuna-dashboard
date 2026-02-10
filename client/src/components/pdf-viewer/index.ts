@@ -6,7 +6,7 @@ export { PdfDragSelectionLayer } from "./PdfDragSelectionLayer";
 export { SectionBar } from "./SectionBar";
 export { SectionHighlights } from "./SectionHighlights";
 export { Checklist } from "./checklist";
-export { calculateSectionStyle } from "./utils";
+export { calculateSectionStyle } from "../utils";
 export * from "./constants";
 export * from "./types";
 export { PdfViewer, usePdfViewerState } from "./PdfViewer";

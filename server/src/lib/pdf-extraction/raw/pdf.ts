@@ -1,0 +1,61 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { createRequire } from "node:module";
+import { getResolvedPDFJS } from "unpdf";
+import type { PdfTextItem } from "./types";
+
+const require = createRequire(import.meta.url);
+
+const getStandardFontDataUrl = () => {
+    const pkgJsonPath = require.resolve("pdfjs-dist/package.json");
+    const pdfjsDir = path.dirname(pkgJsonPath);
+    return path.join(pdfjsDir, "standard_fonts/");
+};
+
+async function extractPdfTextItems(pdfPath: string): Promise<PdfTextItem[]> {
+    const { getDocument } = await getResolvedPDFJS();
+    const buffer = await readFile(pdfPath);
+    const pdf = await getDocument({
+        data: new Uint8Array(buffer),
+        standardFontDataUrl: getStandardFontDataUrl(),
+    }).promise;
+
+    const items: PdfTextItem[] = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1 });
+        const content = await page.getTextContent();
+
+        for (const item of content.items) {
+            if (!("str" in item)) continue;
+            const raw = item.str ?? "";
+            const text = String(raw);
+            if (!text.trim()) continue;
+
+            const transform = item.transform ?? [1, 0, 0, 1, 0, 0];
+            const fontSize = Math.hypot(transform[0], transform[1]);
+            const x = transform[4] ?? 0;
+            const yBottom = transform[5] ?? 0;
+            const y = viewport.height - yBottom;
+
+            items.push({
+                page: pageNum,
+                text,
+                x,
+                y,
+                width: item.width ?? 0,
+                height: item.height ?? 0,
+                fontSize,
+                fontName: item.fontName ?? "",
+                hasEOL: Boolean(item.hasEOL),
+            });
+        }
+    }
+
+    return items;
+}
+
+export {
+    extractPdfTextItems,
+};

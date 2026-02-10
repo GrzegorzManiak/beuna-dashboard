@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { handleAutoSplit } from "./utils";
+import { handleAutoSplit } from "../utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 
 export interface PdfViewerState {

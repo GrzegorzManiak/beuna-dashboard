@@ -10,7 +10,7 @@ import type {
     SelectionRect,
     TextMatch,
 } from "./types";
-import { clamp } from "./utils";
+import { clamp } from "../utils";
 
 type PdfDragSelectionLayerProps = {
     enabled: boolean;
