@@ -14,7 +14,6 @@ interface PdfViewerProps {
     propertyType?: "WEG" | "MV";
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
-    // State can be provided externally or managed internally
     pageMetrics?: Record<number, PageMetrics>;
     setPageMetrics?: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
     activeSplit?: ActiveSplit;

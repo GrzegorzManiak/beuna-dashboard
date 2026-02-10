@@ -1,9 +1,6 @@
-import { useState } from "react";
-import { PdfViewer } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 
 export const mockSections: SectionData[] = [
-    // Simple Single Page Section
     {
         id: "section-1",
         state: "valid",
@@ -21,7 +18,6 @@ export const mockSections: SectionData[] = [
             height: 50,
         },
     },
-    // Split Area Section (Spans across split)
     {
         id: "section-2",
         sectionType: "core.address",
@@ -41,7 +37,6 @@ export const mockSections: SectionData[] = [
             height: 50,
         },
     },
-    // Multi-Page Section
     {
         id: "section-3",
         sectionType: "units.unit_block",
@@ -64,7 +59,6 @@ export const mockSections: SectionData[] = [
             height: 500,
         },
     },
-    // Triple-Page Section
     {
         id: "section-4",
         sectionType: "weg.special_rights_block",
@@ -84,30 +78,3 @@ export const mockSections: SectionData[] = [
         },
     },
 ];
-
-export default function PdfTest() {
-    const [sections, setSections] = useState<SectionData[]>(mockSections);
-
-    return (
-        <div className="h-screen w-full flex flex-col">
-            <PdfViewer
-                pdfUrl="/test.pdf"
-                pdfScale={1}
-                sections={sections}
-                onSectionAdd={(newSection) => {
-                    setSections((prev) => [...prev, newSection]);
-                }}
-                onSectionUpdate={(sectionId, updates) => {
-                    setSections((prev) =>
-                        prev.map((section) =>
-                            section.id === sectionId ? { ...section, ...updates } : section,
-                        ),
-                    );
-                }}
-                onSectionDelete={(sectionId) => {
-                    setSections((prev) => prev.filter((section) => section.id !== sectionId));
-                }}
-            />
-        </div>
-    );
-}
