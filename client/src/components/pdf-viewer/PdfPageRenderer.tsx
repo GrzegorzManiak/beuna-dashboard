@@ -14,6 +14,7 @@ type PdfPageRendererProps = {
     splitRatio: number;
     pageHeight: number;
     activeSectionId: string | null;
+    dragMode?: boolean;
 };
 
 function PdfPageRenderer({
@@ -26,6 +27,7 @@ function PdfPageRenderer({
     pageHeight,
     renderedSections,
     activeSectionId,
+    dragMode = false,
 }: PdfPageRendererProps) {
     const splitY = isActiveSplit ? Math.round(pageHeight * splitRatio) : 0;
     const pageLoadRef = useRef<boolean | null>(null);
@@ -59,6 +61,7 @@ function PdfPageRenderer({
                 onRenderSuccess={onPageRenderSuccess}
                 renderedSections={renderedSections}
                 activeSectionId={activeSectionId}
+                dragMode={dragMode}
             />
 
             {/* Split Content */}
@@ -74,6 +77,7 @@ function PdfPageRenderer({
                 onRenderSuccess={onPageRenderSuccess}
                 renderedSections={renderedSections}
                 activeSectionId={activeSectionId}
+                dragMode={dragMode}
             />
         </div>
     );

@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PdfRenderer } from "./PdfRenderer";
-import { handleAutoSplit } from "./utils";
+import { handleAutoSplit, normalizeSectionBoxes } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 
 interface PdfViewerProps {
@@ -130,39 +130,58 @@ export function PdfViewer({
                     onDragSelection={(result) => {
                         console.log("Selected:", result);
 
-                        // Open split toolbar below the selected area
-                        if (autoSplitOnSelection) {
-                            setActiveSplit({
-                                pageNumber: result.page,
-                                splitRatio: result.ratios.y + result.ratios.height,
-                            });
-                        }
-
                         // Convert DragSelectionResult to SectionData
                         if (onSectionAdd) {
-                            const newSection: SectionData = {
-                                id: `section-${Date.now()}`, // Or some ID generation logic
+                            const pages = result.boxes.map((b) => b.page);
+                            const rawSection: SectionData = {
+                                id: `section-${Date.now()}`,
                                 sectionType: "unknown",
                                 state: "identifying",
                                 textPosition: {
-                                    page: [result.page],
-                                    x: result.rect.x,
-                                    y: result.rect.y,
-                                    width: result.rect.width,
-                                    height: result.rect.height,
+                                    page: pages,
+                                    x: result.boxes[0]?.x ?? 0,
+                                    y: result.boxes[0]?.y ?? 0,
+                                    width: result.boxes[0]?.width ?? 0,
+                                    height: result.boxes.reduce((sum, b) => sum + b.height, 0),
+                                    boxes: result.boxes.map((b) => ({
+                                        page: b.page,
+                                        x: b.x,
+                                        y: b.y,
+                                        width: b.width,
+                                        height: b.height,
+                                    })),
                                 }
                             };
-                            onSectionAdd(newSection);
-                            setActiveSectionId?.(newSection.id);
-                            setDragMode?.(false); // Optionally turn off drag mode after selection
+
+                            // Pass through THE GATE - normalize multi-page boxes
+                            const normalizedSection = normalizeSectionBoxes(rawSection, pageMetrics);
+
+                            onSectionAdd(normalizedSection);
+                            setActiveSectionId?.(normalizedSection.id);
+                            setDragMode?.(false);
 
                             if (onSectionUpdate) {
-                                // Mock API classification: move from identifying -> unknown
                                 window.setTimeout(() => {
-                                    onSectionUpdate(newSection.id, {
+                                    onSectionUpdate(normalizedSection.id, {
                                         state: "unknown",
                                     });
                                 }, 1200);
+                            }
+
+                            // Open split toolbar below the selected area (on the last page)
+                            if (autoSplitOnSelection) {
+                                const lastPage = pages[pages.length - 1];
+                                const box = normalizedSection.textPosition.boxes?.find((b) => b.page === lastPage);
+                                if (box) {
+                                    const metrics = pageMetrics?.[lastPage];
+                                    if (metrics) {
+                                        const splitRatio = (box.y + box.height) / metrics.originalHeight;
+                                        setActiveSplit({
+                                            pageNumber: lastPage,
+                                            splitRatio: Math.min(splitRatio, 1),
+                                        });
+                                    }
+                                }
                             }
                         }
                     }}

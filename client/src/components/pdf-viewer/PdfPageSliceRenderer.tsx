@@ -13,6 +13,7 @@ type PdfPageSliceRendererProps = {
     onRenderSuccess?: OnRenderSuccess;
     renderedSections: Array<RenderedSection>;
     activeSectionId: string | null;
+    dragMode?: boolean;
 };
 
 function PdfPageSliceRenderer({
@@ -24,6 +25,7 @@ function PdfPageSliceRenderer({
     onRenderSuccess,
     renderedSections,
     activeSectionId,
+    dragMode = false,
 }: PdfPageSliceRendererProps) {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -36,7 +38,7 @@ function PdfPageSliceRenderer({
         >
             <div
                 ref={containerRef}
-                className="relative border-0"
+                className={`relative border-0 ${dragMode ? 'pointer-events-none select-none' : ''}`}
                 style={{ transform: `translateY(-${offset}px)` }}
             >
                 <Page
@@ -45,9 +47,9 @@ function PdfPageSliceRenderer({
                     pageNumber={pageNumber}
                 />
 
-                <SectionHighlights 
-                    sections={renderedSections} 
-                    activeSectionId={activeSectionId} 
+                <SectionHighlights
+                    sections={renderedSections}
+                    activeSectionId={activeSectionId}
                 />
             </div>
         </div>

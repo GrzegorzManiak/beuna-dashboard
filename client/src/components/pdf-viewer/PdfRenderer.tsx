@@ -211,6 +211,7 @@ function PdfRenderer({
                                         .map((section) =>
                                             calculateSectionStyle(pageNumber, section, pageMetrics),
                                         ) : []}
+                                    dragMode={dragMode}
                                 />
                             </div>
                         );

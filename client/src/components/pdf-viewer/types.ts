@@ -75,7 +75,8 @@ type ActiveSplit = {
 } | null;
 
 type DragSelection = {
-    page: number;
+    startPage: number;
+    endPage: number;
     startX: number;
     startY: number;
     currentX: number;
@@ -90,9 +91,15 @@ type DragTextRect = {
 };
 
 type DragSelectionResult = {
-    page: number;
-    rect: { x: number; y: number; width: number; height: number };
-    ratios: { x: number; y: number; width: number; height: number };
+    startPage: number;
+    endPage: number;
+    boxes: Array<{
+        page: number;
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    }>;
     text: string;
     textRects: DragTextRect[];
 };

@@ -23,6 +23,14 @@ type PdfDragSelectionLayerProps = {
     onSelectionComplete?: (result: DragSelectionResult) => void;
 };
 
+type MultiPageDragBox = {
+    page: number;
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+};
+
 function PdfDragSelectionLayer({
     enabled,
     textWrappingEnabled,
@@ -35,11 +43,13 @@ function PdfDragSelectionLayer({
 }: PdfDragSelectionLayerProps) {
     const [dragSelection, setDragSelection] = useState<DragSelection | null>(null);
     const [dragTextRects, setDragTextRects] = useState<DragTextRect[]>([]);
+    const [dragBoxes, setDragBoxes] = useState<MultiPageDragBox[]>([]);
 
     useEffect(() => {
         if (!enabled) {
             setDragSelection(null);
             setDragTextRects([]);
+            setDragBoxes([]);
         }
     }, [enabled]);
 
@@ -58,6 +68,17 @@ function PdfDragSelectionLayer({
 
         return offsets;
     }, [pages, pageMetrics, activeSplit, splitToolbarHeight]);
+
+    const getPageRange = useCallback((yInContainer: number) => {
+        const startPage = pages.find((page) => {
+            const metrics = pageMetrics[page];
+            if (!metrics) return false;
+            const offset = pageOffsets[page] ?? 0;
+            const totalHeight = metrics.height + (activeSplit?.pageNumber === page ? splitToolbarHeight : 0);
+            return yInContainer >= offset && yInContainer <= offset + totalHeight;
+        });
+        return startPage ?? null;
+    }, [pages, pageMetrics, pageOffsets, activeSplit, splitToolbarHeight]);
 
     const getPageWidthPx = useCallback(
         (page: number) => {
@@ -146,21 +167,58 @@ function PdfDragSelectionLayer({
         [getLocalYForPage, getPageWidthPx, pageContainerRef, pageMetrics],
     );
 
-    const getSelectionRect = useCallback(
-        (selection: DragSelection): SelectionRect | null => {
-            const startTop = getContainerYFromLocal(selection.page, selection.startY);
-            const endTop = getContainerYFromLocal(selection.page, selection.currentY);
-            if (startTop === null || endTop === null) return null;
+    const getMultiPageSelectionBoxes = useCallback(
+        (selection: DragSelection): MultiPageDragBox[] => {
+            const container = pageContainerRef.current;
+            if (!container) return [];
 
-            const left = Math.min(selection.startX, selection.currentX);
-            const top = Math.min(startTop, endTop);
+            const startPage = Math.min(selection.startPage, selection.endPage);
+            const endPage = Math.max(selection.startPage, selection.endPage);
+            const x = Math.min(selection.startX, selection.currentX);
             const width = Math.abs(selection.startX - selection.currentX);
-            const height = Math.abs(startTop - endTop);
-            const localCenterY = (selection.startY + selection.currentY) / 2;
+            const pageWidthPx = getPageWidthPx(startPage);
 
-            return { left, top, width, height, localCenterY };
+            if (!pageWidthPx) return [];
+
+            const boxes: MultiPageDragBox[] = [];
+
+            // Get start and end Y positions in container coordinates
+            const startContainerY = getContainerYFromLocal(selection.startPage, selection.startY);
+            const endContainerY = getContainerYFromLocal(selection.endPage, selection.currentY);
+
+            if (startContainerY === null || endContainerY === null) return [];
+
+            const topY = Math.min(startContainerY, endContainerY);
+            const bottomY = Math.max(startContainerY, endContainerY);
+
+            for (let page = startPage; page <= endPage; page++) {
+                const metrics = pageMetrics[page];
+                if (!metrics) continue;
+                const offset = pageOffsets[page];
+                if (offset === undefined) continue;
+
+                const pageTop = offset;
+                const pageHeight = metrics.height;
+                const pageBottom = offset + pageHeight;
+
+                // Calculate intersection with selection
+                const boxTop = Math.max(pageTop, topY);
+                const boxBottom = Math.min(pageBottom, bottomY);
+
+                if (boxTop < boxBottom) {
+                    boxes.push({
+                        page,
+                        left: x,
+                        top: boxTop,
+                        width,
+                        height: boxBottom - boxTop,
+                    });
+                }
+            }
+
+            return boxes;
         },
-        [getContainerYFromLocal],
+        [pageContainerRef, pageMetrics, pageOffsets, getContainerYFromLocal, getPageWidthPx],
     );
 
     const getSelectionSlice = useCallback(
@@ -301,32 +359,18 @@ function PdfDragSelectionLayer({
             event.preventDefault();
             event.currentTarget.setPointerCapture(event.pointerId);
             const selection: DragSelection = {
-                page,
+                startPage: page,
+                endPage: page,
                 startX: point.x,
                 startY: point.y,
                 currentX: point.x,
                 currentY: point.y,
             };
             setDragSelection(selection);
-            const selectionRect = getSelectionRect(selection);
-            if (!selectionRect) return;
-            const matches = getSpansForRect(selection.page, selectionRect);
-            setDragTextRects(
-                matches
-                    .filter((item) => item.intersectionWidth > 0 && item.intersectionHeight > 0)
-                    .map((item) => ({
-                        left: item.intersectionLeft,
-                        top: item.intersectionTop,
-                        width: item.intersectionWidth,
-                        height: item.intersectionHeight,
-                    })),
-            );
         },
         [
             enabled,
             getLocalPointForPage,
-            getSelectionRect,
-            getSpansForRect,
             pageContainerRef,
             resolvePageFromY,
         ],
@@ -335,83 +379,254 @@ function PdfDragSelectionLayer({
     const handleDragMove = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
             if (!dragSelection) return;
-            const point = getLocalPointForPage(
-                dragSelection.page,
-                event.clientX,
-                event.clientY,
-            );
+
+            const container = pageContainerRef.current;
+            if (!container) return;
+
+            const rect = container.getBoundingClientRect();
+            const yInContainer = event.clientY - rect.top;
+            const currentPage = resolvePageFromY(yInContainer);
+
+            if (!currentPage) return;
+
+            const point = getLocalPointForPage(currentPage, event.clientX, event.clientY);
             if (!point) return;
-            const nextSelection = {
+
+            const nextSelection: DragSelection = {
                 ...dragSelection,
+                endPage: currentPage,
                 currentX: point.x,
                 currentY: point.y,
             };
+
             setDragSelection(nextSelection);
-            const rect = getSelectionRect(nextSelection);
-            if (!rect) return;
-            const matches = getSpansForRect(nextSelection.page, rect);
-            setDragTextRects(
-                matches
+
+            // Update drag boxes for visual feedback
+            const boxes = getMultiPageSelectionBoxes(nextSelection);
+            setDragBoxes(boxes);
+
+            // Collect text highlights from all affected pages
+            const allTextRects: DragTextRect[] = [];
+            const startPage = Math.min(nextSelection.startPage, nextSelection.endPage);
+            const endPage = Math.max(nextSelection.startPage, nextSelection.endPage);
+
+            for (let page = startPage; page <= endPage; page++) {
+                const pageMetricsEntry = pageMetrics[page];
+                if (!pageMetricsEntry) continue;
+
+                const pageOffset = pageOffsets[page];
+                if (pageOffset === undefined) continue;
+
+                // For each page, we need to create a selection rect
+                // that covers the intersection of the drag selection with that page
+                const box = boxes.find((b) => b.page === page);
+                if (!box) continue;
+
+                const localTop = getLocalYForPage(page, box.top);
+                const localBottom = getLocalYForPage(page, box.top + box.height);
+
+                if (localTop === null || localBottom === null) continue;
+
+                const selectionRect: SelectionRect = {
+                    left: box.left,
+                    top: box.top,
+                    width: box.width,
+                    height: box.height,
+                    localCenterY: (localTop + localBottom) / 2,
+                };
+
+                const matches = getSpansForRect(page, selectionRect);
+                const textRects = matches
                     .filter((item) => item.intersectionWidth > 0 && item.intersectionHeight > 0)
                     .map((item) => ({
                         left: item.intersectionLeft,
                         top: item.intersectionTop,
                         width: item.intersectionWidth,
                         height: item.intersectionHeight,
-                    })),
-            );
+                    }));
+
+                allTextRects.push(...textRects);
+            }
+
+            setDragTextRects(allTextRects);
         },
-        [dragSelection, getLocalPointForPage, getSelectionRect, getSpansForRect],
+        [
+            dragSelection,
+            getLocalPointForPage,
+            getMultiPageSelectionBoxes,
+            getSpansForRect,
+            pageContainerRef,
+            pageMetrics,
+            pageOffsets,
+            resolvePageFromY,
+            getLocalYForPage,
+        ],
     );
 
     const handleDragEnd = useCallback(
         (event: ReactPointerEvent<HTMLDivElement>) => {
             if (!dragSelection) return;
-            const point = getLocalPointForPage(
-                dragSelection.page,
-                event.clientX,
-                event.clientY,
-            );
-            const finalX = point?.x ?? dragSelection.currentX;
-            const finalY = point?.y ?? dragSelection.currentY;
 
             event.currentTarget.releasePointerCapture(event.pointerId);
+
+            const finalSelection = dragSelection;
             setDragSelection(null);
+            setDragBoxes([]);
             setDragTextRects([]);
 
-            const x = Math.min(dragSelection.startX, finalX);
-            const y = Math.min(dragSelection.startY, finalY);
-            const width = Math.abs(dragSelection.startX - finalX);
-            const height = Math.abs(dragSelection.startY - finalY);
+            const startPage = Math.min(finalSelection.startPage, finalSelection.endPage);
+            const endPage = Math.max(finalSelection.startPage, finalSelection.endPage);
 
-            if (width < MIN_SELECTION_PX || height < MIN_SELECTION_PX) return;
+            const x = Math.min(finalSelection.startX, finalSelection.currentX);
+            const width = Math.abs(finalSelection.startX - finalSelection.currentX);
 
-            const metrics = pageMetrics[dragSelection.page];
-            if (!metrics) return;
-            const pageWidthPx = getPageWidthPx(dragSelection.page);
-            if (!pageWidthPx) return;
+            if (width < MIN_SELECTION_PX) return;
 
-            // Normalize back to original PDF coordinates
-            const scale = metrics.scale;
+            // Collect all text matches, grouped by page
+            const textMatchesByPage = new Map<number, TextMatch[]>();
+            const allTextMatches: TextMatch[] = [];
 
-            const selection: DragSelection = {
-                page: dragSelection.page,
-                startX: dragSelection.startX,
-                startY: dragSelection.startY,
-                currentX: finalX,
-                currentY: finalY,
-            };
-            const rect = getSelectionRect(selection);
-            const matches = rect ? getSpansForRect(selection.page, rect) : [];
-            const selectedText = matches
+            for (let page = startPage; page <= endPage; page++) {
+                const metrics = pageMetrics[page];
+                if (!metrics) continue;
+
+                const scale = metrics.scale;
+
+                // Calculate Y range: extend full height on multi-page selections
+                let localYStart: number;
+                let localYEnd: number;
+
+                if (page === finalSelection.startPage && page === finalSelection.endPage) {
+                    // Single page selection
+                    localYStart = Math.min(finalSelection.startY, finalSelection.currentY);
+                    localYEnd = Math.max(finalSelection.startY, finalSelection.currentY);
+                } else if (page === finalSelection.startPage) {
+                    // First page: from drag start to bottom
+                    localYStart = finalSelection.startPage < finalSelection.endPage
+                        ? finalSelection.startY
+                        : finalSelection.currentY;
+                    localYEnd = metrics.height;
+                } else if (page === finalSelection.endPage) {
+                    // Last page: from top to drag end
+                    localYStart = 0;
+                    localYEnd = finalSelection.startPage < finalSelection.endPage
+                        ? finalSelection.currentY
+                        : finalSelection.startY;
+                } else {
+                    // Middle pages: full height
+                    localYStart = 0;
+                    localYEnd = metrics.height;
+                }
+
+                const containerYStart = getContainerYFromLocal(page, localYStart);
+                const containerYEnd = getContainerYFromLocal(page, localYEnd);
+
+                if (containerYStart === null || containerYEnd === null) continue;
+
+                const selectionRect: SelectionRect = {
+                    left: x,
+                    top: containerYStart,
+                    width,
+                    height: containerYEnd - containerYStart,
+                    localCenterY: (localYStart + localYEnd) / 2,
+                };
+
+                const matches = getSpansForRect(page, selectionRect);
+                if (matches.length > 0) {
+                    allTextMatches.push(...matches);
+                    textMatchesByPage.set(page, matches);
+                }
+            }
+
+            if (allTextMatches.length === 0) return;
+
+            // --- Find extremes ---
+            const PADDING = 3;
+            let minX = Infinity;
+            let maxX = -Infinity;
+            let firstPageTop = Infinity;
+            let lastPageBottom = -Infinity;
+
+            for (const item of allTextMatches) {
+                minX = Math.min(minX, item.intersectionLeft);
+                maxX = Math.max(maxX, item.intersectionLeft + item.intersectionWidth);
+                firstPageTop = Math.min(firstPageTop, item.intersectionTop);
+                lastPageBottom = Math.max(lastPageBottom, item.intersectionTop + item.intersectionHeight);
+            }
+
+            const boxX = Math.max(0, minX - PADDING);
+            const boxWidth = (maxX + PADDING) - boxX;
+            // -----------------------
+
+            // --- Create boxes ---
+            const boxes: Array<{ page: number; x: number; y: number; width: number; height: number }> = [];
+
+            for (let page = startPage; page <= endPage; page++) {
+                const pageMatches = textMatchesByPage.get(page);
+                const metrics = pageMetrics[page];
+                if (!metrics) continue;
+
+                const scale = metrics.scale;
+                const pageHeight = metrics.originalHeight;
+
+                if (page === startPage && page === endPage) {
+                    // Single page
+                    const localYTop = getLocalYForPage(page, firstPageTop);
+                    const localYBottom = getLocalYForPage(page, lastPageBottom);
+                    if (localYTop !== null && localYBottom !== null) {
+                        boxes.push({
+                            page,
+                            x: boxX / scale,
+                            y: localYTop / scale,
+                            width: boxWidth / scale,
+                            height: (localYBottom - localYTop) / scale,
+                        });
+                    }
+                } else if (page === startPage) {
+                    // First page: from text top to page bottom
+                    const localYTop = getLocalYForPage(page, firstPageTop);
+                    if (localYTop !== null) {
+                        boxes.push({
+                            page,
+                            x: boxX / scale,
+                            y: localYTop / scale,
+                            width: boxWidth / scale,
+                            height: (pageHeight - localYTop) / scale,
+                        });
+                    }
+                } else if (page === endPage) {
+                    // Last page: from page top to text bottom
+                    const localYBottom = getLocalYForPage(page, lastPageBottom);
+                    if (localYBottom !== null) {
+                        boxes.push({
+                            page,
+                            x: boxX / scale,
+                            y: 0,
+                            width: boxWidth / scale,
+                            height: localYBottom / scale,
+                        });
+                    }
+                } else {
+                    // Middle pages: full height
+                    boxes.push({
+                        page,
+                        x: boxX / scale,
+                        y: 0,
+                        width: boxWidth / scale,
+                        height: pageHeight,
+                    });
+                }
+            }
+            // -------------------
+
+            const selectedText = allTextMatches
                 .sort((a, b) => (a.top === b.top ? a.left - b.left : a.top - b.top))
                 .map((item) => item.textSlice)
                 .join(" ")
                 .replace(/\s+/g, " ")
                 .trim();
 
-            const textRects = matches
-                .filter((item) => item.intersectionWidth > 0 && item.intersectionHeight > 0)
+            const textRects = allTextMatches
                 .map((item) => ({
                     left: item.intersectionLeft,
                     top: item.intersectionTop,
@@ -419,82 +634,23 @@ function PdfDragSelectionLayer({
                     height: item.intersectionHeight,
                 }));
 
-            // --- Text Wrapping Logic ---
-            let finalRectX = x;
-            let finalRectY = y;
-            let finalRectWidth = width;
-            let finalRectHeight = height;
-
-            if (textWrappingEnabled && textRects.length > 0) {
-                const PADDING = 3;
-                let minCLeft = Infinity;
-                let minCTop = Infinity;
-                let maxCRight = -Infinity;
-                let maxCBottom = -Infinity;
-
-                textRects.forEach((r) => {
-                    minCLeft = Math.min(minCLeft, r.left);
-                    minCTop = Math.min(minCTop, r.top);
-                    maxCRight = Math.max(maxCRight, r.left + r.width);
-                    maxCBottom = Math.max(maxCBottom, r.top + r.height);
-                });
-
-                // Apply Padding
-                minCLeft = Math.max(0, minCLeft - PADDING);
-                minCTop = Math.max(0, minCTop - PADDING);
-                maxCRight += PADDING;
-                maxCBottom += PADDING;
-
-                // X is same in local/container if we assume pages are full width & aligned left=0
-                // Y needs conversion: Container -> Local
-                const localYTop = getLocalYForPage(dragSelection.page, minCTop);
-                const localYBottom = getLocalYForPage(dragSelection.page, maxCBottom);
-
-                if (localYTop !== null && localYBottom !== null) {
-                    finalRectX = minCLeft;
-                    finalRectY = localYTop;
-                    finalRectWidth = maxCRight - minCLeft;
-                    finalRectHeight = localYBottom - localYTop;
-                }
-            }
-            // ---------------------------
-
             onSelectionComplete?.({
-                page: dragSelection.page,
-                // Return normalized coordinates (original PDF / unscaled)
-                rect: { 
-                    x: finalRectX / scale, 
-                    y: finalRectY / scale, 
-                    width: finalRectWidth / scale, 
-                    height: finalRectHeight / scale 
-                },
-                ratios: {
-                    x: finalRectX / pageWidthPx,
-                    y: finalRectY / metrics.height,
-                    width: finalRectWidth / pageWidthPx,
-                    height: finalRectHeight / metrics.height,
-                },
+                startPage,
+                endPage,
+                boxes,
                 text: selectedText,
                 textRects,
             });
         },
         [
             dragSelection,
-            getLocalPointForPage,
-            getPageWidthPx,
-            getSelectionRect,
             getSpansForRect,
-            onSelectionComplete,
+            getContainerYFromLocal,
+            getLocalYForPage,
             pageMetrics,
+            onSelectionComplete,
         ],
     );
-
-    const dragBox = useMemo(() => {
-        if (!dragSelection) return null;
-        const rect = getSelectionRect(dragSelection);
-        if (!rect) return null;
-        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
-    }, [dragSelection, getSelectionRect]);
 
     if (!enabled) return null;
 
@@ -518,21 +674,22 @@ function PdfDragSelectionLayer({
                     }}
                 />
             ))}
-            {dragBox ? (
+            {dragBoxes.map((box, index) => (
                 <div
+                    key={`drag-box-${index}`}
                     className="absolute rounded-lg border border-blue-500/70 bg-blue-500/20 ring-1 ring-blue-500/30 mix-blend-multiply"
                     style={{
-                        left: dragBox.left,
-                        top: dragBox.top,
-                        width: dragBox.width,
-                        height: dragBox.height,
+                        left: box.left,
+                        top: box.top,
+                        width: box.width,
+                        height: box.height,
                     }}
                 />
-            ) : null}
+            ))}
         </div>
     );
 }
 
-export { 
-    PdfDragSelectionLayer 
+export {
+    PdfDragSelectionLayer
 };

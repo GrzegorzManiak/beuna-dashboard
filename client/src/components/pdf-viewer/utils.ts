@@ -1,17 +1,190 @@
-import type { ActiveSplit, PageMetrics, RenderedSection, SectionData } from "./types";
+import type { ActiveSplit, PageMetrics, RenderedSection, SectionData, SectionBox } from "./types";
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
+
+/**
+ * THE GATE - Normalizes all section boxes (from server or user) to proper multi-page format.
+ *
+ * Rules for multi-page sections:
+ * - First page: y stays, height expands to bottom of page
+ * - Middle pages: y=0, height=full page height
+ * - Last page: y=0, height comes from the vacuum-sealed box (actual text height)
+ * - All pages: same x position and width (use maximum width)
+ *
+ * @param section - The section data with textPosition
+ * @param pageMetrics - Page metrics to get original dimensions
+ * @returns Normalized SectionData with proper boxes array
+ */
+function normalizeSectionBoxes(
+    section: SectionData,
+    pageMetrics: Record<number, PageMetrics>
+): SectionData {
+    const { textPosition } = section;
+    const pages = textPosition.page;
+
+    // Single page - return as-is
+    if (pages.length <= 1) return section;
+    
+
+    // Already has boxes - normalize them
+    if (textPosition.boxes && textPosition.boxes.length > 0) {
+        const normalizedBoxes: SectionBox[] = [];
+        const firstPage = pages[0];
+        const lastPage = pages[pages.length - 1];
+
+        // Find max width across all boxes
+        let minX = Infinity;
+        let maxWidth = 0;
+        for (const box of textPosition.boxes) {
+            if (box.x < minX) minX = box.x;
+            if (box.width > maxWidth) maxWidth = box.width;
+        }
+
+        for (const page of pages) {
+            const existingBox = textPosition.boxes.find(b => b.page === page);
+            const metrics = pageMetrics[page];
+            if (!metrics) continue;
+
+            const pageHeight = metrics.originalHeight;
+
+            if (page === firstPage && page === lastPage) {
+                // Single page
+                normalizedBoxes.push(existingBox || {
+                    page,
+                    x: minX,
+                    y: textPosition.y,
+                    width: maxWidth,
+                    height: textPosition.height,
+                });
+            } else if (page === firstPage) {
+                // First page: y stays, expand to bottom
+                const boxY = existingBox?.y ?? textPosition.y;
+                normalizedBoxes.push({
+                    page,
+                    x: minX,
+                    y: boxY,
+                    width: maxWidth,
+                    height: pageHeight - boxY,
+                });
+            } else if (page === lastPage) {
+                // Last page: y=0, use the vacuum-sealed height
+                const box = existingBox;
+                normalizedBoxes.push({
+                    page,
+                    x: minX,
+                    y: 0,
+                    width: maxWidth,
+                    height: box?.height ?? pageHeight,
+                });
+            } else {
+                // Middle pages: full height from top to bottom
+                normalizedBoxes.push({
+                    page,
+                    x: minX,
+                    y: 0,
+                    width: maxWidth,
+                    height: pageHeight,
+                });
+            }
+        }
+
+        // Freeze each box and the array to prevent downstream mutation
+        const frozenBoxes = normalizedBoxes.map(b => Object.freeze({ ...b }));
+        Object.freeze(frozenBoxes);
+
+        const frozenTextPosition = Object.freeze({ ...textPosition, boxes: frozenBoxes });
+        const frozenSection = Object.freeze({ ...section, textPosition: frozenTextPosition });
+        return frozenSection;
+    }
+
+    // No boxes yet - create them from textPosition
+    const normalizedBoxes: SectionBox[] = [];
+    const firstPage = pages[0];
+    const lastPage = pages[pages.length - 1];
+    const x = textPosition.x;
+    const width = textPosition.width;
+
+    for (const page of pages) {
+        const metrics = pageMetrics[page];
+        if (!metrics) continue;
+
+        const pageHeight = metrics.originalHeight;
+
+        if (page === firstPage && page === lastPage) {
+            // Single page
+            normalizedBoxes.push({
+                page,
+                x,
+                y: textPosition.y,
+                width,
+                height: textPosition.height,
+            });
+        } else if (page === firstPage) {
+            // First page: expand to bottom
+            normalizedBoxes.push({
+                page,
+                x,
+                y: textPosition.y,
+                width,
+                height: pageHeight - textPosition.y,
+            });
+        } else if (page === lastPage) {
+            // Last page: expand from top
+            // Need to calculate remaining height
+            let heightUsed = 0;
+            // First page consumed height
+            const firstMetrics = pageMetrics[firstPage];
+            if (firstMetrics) {
+                heightUsed = firstMetrics.originalHeight - textPosition.y;
+            }
+            // Middle pages consumed full height
+            for (let p = firstPage + 1; p < lastPage; p++) {
+                const m = pageMetrics[p];
+                if (m) heightUsed += m.originalHeight;
+            }
+            const remainingHeight = textPosition.height - heightUsed;
+            normalizedBoxes.push({
+                page,
+                x,
+                y: 0,
+                width,
+                height: Math.max(0, remainingHeight),
+            });
+        } else {
+            // Middle pages: full height
+            normalizedBoxes.push({
+                page,
+                x,
+                y: 0,
+                width,
+                height: pageHeight,
+            });
+        }
+    }
+
+    // Freeze each box and the array to prevent downstream mutation
+    const frozenBoxes = normalizedBoxes.map(b => Object.freeze({ ...b }));
+    Object.freeze(frozenBoxes);
+
+    const frozenTextPosition = Object.freeze({ ...textPosition, boxes: frozenBoxes });
+    const frozenSection = Object.freeze({ ...section, textPosition: frozenTextPosition });
+    return frozenSection;
+}
 
 function calculateSectionStyle(
     pageNumber: number,
     section: SectionData,
     pageMetrics: Record<number, PageMetrics>,
 ): RenderedSection {
+    // Normalize boxes first (THE GATE)
+    const normalizedSection = normalizeSectionBoxes(section, pageMetrics);
+
     const metrics = pageMetrics[pageNumber];
     const scale = metrics?.scale || 1;
-    const pages = section.textPosition.page;
-    const boxes = section.textPosition.boxes;
+    const pages = normalizedSection.textPosition.page;
+    const boxes = normalizedSection.textPosition.boxes;
+
     if (boxes && boxes.length) {
         const box = boxes.find((entry) => entry.page === pageNumber);
         if (!box) {
@@ -44,72 +217,19 @@ function calculateSectionStyle(
             },
         };
     }
-    const startPage = section.textPosition.page[0];
-    const startPageMetrics = pageMetrics[startPage];
-    const startPageScale = startPageMetrics?.scale || scale;
 
-    const sectionRect = {
-        left: section.textPosition.x * startPageScale,
-        width: section.textPosition.width * startPageScale,
-        top: 0,
-        height: 0,
-        hasTopBorder: pageNumber === startPage,
-        hasBottomBorder: pageNumber === section.textPosition.page[section.textPosition.page.length - 1],
-    };
-
-    // Logic to calculate top/height for multi-page spanning
-    if (pageNumber === startPage) {
-        sectionRect.top = section.textPosition.y * scale;
-
-        // Simple case: height is rest of section
-        // For multi-page, on the first page, we take all the height
-        // until the bottom of the page.
-        const pageOriginalHeight = metrics?.originalHeight || 0;
-        const availableHeight = Math.max(0, pageOriginalHeight - section.textPosition.y);
-
-        // If height is small enough to fit on page, use it.
-        // Otherwise take available space.
-        const unscaledHeight = Math.min(section.textPosition.height, availableHeight);
-        sectionRect.height = unscaledHeight * scale;
-    } else {
-        // Subsequent pages
-        sectionRect.top = 0; // Starts at top
-
-        let remainingHeight = section.textPosition.height;
-
-        // Subtract height consumed by previous pages
-        let currentPage = startPage;
-        while (currentPage < pageNumber) {
-            const m = pageMetrics[currentPage];
-            if (m) {
-                if (currentPage === startPage) {
-                    const consumed = Math.max(0, m.originalHeight - section.textPosition.y);
-                    remainingHeight -= consumed;
-                } else remainingHeight -= m.originalHeight;
-            }
-            currentPage++;
-        }
-
-        // On this page, we take remaining height or full page height
-        const pageOriginalHeight = metrics?.originalHeight || 0;
-        const unscaledHeight = Math.min(Math.max(0, remainingHeight), pageOriginalHeight);
-
-        // If remaining height is <= 0 (metrics might be missing or logic off), hide it
-        if (remainingHeight <= 0) sectionRect.height = 0;
-        else sectionRect.height = unscaledHeight * scale;
-    }
-
+    // Fallback for single-page without boxes
     return {
         id: section.id,
         state: section.state,
         sectionType: section.sectionType,
-        hasTopBorder: sectionRect.hasTopBorder,
-        hasBottomBorder: sectionRect.hasBottomBorder,
+        hasTopBorder: true,
+        hasBottomBorder: true,
         style: {
-            left: sectionRect.left,
-            top: sectionRect.top,
-            width: sectionRect.width,
-            height: sectionRect.height,
+            left: section.textPosition.x * scale,
+            top: section.textPosition.y * scale,
+            width: section.textPosition.width * scale,
+            height: section.textPosition.height * scale,
         },
     };
 }
@@ -154,6 +274,7 @@ function handleAutoSplit(
 
 export {
     clamp,
+    normalizeSectionBoxes,
     calculateSectionStyle,
     handleAutoSplit,
 }
