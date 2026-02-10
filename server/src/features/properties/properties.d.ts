@@ -1,10 +1,3 @@
-type CreatePropertyBody = {
-    name: string;
-    managementType: "WEG" | "MV";
-    managerId: string;
-    accountantId: string;
-};
-
 type UpdatePropertyBody = {
     name?: string;
     managementType?: "WEG" | "MV";
@@ -18,7 +11,6 @@ type PropertyIdParams = {
 };
 
 export {
-    type CreatePropertyBody,
     type UpdatePropertyBody,
     type PropertyIdParams,
 };

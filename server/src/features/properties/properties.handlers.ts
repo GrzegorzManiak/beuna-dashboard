@@ -1,10 +1,22 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { prisma } from "@db";
 import type {
-    CreatePropertyBody,
     UpdatePropertyBody,
     PropertyIdParams,
 } from "./properties";
+import { createExpiringCache } from "../../lib/expiring-cache";
+
+type DocumentCacheEntry = {
+    data: Buffer;
+    mimeType: string;
+    name: string;
+};
+
+const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
+const DEFAULT_PROPERTY_NAME = "Unnamed property";
+const DEFAULT_DOCUMENT_NAME = "property.pdf";
+
+const documentCache = createExpiringCache<DocumentCacheEntry>(PDF_CACHE_TTL_MS);
 
 async function listPropertiesHandler(
     req: FastifyRequest,
@@ -44,10 +56,21 @@ async function listPropertiesHandler(
 }
 
 async function createPropertyHandler(
-    req: FastifyRequest<{ Body: CreatePropertyBody }>,
+    req: FastifyRequest,
     reply: FastifyReply
 ) {
-    const { name, managementType, managerId, accountantId } = req.body;
+    if (!req.isMultipart()) return reply.code(400).send({ error: "Multipart form data is required" });
+
+    const file = await req.file();
+    if (!file) return reply.code(400).send({ error: "PDF file is required" });
+    if (file.mimetype !== "application/pdf") return reply.code(400).send({ error: "Only PDF files are supported" });
+
+    const buffer = await file.toBuffer();
+    if (buffer.length === 0) return reply.code(400).send({ error: "PDF file is empty" });
+
+    const user = req.user!;
+    const trimmedName = file.filename?.trim();
+    const documentName = trimmedName ? trimmedName : DEFAULT_DOCUMENT_NAME;
 
     const property = await prisma.$transaction(async (tx) => {
         const counter = await tx.propertyCounter.upsert({
@@ -60,11 +83,15 @@ async function createPropertyHandler(
         return tx.property.create({
             data: {
                 propertyNumber: counter.current,
-                name,
-                managementType,
+                name: DEFAULT_PROPERTY_NAME,
+                managementType: "UNKNOWN",
                 status: "DRAFT",
-                managerId,
-                accountantId,
+                managerId: user.id,
+                accountantId: user.id,
+                documentName,
+                documentMimeType: file.mimetype,
+                documentData: buffer,
+                documentUploadedAt: new Date(),
             },
             select: {
                 id: true,
@@ -79,6 +106,46 @@ async function createPropertyHandler(
     });
 
     return reply.code(201).send({ property });
+}
+
+async function getPropertyDocumentHandler(
+    req: FastifyRequest<{ Params: PropertyIdParams }>,
+    reply: FastifyReply
+) {
+    const { propertyId } = req.params;
+
+    const cached = documentCache.get(propertyId);
+    if (cached) {
+        reply.header("Content-Type", cached.mimeType);
+        reply.header("Content-Disposition", `inline; filename="${cached.name}"`);
+        reply.header("Cache-Control", `private, max-age=${Math.floor(PDF_CACHE_TTL_MS / 1000)}`);
+        return reply.send(cached.data);
+    }
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: {
+            documentName: true,
+            documentMimeType: true,
+            documentData: true,
+        },
+    });
+
+    if (!property?.documentData) return reply.code(404).send({ error: "Property document not found" });
+
+    const documentName = property.documentName ?? DEFAULT_DOCUMENT_NAME;
+    const mimeType = property.documentMimeType ?? "application/pdf";
+
+    documentCache.set(propertyId, {
+        data: property.documentData,
+        mimeType,
+        name: documentName,
+    });
+
+    reply.header("Content-Type", mimeType);
+    reply.header("Content-Disposition", `inline; filename="${documentName}"`);
+    reply.header("Cache-Control", `private, max-age=${Math.floor(PDF_CACHE_TTL_MS / 1000)}`);
+    return reply.send(property.documentData);
 }
 
 async function getPropertyHandler(
@@ -155,6 +222,7 @@ async function updatePropertyHandler(
 export {
     listPropertiesHandler,
     createPropertyHandler,
+    getPropertyDocumentHandler,
     getPropertyHandler,
     updatePropertyHandler,
 };

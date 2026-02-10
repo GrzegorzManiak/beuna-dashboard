@@ -1,5 +1,4 @@
--- CreateTable
-CREATE TABLE "public"."PropertyCounter" (
+CREATE TABLE IF NOT EXISTS "public"."PropertyCounter" (
     "id" INTEGER NOT NULL,
     "current" INTEGER NOT NULL DEFAULT 0,
 

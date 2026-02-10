@@ -5,6 +5,7 @@ import { DbPlugin } from "@plugin/db";
 import { EnvPlugin } from "@plugin/env";
 import { SwaggerPlugin } from "@plugin/swagger";
 import { AuthPlugin } from "@plugin/auth";
+import { MultipartPlugin } from "@plugin/multipart";
 
 import { healthRoutes } from "@feature/health/health.routes";
 import { sessionsRoutes } from "@feature/session/session.routes";
@@ -38,6 +39,7 @@ async function buildApp(): Promise<FastifyInstance> {
     await app.register(EnvPlugin);
     await app.register(DbPlugin);
     await app.register(SwaggerPlugin);
+    await app.register(MultipartPlugin);
 
     registerRoutes(app);
 

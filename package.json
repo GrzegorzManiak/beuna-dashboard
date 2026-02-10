@@ -8,11 +8,13 @@
     "prisma:dev:init": "dotenv -e .env.development -- bun run --cwd ./server prisma:init",
     "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:seed",
     "prisma:dev:generate": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
-    "prisma:dev:migrate": "dotenv -e .env.development -- bun run --cwd ./server prisma:migrate"
+    "prisma:dev:migrate": "dotenv -e .env.development -- bun run --cwd ./server prisma:migrate",
+    "prisma:dev:reset": "dotenv -e .env.development -- bun run --cwd ./server prisma:reset"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/env": "^5.0.3",
+    "@fastify/multipart": "^9.0.3",
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.5",
     "@prisma/client": "^6.14.0",

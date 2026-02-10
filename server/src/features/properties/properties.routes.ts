@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import {
     listPropertiesHandler,
     createPropertyHandler,
+    getPropertyDocumentHandler,
     getPropertyHandler,
     updatePropertyHandler,
 } from "@feature/properties/properties.handlers";
@@ -12,7 +13,7 @@ const propertySummarySchema = {
         id: { type: "string", format: "uuid" },
         propertyNumber: { type: "integer" },
         name: { type: "string" },
-        managementType: { type: "string", enum: ["WEG", "MV"] },
+        managementType: { type: "string", enum: ["UNKNOWN", "WEG", "MV"] },
         status: { type: "string", enum: ["DRAFT", "ACTIVE"] },
         relation: { type: "string", enum: ["MANAGER", "ACCOUNTANT"] },
     },
@@ -26,7 +27,7 @@ const propertyDetailSchema = {
         id: { type: "string", format: "uuid" },
         propertyNumber: { type: "integer" },
         name: { type: "string" },
-        managementType: { type: "string", enum: ["WEG", "MV"] },
+        managementType: { type: "string", enum: ["UNKNOWN", "WEG", "MV"] },
         status: { type: "string", enum: ["DRAFT", "ACTIVE"] },
         managerId: { type: "string", format: "uuid" },
         accountantId: { type: "string", format: "uuid" },
@@ -71,16 +72,14 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
         config: secureConfig,
         schema: {
             tags: ["properties"],
-            summary: "Create a draft property.",
+            summary: "Create a draft property from a PDF upload.",
+            consumes: ["multipart/form-data"],
             body: {
                 type: "object",
                 properties: {
-                    name: { type: "string" },
-                    managementType: { type: "string", enum: ["WEG", "MV"] },
-                    managerId: { type: "string", format: "uuid" },
-                    accountantId: { type: "string", format: "uuid" },
+                    file: { type: "string", format: "binary" },
                 },
-                required: ["name", "managementType", "managerId", "accountantId"],
+                required: ["file"],
                 additionalProperties: false,
             },
             response: {
@@ -90,6 +89,12 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
                         property: propertyDetailSchema,
                     },
                     required: ["property"],
+                    additionalProperties: false,
+                },
+                400: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
                     additionalProperties: false,
                 },
             },
@@ -127,6 +132,34 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, getPropertyHandler);
+
+    app.get("/:propertyId/document", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Get the uploaded PDF document for a property.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "string",
+                    format: "binary",
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, getPropertyDocumentHandler);
 
     app.patch("/:propertyId", {
         config: secureConfig,
