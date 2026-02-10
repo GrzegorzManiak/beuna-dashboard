@@ -265,7 +265,7 @@ function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: C
             )}
             </div>
 
-            <div className="px-4 py-5 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex justify-end gap-2">
+            <div className="px-4 py-5 bg-gray-50 text-xs text-gray-500 border-t border-gray-200 flex justify-end gap-2 rounded-b-lg">
                       <Button
                     variant="outline"
                     className="text-lg h-10 px-6 cursor-pointer"
