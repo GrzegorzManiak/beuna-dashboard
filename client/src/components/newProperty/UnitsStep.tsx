@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
-import type { SectionData } from "@/components/pdf-viewer";
+import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdfViewer";
+import type { SectionData } from "@/components/pdfViewer";
 import type { PropertySection } from "@/api/properties";
 import { usePropertyDocumentQuery } from "@/hooks/usePropertyDocumentQuery";
 import { useSectionExtraction } from "@/hooks/useSectionExtraction";

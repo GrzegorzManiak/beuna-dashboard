@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUsersQuery } from "@/hooks/useUsersQuery";
 import type { UserSummary } from "@/hooks/useUsersQuery";
 import { useCreateSessionMutation } from "@/hooks/useCreateSessionMutation";
-import { getSessionId, getSessionUserId, setSessionId, setSessionUserId } from "@/lib/session-storage";
+import { getSessionId, getSessionUserId, setSessionId, setSessionUserId } from "@/lib/sessionStorage";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_USER_EMAIL = "manager1@buena.local";

@@ -1,6 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { NewPropertyUpload } from "@/routes/new-property";
-import { ProjectOnboarding } from "@/routes/project-onboarding";
+import { NewPropertyUpload } from "@/routes/newProperty";
+import { ProjectOnboarding } from "@/routes/projectOnboarding";
 
 export function App() {
     return (

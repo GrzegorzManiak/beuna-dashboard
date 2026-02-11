@@ -1,7 +1,7 @@
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../../ui/combobox";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 import { cn } from "@/lib/utils";
 
 const rightTypeOptions = [

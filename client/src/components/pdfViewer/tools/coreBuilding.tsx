@@ -3,7 +3,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
 import { ChevronDown, ChevronRight, Edit2 } from "lucide-react";
-import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 import { cn } from "@/lib/utils";
 
 function generateBuildingUuid(): string {

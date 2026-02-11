@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../../ui/combobox";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "../../ui/button";
 import { cn } from "@/lib/utils";

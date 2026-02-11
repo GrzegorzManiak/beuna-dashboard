@@ -10,7 +10,7 @@ import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
 import type { PropertyManagementType, PropertySection, BasicDetailsExtract } from "@/api/properties";
-import { getSessionId } from "@/lib/session-storage";
+import { getSessionId } from "@/lib/sessionStorage";
 
 type PropertyTypeSelection = "condo" | "rental";
 

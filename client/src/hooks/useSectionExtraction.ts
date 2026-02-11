@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useExtractSectionFieldsMutation } from "@/hooks/useExtractSectionFieldsMutation";
-import type { SectionData, SectionState } from "@/components/pdf-viewer";
+import type { SectionData, SectionState } from "@/components/pdfViewer";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType } from "@shared/section-types";
 

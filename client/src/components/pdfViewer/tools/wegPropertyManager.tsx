@@ -3,7 +3,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
 import { Edit2 } from "lucide-react";
-import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 import { cn } from "@/lib/utils";
 
 function WegPropertyManagerEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {

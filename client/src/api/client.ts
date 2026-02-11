@@ -1,4 +1,4 @@
-import { getSessionId } from "@/lib/session-storage";
+import { getSessionId } from "@/lib/sessionStorage";
 
 async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
     const headers = new Headers(init?.headers);

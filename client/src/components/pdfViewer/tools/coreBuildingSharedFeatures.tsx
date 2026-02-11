@@ -1,7 +1,7 @@
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 
 function CoreBuildingSharedFeaturesEditor({ section, onSectionUpdate }: SectionEditorProps) {
     const disabled = !onSectionUpdate;

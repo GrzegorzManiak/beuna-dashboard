@@ -4,7 +4,7 @@ import { ProgressBar } from "./ProgressBar";
 import { UploadDocumentStep } from "./UploadDocumentStep";
 import { useCreatePropertyMutation } from "@/hooks/useCreatePropertyMutation";
 import { SessionSelector } from "@/components/SessionSelector";
-import { getSessionId } from "@/lib/session-storage";
+import { getSessionId } from "@/lib/sessionStorage";
 
 export function NewPropertyUploadPage() {
     const navigate = useNavigate();

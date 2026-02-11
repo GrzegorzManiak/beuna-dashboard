@@ -1,6 +1,6 @@
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
-import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./sectionEditor";
 
 function WegAdministrationBlockEditor({ section, onSectionUpdate }: SectionEditorProps) {
     const disabled = !onSectionUpdate;
