@@ -216,7 +216,7 @@ function DashboardProjectsPage( ){
                             </div>
                         </div>
 
-                        <div className="hidden grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.9fr_0.8fr_auto] border-b border-[#d4ddd8] bg-[#f2f6f4] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#60726a] md:grid">
+                        <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] border-b border-[#d4ddd8] bg-[#f2f6f4] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#60726a] md:grid">
                             <p>Property</p>
                             <p>Type</p>
                             <p>Status</p>
@@ -269,7 +269,7 @@ function DashboardProjectsPage( ){
                                     return (
                                         <div
                                             key={property.id}
-                                            className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-t border-[#d4ddd8] px-3 py-4 first:border-t-0 md:grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.9fr_0.8fr_auto] md:px-4"
+                                            className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-t border-[#d4ddd8] px-3 py-4 first:border-t-0 md:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_auto] md:px-4"
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-md font-semibold text-[#1f2f26]">{property.name}</p>
