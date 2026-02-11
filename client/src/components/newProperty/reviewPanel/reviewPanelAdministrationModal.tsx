@@ -21,6 +21,7 @@ type ReviewPanelAdministrationDraft = {
 
 type ReviewPanelAdministrationModalProps = {
     open: boolean;
+    mode?: "manager" | "accountant";
     isSaving: boolean;
     manager: ReviewPanelAdministrationPerson | null;
     accountant: ReviewPanelAdministrationPerson | null;
@@ -50,6 +51,7 @@ function toInitialDraft(
 
 function ReviewPanelAdministrationModal({
     open,
+    mode,
     isSaving,
     manager,
     accountant,
@@ -86,15 +88,27 @@ function ReviewPanelAdministrationModal({
         setDraft((current) => ({ ...current, [key]: value }));
     }
 
+    const showManager = !mode || mode === "manager";
+    const showAccountant = !mode || mode === "accountant";
+    const gridCols = showManager && showAccountant ? "md:grid-cols-2" : "md:grid-cols-1 max-w-lg mx-auto";
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-2xl rounded-xl border border-gray-200 bg-white p-5">
+            <div className={`w-full ${showManager && showAccountant ? "max-w-2xl" : "max-w-lg"} rounded-xl border border-gray-200 bg-white p-5`}>
                 <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Edit administration</h3>
-                    <p className="text-sm text-gray-500">Keep manager and accountant details accurate before creating the property.</p>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        {mode === "manager" ? "Edit Property Manager" : mode === "accountant" ? "Edit Accountant" : "Edit administration"}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                        {mode 
+                           ? "Update these details before creating the property." 
+                           : "Keep manager and accountant details accurate before creating the property."
+                        }
+                    </p>
                 </div>
 
-                <div className="grid gap-5 md:grid-cols-2">
+                <div className={`grid gap-5 ${gridCols}`}>
+                    {showManager && (
                     <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
                         <p className="text-sm font-semibold text-gray-900">Property Manager</p>
                         <div className="space-y-1">
@@ -103,6 +117,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-manager-name"
                                 value={draft.managerName}
                                 onChange={(event) => handleChange("managerName", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="space-y-1">
@@ -111,6 +126,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-manager-street"
                                 value={draft.managerStreet}
                                 onChange={(event) => handleChange("managerStreet", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -120,6 +136,7 @@ function ReviewPanelAdministrationModal({
                                     id="review-manager-house"
                                     value={draft.managerHouseNumber}
                                     onChange={(event) => handleChange("managerHouseNumber", event.target.value)}
+                                    className="bg-white"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -128,6 +145,7 @@ function ReviewPanelAdministrationModal({
                                     id="review-manager-postal"
                                     value={draft.managerPostalCode}
                                     onChange={(event) => handleChange("managerPostalCode", event.target.value)}
+                                    className="bg-white"
                                 />
                             </div>
                         </div>
@@ -137,6 +155,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-manager-city"
                                 value={draft.managerCity}
                                 onChange={(event) => handleChange("managerCity", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="space-y-1">
@@ -146,10 +165,13 @@ function ReviewPanelAdministrationModal({
                                 value={draft.managerNotes}
                                 onChange={(event) => handleChange("managerNotes", event.target.value)}
                                 placeholder="Optional"
+                                className="bg-white"
                             />
                         </div>
                     </div>
+                    )}
 
+                    {showAccountant && (
                     <div className="space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
                         <p className="text-sm font-semibold text-gray-900">Accountant</p>
                         <div className="space-y-1">
@@ -158,6 +180,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-accountant-name"
                                 value={draft.accountantName}
                                 onChange={(event) => handleChange("accountantName", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="space-y-1">
@@ -166,6 +189,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-accountant-street"
                                 value={draft.accountantStreet}
                                 onChange={(event) => handleChange("accountantStreet", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -175,6 +199,7 @@ function ReviewPanelAdministrationModal({
                                     id="review-accountant-house"
                                     value={draft.accountantHouseNumber}
                                     onChange={(event) => handleChange("accountantHouseNumber", event.target.value)}
+                                    className="bg-white"
                                 />
                             </div>
                             <div className="space-y-1">
@@ -183,6 +208,7 @@ function ReviewPanelAdministrationModal({
                                     id="review-accountant-postal"
                                     value={draft.accountantPostalCode}
                                     onChange={(event) => handleChange("accountantPostalCode", event.target.value)}
+                                    className="bg-white"
                                 />
                             </div>
                         </div>
@@ -192,6 +218,7 @@ function ReviewPanelAdministrationModal({
                                 id="review-accountant-city"
                                 value={draft.accountantCity}
                                 onChange={(event) => handleChange("accountantCity", event.target.value)}
+                                className="bg-white"
                             />
                         </div>
                         <div className="space-y-1">
@@ -201,9 +228,11 @@ function ReviewPanelAdministrationModal({
                                 value={draft.accountantNotes}
                                 onChange={(event) => handleChange("accountantNotes", event.target.value)}
                                 placeholder="Optional"
+                                className="bg-white"
                             />
                         </div>
                     </div>
+                    )}
                 </div>
 
                 <div className="mt-5 flex items-center justify-end gap-2">

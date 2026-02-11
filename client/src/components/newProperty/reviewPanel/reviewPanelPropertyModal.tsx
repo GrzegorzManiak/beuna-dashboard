@@ -58,6 +58,7 @@ function ReviewPanelPropertyModal({
                             value={name}
                             onChange={(event) => setName(event.target.value)}
                             placeholder="Property name"
+                            className="bg-white"
                         />
                     </div>
                     <div className="space-y-1">
@@ -67,6 +68,7 @@ function ReviewPanelPropertyModal({
                             value={street}
                             onChange={(event) => setStreet(event.target.value)}
                             placeholder="Street"
+                            className="bg-white"
                         />
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -77,6 +79,7 @@ function ReviewPanelPropertyModal({
                                 value={postalCode}
                                 onChange={(event) => setPostalCode(event.target.value)}
                                 placeholder="Postal code"
+                                className="bg-white"
                             />
                         </div>
                         <div className="space-y-1">
@@ -86,6 +89,7 @@ function ReviewPanelPropertyModal({
                                 value={city}
                                 onChange={(event) => setCity(event.target.value)}
                                 placeholder="City"
+                                className="bg-white"
                             />
                         </div>
                     </div>

@@ -1,12 +1,11 @@
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
-import type { ReviewPanelTone } from "./reviewPanelTypes";
+import type { ReviewPanelIssue, ReviewPanelTone } from "./reviewPanelTypes";
 
 type ReviewPanelStatusBannerProps = {
     tone: ReviewPanelTone;
     title: string;
     subtitle: string;
-    highlights: string;
-    issues: string[];
+    issues: ReviewPanelIssue[];
 };
 
 function getToneClassName(tone: ReviewPanelTone ){
@@ -21,22 +20,40 @@ function getToneIcon(tone: ReviewPanelTone ){
     return <XCircle className="h-5 w-5 text-red-600" />;
 }
 
-function ReviewPanelStatusBanner({ tone, title, subtitle, highlights, issues }: ReviewPanelStatusBannerProps){
-    const visibleIssues = issues.slice(0, 3);
+function ReviewPanelStatusBanner({ tone, title, subtitle, issues }: ReviewPanelStatusBannerProps){
+    const handleIssueClick = (id?: string) => {
+        if (!id) return;
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+
     return (
         <div className={`rounded-xl border px-4 py-4 ${getToneClassName(tone)}`}>
             <div className="flex items-start gap-3">
                 <div className="mt-0.5">{getToneIcon(tone)}</div>
                 <div className="flex-1">
                     <p className="text-sm font-semibold">{title}</p>
-                    <p className="mt-1 text-sm opacity-85">{subtitle}</p>
-                    <p className="mt-2 text-xs font-medium opacity-80">{highlights}</p>
-                    {visibleIssues.length > 0 && (
-                        <ul className="mt-2 space-y-1 text-xs opacity-85">
-                            {visibleIssues.map((issue) => (
-                                <li key={issue}>- {issue}</li>
-                            ))}
-                        </ul>
+                    {subtitle && <p className="mt-1 text-sm opacity-85">{subtitle}</p>}
+                    
+                    {issues.length > 0 && (
+                        <div className="mt-3">
+                             <p className="mb-1 text-xs font-semibold uppercase tracking-wider opacity-90">Blocking Issues</p>
+                             <ul className="space-y-1">
+                                {issues.map((issue, idx) => (
+                                    <li key={idx}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleIssueClick(issue.scrollToId)}
+                                            className={`text-left text-sm hover:underline ${issue.scrollToId ? "cursor-pointer" : "cursor-default"}`}
+                                        >
+                                            • {issue.message}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
                     )}
                 </div>
             </div>

@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import type { PropertySection, PropertySectionItem } from "@/api/properties";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
 import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
+import { useDeleteSectionMutation } from "@/hooks/useDeleteSectionMutation";
 import { ReviewPanelAdministrationBlock } from "./reviewPanel/reviewPanelAdministrationBlock";
 import { ReviewPanelAdministrationModal, type ReviewPanelAdministrationDraft } from "./reviewPanel/reviewPanelAdministrationModal";
 import { ReviewPanelBuildingsTable } from "./reviewPanel/reviewPanelBuildingsTable";
@@ -22,7 +23,10 @@ import type {
     ReviewPanelSpecialRightRow,
     ReviewPanelUnitRow,
     ReviewPanelValidation,
+    ReviewPanelIssue,
 } from "./reviewPanel/reviewPanelTypes";
+import { ReviewPanelEditModal } from "./reviewPanel/reviewPanelEditModal";
+import { Button } from "../ui/button";
 
 type NewPropertyReviewPanelProps = {
     propertyId: string;
@@ -48,17 +52,17 @@ type ReviewPanelSectionEntry = {
     fields: SectionFields;
 };
 
-function toFields(value: PropertySection["fields"] | PropertySectionItem["fields"] ){
+function toFields(value: PropertySection["fields"] | PropertySectionItem["fields"]) {
     if (!value || typeof value !== "object") return {} as SectionFields;
     return value as SectionFields;
 }
 
-function toStringValue(value: string | number | boolean | null | undefined ){
+function toStringValue(value: string | number | boolean | null | undefined) {
     if (value === null || value === undefined) return "";
     return String(value);
 }
 
-function toNumberValue(value: string | number | boolean | null | undefined ){
+function toNumberValue(value: string | number | boolean | null | undefined) {
     if (value === null || value === undefined) return null;
     if (typeof value === "number") return Number.isFinite(value) ? value : null;
     if (typeof value === "boolean") return value ? 1 : 0;
@@ -69,7 +73,7 @@ function toNumberValue(value: string | number | boolean | null | undefined ){
     return parsed;
 }
 
-function collectEntries(sections: PropertySection[], sectionType: string ){
+function collectEntries(sections: PropertySection[], sectionType: string) {
     const result: ReviewPanelSectionEntry[] = [];
 
     for (const section of sections) {
@@ -91,8 +95,9 @@ function collectEntries(sections: PropertySection[], sectionType: string ){
 
         if (!hasItems) continue;
 
-        for (let itemIndex = 0; itemIndex < section.items!.length; itemIndex += 1) {
-            const item = section.items[itemIndex];
+        const items = section.items!;
+        for (let itemIndex = 0; itemIndex < items.length; itemIndex += 1) {
+            const item = items[itemIndex];
             if (!item) continue;
             const resolvedType = item.sectionType ?? section.sectionType;
             if (resolvedType !== sectionType) continue;
@@ -110,7 +115,7 @@ function collectEntries(sections: PropertySection[], sectionType: string ){
     return result;
 }
 
-function normalizeAddress(street: string, postalCode: string, city: string ){
+function normalizeAddress(street: string, postalCode: string, city: string) {
     const streetLine = street.trim();
     const cityLine = [postalCode.trim(), city.trim()].filter(Boolean).join(" ").trim();
     return [streetLine, cityLine].filter((value) => value.length > 0).join(", ");
@@ -128,17 +133,19 @@ function NewPropertyReviewPanel({
     onSectionsChange,
     onPropertyDetailsChange,
     onCreated,
-}: NewPropertyReviewPanelProps){
+}: NewPropertyReviewPanelProps) {
     const updateSectionMutation = useUpdateSectionMutation();
     const { mutateAsync: updateProperty } = useUpdatePropertyMutation();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [propertyModalOpen, setPropertyModalOpen] = useState<boolean>(false);
-    const [administrationModalOpen, setAdministrationModalOpen] = useState<boolean>(false);
+    const [administrationModalMode, setAdministrationModalMode] = useState<"manager" | "accountant" | null>(null);
     const [savingRowId, setSavingRowId] = useState<string | null>(null);
     const [isSavingPropertyDetails, setIsSavingPropertyDetails] = useState<boolean>(false);
     const [isSavingAdministration, setIsSavingAdministration] = useState<boolean>(false);
     const [isCreating, setIsCreating] = useState<boolean>(false);
     const [confirmed, setConfirmed] = useState<boolean>(false);
+    const [isSavingOwnership, setIsSavingOwnership] = useState<boolean>(false);
+    const [ownershipModalOpen, setOwnershipModalOpen] = useState<boolean>(false);
 
     const buildingEntries = useMemo(() => collectEntries(sections, "core.building"), [sections]);
     const unitEntries = useMemo(() => collectEntries(sections, "units.unit_block"), [sections]);
@@ -170,7 +177,17 @@ function NewPropertyReviewPanel({
 
         for (const entry of buildingEntries) {
             const buildingUuid = toStringValue(entry.fields.buildingUuid).trim() || entry.id;
-            const unitCount = unitEntries.filter((unitEntry) => toStringValue(unitEntry.fields.buildingRef).trim() === buildingUuid).length;
+            const matchingUnits = unitEntries.filter((unitEntry) => toStringValue(unitEntry.fields.buildingRef).trim() === buildingUuid);
+            const unitCount = matchingUnits.length;
+
+            let totalArea = 0;
+            let totalMea = 0;
+            for (const unitEntry of matchingUnits) {
+                const area = parseFloat(toStringValue(unitEntry.fields.area));
+                const mea = parseFloat(toStringValue(unitEntry.fields.meaNumerator));
+                if (Number.isFinite(area)) totalArea += area;
+                if (Number.isFinite(mea)) totalMea += mea;
+            }
 
             rows.push({
                 id: entry.id,
@@ -184,6 +201,8 @@ function NewPropertyReviewPanel({
                 addressPostalCode: toStringValue(entry.fields.addressPostalCode),
                 addressCity: toStringValue(entry.fields.addressCity),
                 unitCount,
+                totalArea,
+                totalMea,
                 buildYear: toStringValue(entry.fields.buildYear),
                 floors: toStringValue(entry.fields.floors),
                 notes: toStringValue(entry.fields.notes),
@@ -192,6 +211,86 @@ function NewPropertyReviewPanel({
 
         return rows;
     }, [buildingEntries, unitEntries]);
+
+    const deleteSectionMutation = useDeleteSectionMutation();
+
+    async function handleAddToSection(sectionType: string) {
+        const parent = sections.find((s) => s.sectionType === sectionType);
+        if (!parent) {
+            setErrorMessage("No section available to add to.");
+            return;
+        }
+
+        const newItem = {
+            id: `new-${Date.now()}`,
+            rawText: "",
+            fields: {},
+            textPosition: [],
+            state: "needs_review",
+        } as PropertySectionItem;
+
+        const nextItems = Array.isArray(parent.items) ? [...parent.items, newItem] : [newItem];
+
+        try {
+            await updateSectionMutation.mutateAsync({ propertyId, sectionId: parent.id, items: nextItems });
+            const nextSections = sections.map((section) => {
+                if (section.id !== parent.id) return section;
+                return { ...section, items: nextItems };
+            });
+            onSectionsChange(nextSections);
+            setErrorMessage(null);
+        } catch (err) {
+            setErrorMessage("Failed to add item to section.");
+        }
+    }
+
+    async function handleDeleteRow(rowId: string) {
+        const entry = buildingEntryById.get(rowId) ?? unitEntryById.get(rowId) ?? specialRightsEntryById.get(rowId) ?? null;
+        if (!entry) {
+            setErrorMessage("Could not locate the selected row.");
+            return;
+        }
+
+        const parentIndex = sections.findIndex((s) => s.id === entry.parentSectionId);
+        if (parentIndex < 0) {
+            setErrorMessage("Could not find section for this delete.");
+            return;
+        }
+
+        const parentSection = sections[parentIndex]!;
+
+        // If this is an item inside a parent section
+        if (entry.itemIndex >= 0 && Array.isArray(parentSection.items)) {
+            const nextItems: PropertySectionItem[] = parentSection.items.filter((it, idx) => {
+                if (entry.itemId) return it.id !== entry.itemId;
+                return idx !== entry.itemIndex;
+            });
+
+            try {
+                await updateSectionMutation.mutateAsync({ propertyId, sectionId: parentSection.id, items: nextItems });
+                const nextSections = sections.map((section, index) => {
+                    if (index !== parentIndex) return section;
+                    return { ...section, items: nextItems } as PropertySection;
+                });
+                onSectionsChange(nextSections);
+                setErrorMessage(null);
+            } catch (err) {
+                setErrorMessage("Failed to delete item from section.");
+            }
+
+            return;
+        }
+
+        // Otherwise this was the parent section itself - delete the whole section
+        try {
+            await deleteSectionMutation.mutateAsync({ propertyId, sectionId: parentSection.id });
+            const nextSections = sections.filter((s) => s.id !== parentSection.id);
+            onSectionsChange(nextSections);
+            setErrorMessage(null);
+        } catch (err) {
+            setErrorMessage("Failed to delete section.");
+        }
+    }
 
     const buildingOptionByUuid = useMemo(() => {
         const map = new Map<string, string>();
@@ -326,21 +425,27 @@ function NewPropertyReviewPanel({
     }, [buildingRows]);
 
     const validation = useMemo<ReviewPanelValidation>(() => {
-        const hardIssues: string[] = [];
-        const softIssues: string[] = [];
+        const hardIssues: ReviewPanelIssue[] = [];
+        const softIssues: ReviewPanelIssue[] = [];
 
-        if (!propertyName.trim()) hardIssues.push("Property name is missing.");
-        if (unitRows.length === 0) hardIssues.push("No units detected.");
+        if (!propertyName.trim()) {
+            hardIssues.push({ message: "Property name is missing.", scrollToId: "review-section-property" });
+        }
+        if (unitRows.length === 0) {
+            hardIssues.push({ message: "No units detected.", scrollToId: "review-section-units" });
+        }
 
         const unassignedUnitCount = unitRows.filter((unit) => unit.buildingRef.trim().length === 0).length;
-        if (unassignedUnitCount > 0) hardIssues.push(`${unassignedUnitCount} unit(s) have no building assigned.`);
+        if (unassignedUnitCount > 0) {
+            hardIssues.push({ message: `${unassignedUnitCount} unit(s) are not assigned to a building`, scrollToId: "review-section-units" });
+        }
 
         if (propertyType === "WEG" && totalMea != null && allocatedMea !== totalMea) {
-            hardIssues.push(`MEA allocation mismatch (${allocatedMea} / ${totalMea}).`);
+            hardIssues.push({ message: `MEA allocation mismatch (${allocatedMea} / ${totalMea}).`, scrollToId: "review-section-ownership" });
         }
 
         if (propertyType === "WEG" && totalMea == null) {
-            softIssues.push("Total MEA declaration is missing.");
+            softIssues.push({ message: "Total MEA declaration is missing.", scrollToId: "review-section-ownership" });
         }
 
         const sectionsNeedingReview = sections.filter((section) => {
@@ -349,14 +454,14 @@ function NewPropertyReviewPanel({
         }).length;
 
         if (sectionsNeedingReview > 0) {
-            softIssues.push(`${sectionsNeedingReview} section(s) still need review.`);
+            softIssues.push({ message: `${sectionsNeedingReview} section(s) still need review.` });
         }
 
         if (hardIssues.length > 0) {
             return {
                 tone: "error",
-                title: `${hardIssues.length} blocking issue(s) need attention`,
-                subtitle: hardIssues[0] ?? "Resolve blocking issues before creating the property.",
+                title: "Blocking Issues",
+                subtitle: "Please resolve the following issues:",
                 hardIssues,
                 softIssues,
                 canCreate: false,
@@ -367,7 +472,7 @@ function NewPropertyReviewPanel({
             return {
                 tone: "warning",
                 title: `${softIssues.length} issue(s) need attention`,
-                subtitle: softIssues[0] ?? "Review warnings before creating the property.",
+                subtitle: softIssues[0]?.message ?? "Review warnings before creating the property.",
                 hardIssues,
                 softIssues,
                 canCreate: true,
@@ -383,14 +488,6 @@ function NewPropertyReviewPanel({
             canCreate: true,
         };
     }, [allocatedMea, propertyName, propertyType, sections, totalMea, unitRows]);
-
-    const bannerHighlights = useMemo(() => {
-        const meaLabel = propertyType === "WEG"
-            ? `${totalMea ?? "?"} MEA`
-            : "No MEA required";
-
-        return `${buildingRows.length} buildings | ${unitRows.length} units | ${meaLabel} | ${specialRightsRows.length} special rights`;
-    }, [buildingRows.length, propertyType, specialRightsRows.length, totalMea, unitRows.length]);
 
     const propertyDraft = useMemo<ReviewPanelPropertyDraft>(() => ({
         name: propertyName,
@@ -638,7 +735,7 @@ function NewPropertyReviewPanel({
 
             const results = await Promise.all(updates);
             if (results.every(Boolean)) {
-                setAdministrationModalOpen(false);
+                setAdministrationModalMode(null);
                 setErrorMessage(null);
             }
         } finally {
@@ -646,37 +743,6 @@ function NewPropertyReviewPanel({
         }
     }, [accountantEntries, accountantPerson, managerEntries, managerPerson, persistEntryUpdates]);
 
-    const handleDownloadSummary = useCallback(() => {
-        const summary = {
-            property: {
-                name: propertyName,
-                address: normalizeAddress(street, postalCode, city),
-                propertyType,
-            },
-            buildings: buildingRows,
-            units: unitRows,
-            ownership: {
-                totalMea,
-                allocatedMea,
-            },
-            specialRights: specialRightsRows,
-            administration: {
-                manager: managerPerson,
-                accountant: accountantPerson,
-            },
-            generatedAt: new Date().toISOString(),
-        };
-
-        const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `property-review-${propertyId}.json`;
-        document.body.append(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-    }, [accountantPerson, allocatedMea, buildingRows, city, managerPerson, postalCode, propertyId, propertyName, propertyType, specialRightsRows, street, totalMea, unitRows]);
 
     const handleCreate = useCallback(async () => {
         if (!validation.canCreate) {
@@ -706,6 +772,55 @@ function NewPropertyReviewPanel({
         }
     }, [confirmed, onCreated, propertyId, updateProperty, validation.canCreate]);
 
+    const handleSaveOwnership = useCallback(async (updates: Record<string, string>) => {
+        setIsSavingOwnership(true);
+        try {
+            // Find existing MEA declaration section
+            let section = meaEntries[0];
+
+            // If none exists, we need to find or create the parent section for MEA declarations
+            if (!section) {
+                const parentSection = sections.find((s) => s.sectionType === "weg.mea_declaration");
+
+                if (parentSection) {
+                    // Update the parent section directly since MEA declarations usually don't have items
+                    await updateSectionMutation.mutateAsync({
+                        propertyId,
+                        sectionId: parentSection.id,
+                        fields: { ...parentSection.fields, totalMea: toNumberValue(updates.totalMea) },
+                        state: "needs_review",
+                    });
+
+                    const nextSections = sections.map((s) => {
+                        if (s.id !== parentSection.id) return s;
+                        return {
+                            ...s,
+                            fields: { ...s.fields, totalMea: toNumberValue(updates.totalMea) },
+                            state: "needs_review",
+                        } as PropertySection;
+                    });
+                    onSectionsChange(nextSections);
+                } else {
+                    // This is tricky: we'd need to create a new section. 
+                    // For now, let's assume one exists or we just show error if completely missing.
+                    setErrorMessage("No MEA declaration section found to update.");
+                    return;
+                }
+            } else {
+                // We have an entry (which might be the section itself or an item)
+                await persistEntryUpdates(section, { totalMea: toNumberValue(updates.totalMea) });
+            }
+
+            setOwnershipModalOpen(false);
+            setErrorMessage(null);
+        } catch (updateError) {
+            const message = updateError instanceof Error ? updateError.message : "Failed to update ownership details.";
+            setErrorMessage(message);
+        } finally {
+            setIsSavingOwnership(false);
+        }
+    }, [meaEntries, onSectionsChange, persistEntryUpdates, propertyId, sections, updateSectionMutation]);
+
     return (
         <div className="w-full max-w-6xl">
             <Card className="w-full pb-0">
@@ -721,11 +836,10 @@ function NewPropertyReviewPanel({
                         tone={validation.tone}
                         title={validation.title}
                         subtitle={validation.subtitle}
-                        highlights={bannerHighlights}
                         issues={[...validation.hardIssues, ...validation.softIssues]}
                     />
 
-                    <ReviewPanelSection title="Property" defaultOpen>
+                    <ReviewPanelSection id="review-section-property" title="Property" defaultOpen>
                         <ReviewPanelPropertyBlock
                             name={propertyName}
                             street={street}
@@ -735,33 +849,64 @@ function NewPropertyReviewPanel({
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection title={`Buildings (${buildingRows.length})`} defaultOpen={buildingRows.length > 0}>
+                    <ReviewPanelSection
+                        id="review-section-buildings"
+                        title={`Buildings (${buildingRows.length})`}
+                        defaultOpen={buildingRows.length > 0}
+                        action={(
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    className="px-5 py-1 text-sm font-medium border border-muted"
+                                    onClick={() => void handleAddToSection("core.building")} >
+                                    Add
+                                </Button>
+                            </div>
+                        )}
+                    >
                         <ReviewPanelBuildingsTable
                             rows={buildingRows}
                             savingRowId={savingRowId}
                             onSaveRow={handleSaveBuildingRow}
+                            onDeleteRow={handleDeleteRow}
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection title={`Units (${unitRows.length})`} defaultOpen={unitRows.length > 0}>
+                    <ReviewPanelSection
+                        id="review-section-units"
+                        title={`Units (${unitRows.length})`}
+                        defaultOpen={unitRows.length > 0}
+                        action={(
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    onClick={() => void handleAddToSection("units.unit_block")}
+                                    className="px-5 py-1 text-sm font-medium border border-muted" >
+                                    Add
+                                </Button>
+                            </div>
+                        )}
+                    >
                         <ReviewPanelUnitsTable
                             rows={unitRows}
                             buildingOptions={buildingOptions}
                             propertyType={propertyType}
                             onCommitCell={handleCommitUnitCell}
                             onSaveRow={handleSaveUnitRow}
+                            onDeleteRow={handleDeleteRow}
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection title="Ownership Structure" defaultOpen>
+                    <ReviewPanelSection id="review-section-ownership" title="Ownership Structure" defaultOpen>
                         <ReviewPanelOwnershipCard
                             propertyType={propertyType}
                             totalMea={totalMea}
                             allocatedMea={allocatedMea}
+                            onEdit={() => setOwnershipModalOpen(true)}
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection title={`Special Rights (${specialRightsRows.length})`} defaultOpen={specialRightsRows.length > 0}>
+                    <ReviewPanelSection id="review-section-special-rights" title={`Special Rights (${specialRightsRows.length})`} defaultOpen={specialRightsRows.length > 0}>
                         <ReviewPanelSpecialRightsList
                             rows={specialRightsRows}
                             onCommitField={handleCommitSpecialRightField}
@@ -769,11 +914,12 @@ function NewPropertyReviewPanel({
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection title="Administration" defaultOpen>
+                    <ReviewPanelSection id="review-section-administration" title="Administration" defaultOpen>
                         <ReviewPanelAdministrationBlock
                             manager={managerPerson}
                             accountant={accountantPerson}
-                            onEdit={() => setAdministrationModalOpen(true)}
+                            onEditManager={() => setAdministrationModalMode("manager")}
+                            onEditAccountant={() => setAdministrationModalMode("accountant")}
                         />
                     </ReviewPanelSection>
                 </CardContent>
@@ -786,7 +932,6 @@ function NewPropertyReviewPanel({
                         onConfirmedChange={setConfirmed}
                         onBack={onBack}
                         onCreate={() => void handleCreate()}
-                        onDownload={handleDownloadSummary}
                     />
                     {errorMessage ? <p className="w-full text-left text-xs font-medium text-red-600">{errorMessage}</p> : null}
                 </CardFooter>
@@ -801,12 +946,23 @@ function NewPropertyReviewPanel({
             />
 
             <ReviewPanelAdministrationModal
-                open={administrationModalOpen}
+                open={administrationModalMode !== null}
+                mode={administrationModalMode ?? undefined}
                 isSaving={isSavingAdministration}
                 manager={managerPerson}
                 accountant={accountantPerson}
-                onClose={() => setAdministrationModalOpen(false)}
+                onClose={() => setAdministrationModalMode(null)}
                 onSave={handleSaveAdministration}
+            />
+
+            <ReviewPanelEditModal
+                open={ownershipModalOpen}
+                title="Edit Ownership Details"
+                fields={[{ key: "totalMea", label: "Total MEA", type: "number" }]}
+                initialValues={{ totalMea: String(totalMea ?? "") }}
+                isSaving={isSavingOwnership}
+                onClose={() => setOwnershipModalOpen(false)}
+                onSave={handleSaveOwnership}
             />
         </div>
     );

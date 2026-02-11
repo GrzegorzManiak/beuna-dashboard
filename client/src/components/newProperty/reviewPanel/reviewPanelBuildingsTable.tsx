@@ -1,5 +1,17 @@
 import { useMemo, useState } from "react";
+import { Trash } from "lucide-react";
 import { Settings } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { ReviewPanelEditModal, type FieldDefinition } from "./reviewPanelEditModal";
 import type { ReviewPanelBuildingRow } from "./reviewPanelTypes";
 
@@ -7,6 +19,7 @@ type ReviewPanelBuildingsTableProps = {
     rows: ReviewPanelBuildingRow[];
     savingRowId: string | null;
     onSaveRow: (rowId: string, updates: Record<string, string>) => Promise<boolean>;
+    onDeleteRow?: (rowId: string) => void;
 };
 
 const BUILDING_FIELDS: FieldDefinition[] = [
@@ -21,11 +34,13 @@ const BUILDING_FIELDS: FieldDefinition[] = [
     { key: "notes", label: "Notes", type: "text", span: 2 },
 ];
 
+const EM_DASH = "—";
+
 function toAddressSummary(row: ReviewPanelBuildingRow) {
     const streetLine = [row.addressStreet.trim(), row.addressHouseNumber.trim()].filter(Boolean).join(" ").trim();
     const cityLine = [row.addressPostalCode.trim(), row.addressCity.trim()].filter(Boolean).join(" ").trim();
     const parts = [streetLine, cityLine].filter((part) => part.length > 0);
-    if (parts.length === 0) return "Address not set";
+    if (parts.length === 0) return EM_DASH;
     return parts.join(", ");
 }
 
@@ -43,7 +58,12 @@ function toInitialValues(row: ReviewPanelBuildingRow): Record<string, string> {
     };
 }
 
-function ReviewPanelBuildingsTable({ rows, savingRowId, onSaveRow }: ReviewPanelBuildingsTableProps) {
+function formatNumber(value: number) {
+    if (value === 0) return EM_DASH;
+    return value % 1 === 0 ? String(value) : value.toFixed(2);
+}
+
+function ReviewPanelBuildingsTable({ rows, savingRowId, onSaveRow, onDeleteRow }: ReviewPanelBuildingsTableProps) {
     const [modalRowId, setModalRowId] = useState<string | null>(null);
 
     const modalRow = modalRowId ? rows.find((r) => r.id === modalRowId) ?? null : null;
@@ -66,27 +86,66 @@ function ReviewPanelBuildingsTable({ rows, savingRowId, onSaveRow }: ReviewPanel
                         <tr className="text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                             <th className="px-3 py-2">Building</th>
                             <th className="px-3 py-2">Address</th>
-                            <th className="px-3 py-2">Units</th>
+                            <th className="px-3 py-2 text-right">House No.</th>
+                            <th className="px-3 py-2 text-right">Floors</th>
+                            <th className="px-3 py-2 text-right">Units</th>
+                            <th className="px-3 py-2 text-right">Total Area</th>
+                            <th className="px-3 py-2 text-right">Total MEA</th>
                             <th className="w-8 px-2 py-2" />
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
                         {rows.map((row) => (
-                            <tr key={row.id}>
+                            <tr key={row.id} className="odd:bg-muted/10">
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                     <span className="font-semibold">{row.buildingName || "Unnamed building"}</span>
                                     {row.label ? <span className="ml-1 text-gray-500">({row.label})</span> : null}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-600">{toAddressSummary(row)}</td>
-                                <td className="px-3 py-2 text-sm font-medium text-gray-700">{row.unitCount}</td>
+                                <td className="px-3 py-2 text-right text-sm text-gray-700">{row.addressHouseNumber.trim() || EM_DASH}</td>
+                                <td className="px-3 py-2 text-right text-sm text-gray-700">{row.floors.trim() || EM_DASH}</td>
+                                <td className="px-3 py-2 text-right text-sm font-medium text-gray-700">{row.unitCount}</td>
+                                <td className="px-3 py-2 text-right text-sm text-gray-700">{formatNumber(row.totalArea)}</td>
+                                <td className="px-3 py-2 text-right text-sm text-gray-700">{formatNumber(row.totalMea)}</td>
                                 <td className="px-2 py-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalRowId(row.id)}
-                                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                    >
-                                        <Settings className="h-3.5 w-3.5" />
-                                    </button>
+                                    <div className="flex items-center">
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                                    aria-label="Delete building"
+                                                >
+                                                    <Trash className="h-3.5 w-3.5" />
+                                                </button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete Building?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to delete <span className="font-medium text-foreground">{row.buildingName || "this building"}</span>? This section will be removed.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                        onClick={() => typeof onDeleteRow === "function" && onDeleteRow(row.id)}
+                                                        className="bg-red-600 hover:bg-red-700"
+                                                    >
+                                                        Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setModalRowId(row.id)}
+                                            className="ml-2 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                                        >
+                                            <Settings className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

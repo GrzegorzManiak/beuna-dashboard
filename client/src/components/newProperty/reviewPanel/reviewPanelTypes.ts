@@ -22,6 +22,8 @@ type ReviewPanelBuildingRow = ReviewPanelRowMeta & {
     addressPostalCode: string;
     addressCity: string;
     unitCount: number;
+    totalArea: number;
+    totalMea: number;
     buildYear: string;
     floors: string;
     notes: string;
@@ -58,12 +60,17 @@ type ReviewPanelAdministrationPerson = ReviewPanelRowMeta & {
     notes: string;
 };
 
+type ReviewPanelIssue = {
+    message: string;
+    scrollToId?: string;
+};
+
 type ReviewPanelValidation = {
     tone: ReviewPanelTone;
     title: string;
     subtitle: string;
-    hardIssues: string[];
-    softIssues: string[];
+    hardIssues: ReviewPanelIssue[];
+    softIssues: ReviewPanelIssue[];
     canCreate: boolean;
 };
 
@@ -76,6 +83,7 @@ export {
     type ReviewPanelAdministrationPerson,
     type ReviewPanelBuildingOption,
     type ReviewPanelBuildingRow,
+    type ReviewPanelIssue,
     type ReviewPanelPropertyDraft,
     type ReviewPanelRowMeta,
     type ReviewPanelSpecialRightRow,

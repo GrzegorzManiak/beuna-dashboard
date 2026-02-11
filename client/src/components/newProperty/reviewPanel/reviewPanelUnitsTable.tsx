@@ -1,10 +1,23 @@
-import { useMemo, useState } from "react";
-import { Settings } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { Settings, Trash } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ReviewPanelEditModal, type FieldDefinition } from "./reviewPanelEditModal";
 import type { ReviewPanelBuildingOption, ReviewPanelUnitRow } from "./reviewPanelTypes";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type EditableUnitField = "unitNumber" | "unitType" | "buildingRef" | "area" | "meaNumerator";
+
+const EM_DASH = "—";
 
 const UNIT_TYPE_OPTIONS = [
     { label: "Apartment", value: "apartment" },
@@ -21,6 +34,7 @@ type ReviewPanelUnitsTableProps = {
     propertyType: "WEG" | "MV";
     onCommitCell: (rowId: string, field: EditableUnitField, value: string) => Promise<boolean>;
     onSaveRow: (rowId: string, updates: Record<string, string>) => Promise<boolean>;
+    onDeleteRow?: (rowId: string) => void;
 };
 
 type EditingCell = {
@@ -57,7 +71,7 @@ function buildUnitFieldDefinitions(
     return fields;
 }
 
-function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCell, onSaveRow }: ReviewPanelUnitsTableProps) {
+function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCell, onSaveRow, onDeleteRow }: ReviewPanelUnitsTableProps) {
     const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
     const [draftValue, setDraftValue] = useState<string>("");
     const [changedCells, setChangedCells] = useState<Record<string, boolean>>({});
@@ -95,7 +109,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
             entrance: modalRow.entrance,
             rooms: modalRow.rooms,
             description: modalRow.description,
-        };
+        } as Record<string, string>;
     }, [modalRow]);
 
     function handleBeginEdit(rowId: string, field: EditableUnitField, value: string) {
@@ -136,6 +150,90 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
 
     if (rows.length === 0) return <p className="text-sm text-gray-500">No units detected.</p>;
 
+    const totalArea = rows.reduce((sum, row) => {
+        const parsed = parseFloat(row.area);
+        return Number.isFinite(parsed) ? sum + parsed : sum;
+    }, 0);
+
+    const totalMea = rows.reduce((sum, row) => {
+        const parsed = parseFloat(row.meaNumerator);
+        return Number.isFinite(parsed) ? sum + parsed : sum;
+    }, 0);
+
+    const groupedRows = useMemo(() => {
+        const groups = new Map<string, ReviewPanelUnitRow[]>();
+        const unassigned: ReviewPanelUnitRow[] = [];
+
+        for (const row of rows) {
+            if (!row.buildingRef) {
+                unassigned.push(row);
+            } else {
+                const list = groups.get(row.buildingRef) ?? [];
+                list.push(row);
+                groups.set(row.buildingRef, list);
+            }
+        }
+
+        const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
+            const labelA = buildingLabelByValue.get(a[0]) ?? "";
+            const labelB = buildingLabelByValue.get(b[0]) ?? "";
+            return labelA.localeCompare(labelB);
+        });
+
+        return { sortedGroups, unassigned };
+    }, [rows, buildingLabelByValue]);
+
+    const renderRow = (row: ReviewPanelUnitRow) => (
+        <tr key={row.id} className="odd:bg-muted/10">
+            {renderTextCell(row, "unitNumber", row.unitNumber)}
+            {renderTypeCell(row)}
+            {renderBuildingCell(row)}
+            {renderTextCell(row, "area", row.area)}
+            {renderTextCell(row, "meaNumerator", row.meaNumerator)}
+            <td className="px-3 py-2 text-sm text-gray-600">{row.specialRightsLabel || EM_DASH}</td>
+            <td className="px-2 py-2">
+                <div className="flex items-center">
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <button
+                                type="button"
+                                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                                aria-label="Delete unit"
+                            >
+                                <Trash className="h-3.5 w-3.5" />
+                            </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Unit?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to delete <span className="font-medium text-foreground">{row.unitNumber ? `Unit ${row.unitNumber}` : "this unit"}</span>? This section will be removed.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={() => typeof onDeleteRow === "function" && onDeleteRow(row.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                >
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <button
+                        type="button"
+                        onClick={() => setModalRowId(row.id)}
+                        className="ml-2 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    >
+                        <Settings className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
+
     return (
         <>
             <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -152,26 +250,35 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 bg-white">
-                        {rows.map((row) => (
-                            <tr key={row.id}>
-                                {renderTextCell(row, "unitNumber", row.unitNumber)}
-                                {renderTypeCell(row)}
-                                {renderBuildingCell(row)}
-                                {renderTextCell(row, "area", row.area)}
-                                {renderTextCell(row, "meaNumerator", row.meaNumerator)}
-                                <td className="px-3 py-2 text-sm text-gray-600">{row.specialRightsLabel || "-"}</td>
-                                <td className="px-2 py-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalRowId(row.id)}
-                                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                    >
-                                        <Settings className="h-3.5 w-3.5" />
-                                    </button>
-                                </td>
-                            </tr>
+                        {groupedRows.unassigned.length > 0 && (
+                            <>
+                                <tr className="bg-amber-50">
+                                    <td colSpan={7} className="px-3 py-1.5 text-xs font-bold text-amber-700 uppercase tracking-wide">
+                                        Unassigned Units
+                                    </td>
+                                </tr>
+                                {groupedRows.unassigned.map(renderRow)}
+                            </>
+                        )}
+                        {groupedRows.sortedGroups.map(([buildingRef, units]) => (
+                            <Fragment key={buildingRef}>
+                                <tr className="bg-gray-50/80">
+                                    <td colSpan={7} className="px-3 py-1.5 text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                        {buildingLabelByValue.get(buildingRef) ?? "Unknown Building"}
+                                    </td>
+                                </tr>
+                                {units.map(renderRow)}
+                            </Fragment>
                         ))}
                     </tbody>
+                    <tfoot className="border-t border-gray-200 bg-gray-50">
+                        <tr className="text-sm font-semibold text-gray-700">
+                            <td className="px-3 py-2" colSpan={3}>Total</td>
+                            <td className="px-3 py-2">{totalArea > 0 ? (totalArea % 1 === 0 ? String(totalArea) : totalArea.toFixed(2)) : EM_DASH}</td>
+                            <td className="px-3 py-2">{totalMea > 0 ? (totalMea % 1 === 0 ? String(totalMea) : totalMea.toFixed(2)) : EM_DASH}</td>
+                            <td className="px-3 py-2" colSpan={2} />
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
 
@@ -200,11 +307,11 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                         }}
-                        className="h-8"
+                        className="h-8 bg-white"
                     />
                 ) : (
                     <button type="button" className="w-full text-left" onClick={() => handleBeginEdit(row.id, field, value)}>
-                        {value || "-"}
+                        {value || EM_DASH}
                     </button>
                 )}
             </td>
@@ -224,7 +331,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                         }}
-                        className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm"
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
                     >
                         <option value="">—</option>
                         {UNIT_TYPE_OPTIONS.map((opt) => (
@@ -233,7 +340,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                     </select>
                 ) : (
                     <button type="button" className="w-full text-left" onClick={() => handleBeginEdit(row.id, "unitType", row.unitType)}>
-                        {unitTypeLabelByValue.get(row.unitType) || row.unitType || "-"}
+                        {unitTypeLabelByValue.get(row.unitType) || row.unitType || EM_DASH}
                     </button>
                 )}
             </td>
@@ -241,8 +348,9 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
     }
 
     function renderBuildingCell(row: ReviewPanelUnitRow) {
+        const hasWarning = !row.buildingRef;
         return (
-            <td className={`px-3 py-2 text-sm ${getCellClassName(row.id, "buildingRef")}`}>
+            <td className={`px-3 py-2 text-sm ${getCellClassName(row.id, "buildingRef")} ${hasWarning ? "bg-amber-100" : ""}`}>
                 {isEditing(row.id, "buildingRef") ? (
                     <select
                         autoFocus
@@ -253,7 +361,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                         }}
-                        className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm"
+                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
                     >
                         <option value="">Unassigned</option>
                         {buildingOptions.map((option) => (

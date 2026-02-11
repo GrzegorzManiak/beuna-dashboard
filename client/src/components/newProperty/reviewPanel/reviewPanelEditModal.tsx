@@ -81,6 +81,7 @@ function ReviewPanelEditModal({
                                     value={draft[field.key] ?? ""}
                                     onChange={(e) => handleChange(field.key, e.target.value)}
                                     placeholder={field.placeholder}
+                                    className="bg-white"
                                 />
                             )}
                         </div>

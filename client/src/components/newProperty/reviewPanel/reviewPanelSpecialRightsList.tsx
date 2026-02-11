@@ -59,7 +59,7 @@ function ReviewPanelSpecialRightsList({ rows, onCommitField, onSaveRow }: Review
             rightType: modalRow.rightType,
             description: modalRow.description,
             area: modalRow.area,
-        };
+        } as Record<string, string>;
     }, [modalRow]);
 
     function handleStartEdit(rowId: string, field: EditableSpecialRightField, value: string) {
@@ -109,7 +109,7 @@ function ReviewPanelSpecialRightsList({ rows, onCommitField, onSaveRow }: Review
                                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                                         }}
-                                        className="h-8"
+                                        className="h-8 bg-white"
                                     />
                                 ) : (
                                     <button type="button" className="w-full text-left text-sm font-semibold text-gray-900" onClick={() => handleStartEdit(row.id, "unitRef", row.unitRef)}>
@@ -129,7 +129,7 @@ function ReviewPanelSpecialRightsList({ rows, onCommitField, onSaveRow }: Review
                                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                                         }}
-                                        className="h-8 w-full rounded-md border border-gray-300 px-2 text-sm"
+                                        className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
                                     >
                                         <option value="">—</option>
                                         {RIGHT_TYPE_OPTIONS.map((opt) => (
@@ -154,7 +154,7 @@ function ReviewPanelSpecialRightsList({ rows, onCommitField, onSaveRow }: Review
                                             if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
                                             if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
                                         }}
-                                        className="h-8"
+                                        className="h-8 bg-white"
                                     />
                                 ) : (
                                     <button type="button" className="w-full text-left text-sm text-gray-600" onClick={() => handleStartEdit(row.id, "description", row.description)}>
