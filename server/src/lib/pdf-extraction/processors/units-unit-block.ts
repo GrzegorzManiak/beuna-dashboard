@@ -33,8 +33,8 @@ const UNIT_CONTENT_KEYWORDS = [
     "zimmer",
 ];
 
-export class UnitsBlocksProcessor implements SectionProcessor {
-    readonly sectionType = "units.unit_blocks" as const;
+export class UnitsBlockProcessor implements SectionProcessor {
+    readonly sectionType = "units.unit_block" as const;
     readonly description = "Units block containing multiple unit entries";
     readonly isArrayBased = true;
 

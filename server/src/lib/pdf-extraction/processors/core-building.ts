@@ -33,8 +33,8 @@ const BUILDING_CONTENT_KEYWORDS = [
     "nutzflaeche",
 ];
 
-export class CoreBuildingsProcessor implements SectionProcessor {
-    readonly sectionType = "core.buildings" as const;
+export class CoreBuildingProcessor implements SectionProcessor {
+    readonly sectionType = "core.building" as const;
     readonly description = "Buildings block containing multiple building entries";
     readonly isArrayBased = true;
 

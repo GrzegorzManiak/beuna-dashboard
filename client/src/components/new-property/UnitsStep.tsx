@@ -180,19 +180,12 @@ function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; w
 function mapPropertySections(sections: PropertySection[]): SectionData[] {
     const result: SectionData[] = [];
 
-    // Map container types to their singular item-level equivalents
-    const CONTAINER_TO_ITEM_TYPE: Record<string, string> = {
-        "core.buildings": "core.building",
-        "units.unit_blocks": "units.unit_block",
-    };
-    
     for (const section of sections) {
         const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
         
         if (isArrayContainer) {
             // For array containers (buildings, units, administration), expand items into individual sections
             console.log(`[CLIENT] Expanding ${section.sectionType} with ${section.items!.length} items`);
-            const containerItemType = CONTAINER_TO_ITEM_TYPE[section.sectionType] ?? section.sectionType;
             
             for (let i = 0; i < section.items!.length; i++) {
                 const item = section.items![i];
@@ -200,8 +193,8 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
                 
                 // Prefer item-level sectionType (e.g. weg.administration items carry their
                 // own type: weg.property_manager / weg.accountant).  Fall back to the
-                // container→singular mapping for homogeneous arrays (buildings, units).
-                const itemType = (item.sectionType ?? containerItemType) as any;
+                // container section type for homogeneous arrays (buildings, units).
+                const itemType = (item.sectionType ?? section.sectionType) as any;
                 
                 const itemPositions = item.textPosition || [];
                 

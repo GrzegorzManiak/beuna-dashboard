@@ -229,15 +229,17 @@ async function getPropertySectionsStreamHandler(
             onSectionProcessed: (section, index, total) => {
                 console.log(`[DEBUG] Sending section ${index + 1}/${total} via WebSocket:`, section.sectionType);
                 
+                const sectionIndex = (section as any)._sectionIndex ?? index;
                 const sectionData = {
                     id: `temp-${index}`,
-                    sectionIndex: (section as any)._sectionIndex ?? index,
+                    sectionIndex,
                     headingText: section.headingText,
                     rawText: section.rawText,
                     textPosition: section.textPosition,
                     sectionType: section.sectionType,
                     confidence: section.confidence,
-                    renderable: index !== 0,
+                    // Hide the title page (sectionIndex 0), show everything else
+                    renderable: sectionIndex !== 0,
                     items: section.items || undefined,
                 };
                 

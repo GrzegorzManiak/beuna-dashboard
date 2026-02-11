@@ -390,8 +390,9 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
 
         // Check if we should create an address section
         if (!foundSectionTypes.has('core.address') && finalBasicDetails) {
+            const ADDRESS_KEYS = ['street', 'houseNumber', 'postalCode', 'city'];
             const hasAddress = finalBasicDetails.fields.some(f =>
-                ['street', 'houseNumber', 'postalCode', 'city'].includes(f.key) && f.value
+                ADDRESS_KEYS.includes(f.key) && f.value
             );
 
             if (hasAddress) {
@@ -407,8 +408,28 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     postalCode && city && `${postalCode} ${city}`,
                 ].filter(Boolean).join('\n');
 
-                // Find the position for address from basic details
-                const addressField = finalBasicDetails.fields.find(f => f.key === 'street' || f.key === 'city');
+                // Gather ALL address field positions from basic details
+                const addressPositions = finalBasicDetails.fields
+                    .filter(f => ADDRESS_KEYS.includes(f.key) && f.position)
+                    .map(f => f.position!);
+
+                // If no field-level positions, fall back to the section's
+                // textPosition where the address was extracted from.
+                let textPosition = addressPositions;
+                if (!textPosition.length) {
+                    const addressSectionIndex = finalBasicDetails.fields.find(
+                        f => ADDRESS_KEYS.includes(f.key) && f.sectionIndex !== null
+                    )?.sectionIndex;
+                    if (addressSectionIndex !== null && addressSectionIndex !== undefined) {
+                        const sourceSection = preProcessedSections[addressSectionIndex] ?? sectionsResult.sections[addressSectionIndex];
+                        if (sourceSection?.textPosition?.length) {
+                            textPosition = sourceSection.textPosition;
+                            console.log('[DEBUG] Using source section textPosition for address, pages:', textPosition.map(p => p.page));
+                        }
+                    }
+                }
+
+                console.log('[DEBUG] Synthetic address textPosition count:', textPosition.length);
 
                 syntheticSections.push({
                     id: `synthetic-address-${Date.now()}`,
@@ -417,7 +438,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     headingText: 'Anschrift',
                     rawText: addressText,
                     renderable: true,
-                    textPosition: addressField?.position ? [addressField.position] : [],
+                    textPosition,
                     items: [],
                     _sectionIndex: -2, // Insert after property overview
                 } as ProcessedSection & { _sectionIndex: number });
@@ -440,7 +461,9 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                 textPosition: processed.textPosition,
                 sectionType: processed.sectionType,
                 confidence: processed.confidence,
-                renderable: index !== 0, // Hide first section (usually title page)
+                // Hide the title page (sectionIndex 0), keep synthetic sections
+                // (negative indices) and all other real sections visible.
+                renderable: sectionIndex !== 0,
                 items: items === null ? null : JSON.parse(JSON.stringify(items)),
             };
         });

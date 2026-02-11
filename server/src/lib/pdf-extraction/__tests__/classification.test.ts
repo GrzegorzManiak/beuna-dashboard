@@ -35,21 +35,21 @@ describe("section classification", () => {
         expect(result.confidence).toBeGreaterThan(0.1);
     });
 
-    test("§ 2 Objektbeschreibung und Gebäudedaten → core.buildings", async () => {
+    test("§ 2 Objektbeschreibung und Gebäudedaten → core.building", async () => {
         const section = allSections[1]!;
         expect(section.heading.text).toContain("Gebäudedaten");
         
         const result = await classifySection(section);
-        expect(result.processor.sectionType).toBe("core.buildings");
+        expect(result.processor.sectionType).toBe("core.building");
         expect(result.confidence).toBeGreaterThan(0.1);
     });
 
-    test("§ 3 Aufteilungsplan und Einheitenbeschreibung → units.unit_blocks", async () => {
+    test("§ 3 Aufteilungsplan und Einheitenbeschreibung → units.unit_block", async () => {
         const section = allSections[2]!;
         expect(section.heading.text).toContain("Einheitenbeschreibung");
         
         const result = await classifySection(section);
-        expect(result.processor.sectionType).toBe("units.unit_blocks");
+        expect(result.processor.sectionType).toBe("units.unit_block");
         expect(result.confidence).toBeGreaterThan(0.1);
     });
 

@@ -1,6 +1,6 @@
 import type { SectionProcessor } from "./types";
-import { CoreBuildingsProcessor } from "./core-building";
-import { UnitsBlocksProcessor } from "./units-unit-block";
+import { CoreBuildingProcessor } from "./core-building";
+import { UnitsBlockProcessor } from "./units-unit-block";
 import { WegAdministrationCombinedProcessor } from "./weg-administration-combined";
 import { WegPropertyManagerProcessor } from "./weg-administration";
 import { WegAccountantProcessor } from "./weg-accountant";
@@ -17,8 +17,8 @@ import { UnknownProcessor } from "./unknown";
  */
 const PROCESSORS: SectionProcessor[] = [
     // Array-based sections (buildings, units) - check these first as they're more specific
-    new CoreBuildingsProcessor(),
-    new UnitsBlocksProcessor(),
+    new CoreBuildingProcessor(),
+    new UnitsBlockProcessor(),
 
     // WEG-specific sections (single objects)
     new WegMeaDeclarationProcessor(),
