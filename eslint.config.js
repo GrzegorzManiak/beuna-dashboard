@@ -81,7 +81,47 @@ export default [
                     type: "alphabetical",
                     ignoreCase: false
                 }
-            ]
+            ],
+            // -------------------------
+// 4) Naming conventions
+// -------------------------
+"@typescript-eslint/naming-convention": [
+    "error",
+
+    // Types (type, interface, enum, class) → PascalCase
+    {
+        selector: "typeLike",
+        format: ["PascalCase"]
+    },
+
+    // Functions that start with capital letter (React components) → PascalCase
+    {
+        selector: "function",
+        format: ["PascalCase"],
+        filter: {
+            regex: "^[A-Z]",
+            match: true
+        }
+    },
+
+    // Regular functions → camelCase
+    {
+        selector: "function",
+        format: ["camelCase"],
+        filter: {
+            regex: "^[A-Z]",
+            match: false
+        }
+    },
+
+    // Variables → camelCase (allow PascalCase for components)
+    {
+        selector: "variable",
+        format: ["camelCase", "PascalCase", "UPPER_CASE"]
+    }
+],
+
+            ],
         }
     }
 ];

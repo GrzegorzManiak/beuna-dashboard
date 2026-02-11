@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useExtractSectionFieldsMutation } from "@/hooks/useExtractSectionFieldsMutation";
-import type { SectionData, SectionState } from "@/components/pdfViewer";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType } from "@shared/section-types";
+import type { SectionData, SectionState } from "@/components/pdfViewer/pdfViewer.types";
 
 const EXTRACTABLE_STATES: SectionState[] = ["processing"];
 const LOCKED_STATES: SectionState[] = ["valid", "identifying", "error"];
@@ -123,7 +123,7 @@ export function useSectionExtraction({
                     } else if (!result.fields || !Object.keys(result.fields).length) {
                         update(section.id, { state: "error" });
                     } else {
-                        let fields = { ...(current?.fields ?? {}), ...result.fields };
+                        const fields = { ...(current?.fields ?? {}), ...result.fields };
 
                         if (section.sectionType === "core.building" && !fields.buildingUuid) {
                             fields.buildingUuid = generateBuildingUuid();

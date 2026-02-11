@@ -1,5 +1,5 @@
-import { NewPropertyUploadPage } from "@/components/newProperty/NewPropertyUploadPage";
+import { NewPropertyUploadStage } from "@/components/newProperty/newPropertyUploadStage";
 
 export function NewPropertyUpload() {
-    return <NewPropertyUploadPage />;
+    return <NewPropertyUploadStage />;
 }

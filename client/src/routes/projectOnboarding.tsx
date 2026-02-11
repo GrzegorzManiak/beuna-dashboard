@@ -1,5 +1,5 @@
-import { ProjectOnboardingPage } from "@/components/newProperty/ProjectOnboardingPage";
+import { NewPropertyProjectOnboardingStage } from "@/components/newProperty/newPropertyProjectOnboardingStage";
 
 export function ProjectOnboarding() {
-    return <ProjectOnboardingPage />;
+    return <NewPropertyProjectOnboardingStage />;
 }
