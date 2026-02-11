@@ -148,8 +148,6 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
         return changedCells[toCellKey(rowId, field)] ? "bg-amber-50" : "";
     }
 
-    if (rows.length === 0) return <p className="text-sm text-gray-500">No units detected.</p>;
-
     const totalArea = rows.reduce((sum, row) => {
         const parsed = parseFloat(row.area);
         return Number.isFinite(parsed) ? sum + parsed : sum;
@@ -182,6 +180,8 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
 
         return { sortedGroups, unassigned };
     }, [rows, buildingLabelByValue]);
+
+    if (rows.length === 0) return <p className="text-sm text-gray-500">No units detected.</p>;
 
     const renderRow = (row: ReviewPanelUnitRow) => (
         <tr key={row.id} className="odd:bg-muted/10">

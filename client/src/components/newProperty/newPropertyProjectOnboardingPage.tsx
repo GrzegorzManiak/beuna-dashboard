@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
+import { NewPropertyHeader } from "./newPropertyHeader";
 import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
 import { NewPropertySectionsStage } from "./newPropertySectionsStage";
@@ -201,6 +202,10 @@ function NewPropertyProjectOnboardingPage( ){
                 };
                 
                 if (payload.error) {
+                    if (payload.error === "no_document") {
+                        navigate("/new", { replace: true });
+                        return;
+                    }
                     setErrorMessage(payload.error);
                     return;
                 }
@@ -310,32 +315,27 @@ return (
         const trimmedStreet = street.trim();
         const trimmedPostalCode = postalCode.trim();
         const trimmedCity = city.trim();
-        const hasChanges = trimmedName !== property.name
-            || trimmedStreet !== (property.addressStreet ?? "")
-            || trimmedPostalCode !== (property.addressPostalCode ?? "")
-            || trimmedCity !== (property.addressCity ?? "");
-        if (hasChanges) {
-            try {
-                await updateProperty({
-                    propertyId,
-                    updates: {
-                        name: trimmedName,
-                        addressStreet: trimmedStreet || null,
-                        addressPostalCode: trimmedPostalCode || null,
-                        addressCity: trimmedCity || null,
-                    },
-                });
-            } catch (updateError) {
-                const message = updateError instanceof Error ? updateError.message : "Failed to update property.";
-                setErrorMessage(message);
-                return;
-            }
+        try {
+            await updateProperty({
+                propertyId,
+                updates: {
+                    name: trimmedName,
+                    addressStreet: trimmedStreet || null,
+                    addressPostalCode: trimmedPostalCode || null,
+                    addressCity: trimmedCity || null,
+                },
+            });
+        } catch (updateError) {
+            const message = updateError instanceof Error ? updateError.message : "Failed to update property.";
+            setErrorMessage(message);
+            return;
         }
         setStep(STEP_SECTIONS);
     }
 
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
+            <NewPropertyHeader />
             <NewPropertyProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
 
             <div className="w-full flex justify-center px-4 relative">

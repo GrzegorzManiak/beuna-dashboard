@@ -4,9 +4,21 @@ import { SessionSelector } from "@/components/SessionSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { PropertyManagementType, PropertyStatus } from "@/api/properties";
 import { usePropertiesQuery } from "@/hooks/usePropertiesQuery";
+import { useDeletePropertyMutation } from "@/hooks/useDeletePropertyMutation";
 import { getSessionId } from "@/lib/sessionStorage";
+import { Trash2 } from "lucide-react";
 
 type MenuItem = {
     id: string;
@@ -66,16 +78,14 @@ function mapRowActionClassName(status: DashboardStatus ){
     return "h-8 rounded-full border border-[#d9b38f] bg-[#f6eadf] px-4 py-5 font-semibold text-[#7f5a3a] hover:bg-[#efdcc8]";
 }
 
-function computeUnits(propertyNumber: number ){
-    return (propertyNumber * 7) % 42 + 8;
-}
-
 function DashboardProjectsPage( ){
     const navigate = useNavigate();
     const [sessionId, setSessionId] = useState<string | null>(getSessionId());
     const [searchValue, setSearchValue] = useState<string>("");
     const { data, error, isError, isLoading } = usePropertiesQuery(Boolean(sessionId));
     const properties = useMemo(() => data?.properties ?? [], [data]);
+    const deletePropertyMutation = useDeletePropertyMutation();
+    const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
     const filteredProperties = useMemo(() => {
         const value = searchValue.trim().toLowerCase();
@@ -87,10 +97,6 @@ function DashboardProjectsPage( ){
                 || type.includes(value);
         });
     }, [properties, searchValue]);
-    const totalBuildingCount = useMemo(
-        () => properties.reduce((sum, property) => sum + property.buildingCount, 0),
-        [properties],
-    );
 
     useEffect(() => {
         function handleSessionChange(event: Event ){
@@ -106,8 +112,23 @@ function DashboardProjectsPage( ){
         navigate("/new");
     }
 
-    function handleOpenProjectClick(projectId: string ){
-        navigate(`/project/${projectId}/onboarding`);
+    function handleOpenProjectClick(projectId: string, status: PropertyStatus ){
+        if (status === "ACTIVE") {
+            navigate(`/project/${projectId}`);
+        } else {
+            navigate(`/project/${projectId}/onboarding`);
+        }
+    }
+
+    function handleDeleteClick(propertyId: string, propertyName: string ){
+        setDeleteTarget({ id: propertyId, name: propertyName });
+    }
+
+    function handleConfirmDelete( ){
+        if (!deleteTarget) return;
+        deletePropertyMutation.mutate(deleteTarget.id, {
+            onSettled: () => setDeleteTarget(null),
+        });
     }
 
     return (
@@ -184,7 +205,6 @@ function DashboardProjectsPage( ){
                             <div className="text-sm">
                                 <span className="font-semibold text-[#1f2f26]">Properties</span>
                                 <span className="ml-3 text-[#60726a]">Total {filteredProperties.length}</span>
-                                <span className="ml-3 text-[#60726a]">Buildings {totalBuildingCount}</span>
                             </div>
                             <div className="md:w-72">
                                 <Input
@@ -196,12 +216,14 @@ function DashboardProjectsPage( ){
                             </div>
                         </div>
 
-                        <div className="hidden grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.8fr] border-b border-[#d4ddd8] bg-[#f2f6f4] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#60726a] md:grid">
+                        <div className="hidden grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.9fr_0.8fr_auto] border-b border-[#d4ddd8] bg-[#f2f6f4] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#60726a] md:grid">
                             <p>Property</p>
                             <p>Type</p>
                             <p>Status</p>
                             <p>Units</p>
+                            <p>Date Added</p>
                             <p>Action</p>
+                            <p className="w-10" />
                         </div>
 
                         {!sessionId && (
@@ -247,12 +269,14 @@ function DashboardProjectsPage( ){
                                     return (
                                         <div
                                             key={property.id}
-                                            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-[#d4ddd8] px-3 py-4 first:border-t-0 md:grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.8fr] md:px-4"
+                                            className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-t border-[#d4ddd8] px-3 py-4 first:border-t-0 md:grid-cols-[minmax(0,1.6fr)_1fr_1fr_0.7fr_0.9fr_0.8fr_auto] md:px-4"
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-md font-semibold text-[#1f2f26]">{property.name}</p>
                                                 <p className="truncate text-xs text-[#60726a]">
-                                                    Project #{property.propertyNumber} · {mapManagementTypeDescription(property.managementType)}
+                                                    {[property.addressStreet, property.addressCity].filter(Boolean).join(", ") || `Project #${property.propertyNumber}`}
+                                                    {" · "}
+                                                    {mapManagementTypeDescription(property.managementType)}
                                                 </p>
                                             </div>
 
@@ -262,15 +286,28 @@ function DashboardProjectsPage( ){
                                                 {dashboardStatus}
                                             </Badge>
 
-                                            <p className="hidden text-sm text-[#41544b] md:block">{computeUnits(property.propertyNumber)}</p>
+                                            <p className="hidden text-sm text-[#41544b] md:block">{property.unitCount ?? 0}</p>
+
+                                            <p className="hidden text-sm text-[#41544b] md:block">
+                                                {new Date(property.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                            </p>
 
                                             <Button
                                                 type="button"
-                                                onClick={() => handleOpenProjectClick(property.id)}
+                                                onClick={() => handleOpenProjectClick(property.id, property.status)}
                                                 className={mapRowActionClassName(dashboardStatus)}
                                             >
                                                 {mapRowActionLabel(dashboardStatus)}
                                             </Button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteClick(property.id, property.name)}
+                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-[#60726a] transition-colors hover:bg-red-50 hover:text-red-600"
+                                                title="Delete property"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </div>
                                     );
                                 })}
@@ -279,6 +316,32 @@ function DashboardProjectsPage( ){
                     </div>
                 </section>
             </div>
+
+            <AlertDialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDeleteTarget(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete property</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete <strong>{deleteTarget?.name}</strong>? This will permanently remove the property and all its data. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={deletePropertyMutation.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            onClick={handleConfirmDelete}
+                            disabled={deletePropertyMutation.isPending}
+                        >
+                            {deletePropertyMutation.isPending ? "Deleting…" : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </main>
     );
 }

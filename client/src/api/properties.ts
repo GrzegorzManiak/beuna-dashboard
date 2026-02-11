@@ -26,6 +26,10 @@ type PropertySummary = {
     status: PropertyStatus;
     relation: PropertyRelation;
     buildingCount: number;
+    unitCount: number;
+    addressStreet: string | null;
+    addressCity: string | null;
+    createdAt: string;
 };
 
 type BasicDetailsField = {

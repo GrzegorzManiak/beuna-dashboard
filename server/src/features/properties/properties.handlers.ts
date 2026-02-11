@@ -43,6 +43,9 @@ async function listPropertiesHandler(
             status: true,
             managerId: true,
             accountantId: true,
+            addressStreet: true,
+            addressCity: true,
+            createdAt: true,
         },
         orderBy: { propertyNumber: "asc" },
     });
@@ -61,6 +64,19 @@ async function listPropertiesHandler(
         })
         : [];
 
+    const unitSections = propertyIds.length > 0
+        ? await prisma.propertySection.findMany({
+            where: {
+                propertyId: { in: propertyIds },
+                sectionType: "units.unit_block",
+            },
+            select: {
+                propertyId: true,
+                items: true,
+            },
+        })
+        : [];
+
     const buildingCountByPropertyId = new Map<string, number>();
     for (const section of sections) {
         const countForSection = Array.isArray(section.items) && section.items.length > 0
@@ -68,6 +84,15 @@ async function listPropertiesHandler(
             : 1;
         const previous = buildingCountByPropertyId.get(section.propertyId) ?? 0;
         buildingCountByPropertyId.set(section.propertyId, previous + countForSection);
+    }
+
+    const unitCountByPropertyId = new Map<string, number>();
+    for (const section of unitSections) {
+        const countForSection = Array.isArray(section.items) && section.items.length > 0
+            ? section.items.length
+            : 1;
+        const previous = unitCountByPropertyId.get(section.propertyId) ?? 0;
+        unitCountByPropertyId.set(section.propertyId, previous + countForSection);
     }
 
     const result = properties.map((p) => ({
@@ -78,6 +103,10 @@ async function listPropertiesHandler(
         status: p.status,
         relation: p.managerId === user.id ? "MANAGER" : "ACCOUNTANT",
         buildingCount: buildingCountByPropertyId.get(p.id) ?? 0,
+        unitCount: unitCountByPropertyId.get(p.id) ?? 0,
+        addressStreet: p.addressStreet ?? null,
+        addressCity: p.addressCity ?? null,
+        createdAt: p.createdAt.toISOString(),
     }));
 
     return reply.send({ properties: result });
@@ -87,6 +116,9 @@ async function createPropertyHandler(
     req: FastifyRequest,
     reply: FastifyReply
 ) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
     if (!req.isMultipart()) return reply.code(400).send({ error: "Multipart form data is required" });
 
     const file = await req.file();
@@ -113,6 +145,7 @@ async function createPropertyHandler(
                 name: DEFAULT_PROPERTY_NAME,
                 managementType: "UNKNOWN",
                 status: "DRAFT",
+                managerId: user.id,
                 documentName,
                 documentMimeType: file.mimetype,
                 documentData: buffer,
@@ -255,7 +288,18 @@ async function getPropertySectionsStreamHandler(
         return;
     }
 
-    
+    // Check if the property actually has a document before starting extraction.
+    // Seeded or manually-created properties may not have one.
+    const propertyDoc = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { documentData: true },
+    });
+    if (!propertyDoc?.documentData) {
+        sendSocketPayload(socket, { error: "no_document" });
+        socket.close();
+        return;
+    }
+
     // Track accumulated sections for streaming updates
     const accumulatedSections: any[] = [];
     let latestBasicDetails: any = null;
@@ -613,6 +657,28 @@ async function updatePropertySectionHandler(
     return reply.send({ section });
 }
 
+async function deletePropertyHandler(
+    req: FastifyRequest<{ Params: PropertyIdParams }>,
+    reply: FastifyReply,
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId } = req.params;
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+    if (!property) return reply.code(404).send({ error: "Property not found." });
+
+    // Delete sections first (cascade isn't automatic with Prisma unless set in schema)
+    await prisma.propertySection.deleteMany({ where: { propertyId } });
+    await prisma.property.delete({ where: { id: propertyId } });
+
+    return reply.code(204).send();
+}
+
 async function deletePropertySectionHandler(
     req: FastifyRequest<{ Params: SectionIdParams }>,
     reply: FastifyReply,
@@ -641,6 +707,7 @@ export {
     getPropertySectionsHandler,
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
+    deletePropertyHandler,
     classifySectionHandler,
     extractSectionFieldsHandler,
     createPropertySectionHandler,

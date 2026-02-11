@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
+import { NewPropertyHeader } from "./newPropertyHeader";
 import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
 import { NewPropertySectionsStage } from "./newPropertySectionsStage";
@@ -169,13 +170,18 @@ function NewPropertyProjectOnboardingStage( ){
     useEffect(() => {
         if (!property) return;
         if (hasHydrated) return;
+        // If the property is already ACTIVE, redirect to the view page
+        if (property.status === "ACTIVE") {
+            navigate(`/project/${propertyId}`, { replace: true });
+            return;
+        }
         setPropertyName(property.name ?? "");
         setSelectedType(mapManagementTypeToSelection(property.managementType));
         setStreet(property.addressStreet ?? "");
         setPostalCode(property.addressPostalCode ?? "");
         setCity(property.addressCity ?? "");
         setHasHydrated(true);
-    }, [hasHydrated, property]);
+    }, [hasHydrated, property, navigate, propertyId]);
 
     useEffect(() => {
         if (!sections.length) return;
@@ -263,6 +269,11 @@ function NewPropertyProjectOnboardingStage( ){
                 };
                 
                 if (payload.error) {
+                    if (payload.error === "no_document") {
+                        // Property has no uploaded document — send user to the upload page
+                        navigate("/new", { replace: true });
+                        return;
+                    }
                     setErrorMessage(payload.error);
                     return;
                 }
@@ -378,26 +389,20 @@ return (
         const trimmedStreet = street.trim();
         const trimmedPostalCode = postalCode.trim();
         const trimmedCity = city.trim();
-        const hasChanges = trimmedName !== property.name
-            || trimmedStreet !== (property.addressStreet ?? "")
-            || trimmedPostalCode !== (property.addressPostalCode ?? "")
-            || trimmedCity !== (property.addressCity ?? "");
-        if (hasChanges) {
-            try {
-                await updateProperty({
-                    propertyId,
-                    updates: {
-                        name: trimmedName,
-                        addressStreet: trimmedStreet || null,
-                        addressPostalCode: trimmedPostalCode || null,
-                        addressCity: trimmedCity || null,
-                    },
-                });
-            } catch (updateError) {
-                const message = updateError instanceof Error ? updateError.message : "Failed to update property.";
-                setErrorMessage(message);
-                return;
-            }
+        try {
+            await updateProperty({
+                propertyId,
+                updates: {
+                    name: trimmedName,
+                    addressStreet: trimmedStreet || null,
+                    addressPostalCode: trimmedPostalCode || null,
+                    addressCity: trimmedCity || null,
+                },
+            });
+        } catch (updateError) {
+            const message = updateError instanceof Error ? updateError.message : "Failed to update property.";
+            setErrorMessage(message);
+            return;
         }
         setStep(STEP_SECTIONS);
     }
@@ -405,6 +410,7 @@ return (
 
     return (
         <div className={`h-screen w-full flex flex-col items-center gap-6 bg-gray-50/50 relative ${isReviewStep ? "overflow-y-auto py-6" : "justify-center overflow-hidden"}`}>
+            <NewPropertyHeader />
             <NewPropertyProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
 
             <div className="w-full flex justify-center px-4 relative">

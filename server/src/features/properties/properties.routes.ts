@@ -7,6 +7,7 @@ import {
     getPropertySectionsHandler,
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
+    deletePropertyHandler,
     classifySectionHandler,
     extractSectionFieldsHandler,
     createPropertySectionHandler,
@@ -24,8 +25,12 @@ const propertySummarySchema = {
         status: { type: "string", enum: ["DRAFT", "ACTIVE"] },
         relation: { type: "string", enum: ["MANAGER", "ACCOUNTANT"] },
         buildingCount: { type: "integer" },
+        unitCount: { type: "integer" },
+        addressStreet: { type: ["string", "null"] },
+        addressCity: { type: ["string", "null"] },
+        createdAt: { type: "string", format: "date-time" },
     },
-    required: ["id", "propertyNumber", "name", "managementType", "status", "relation", "buildingCount"],
+    required: ["id", "propertyNumber", "name", "managementType", "status", "relation", "buildingCount", "unitCount", "createdAt"],
     additionalProperties: false,
 };
 
@@ -624,6 +629,40 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, deletePropertySectionHandler);
+
+    app.delete("/:propertyId", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Delete a property and all its sections.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            response: {
+                204: {
+                    type: "null",
+                    description: "Property deleted.",
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, deletePropertyHandler);
 };
 
 export {
