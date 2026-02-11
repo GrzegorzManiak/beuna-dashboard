@@ -17,6 +17,19 @@ import type {
 } from "./types";
 import { calculateSectionStyle } from "./utils";
 
+// Section types that should be rendered as highlights
+const RENDERABLE_SECTION_TYPES = [
+    "core.property_overview",
+    "core.address",
+    "core.building",
+    "units.unit_block",
+    "weg.special_rights",
+    "weg.mea_declaration",
+    "weg.property_manager",
+    "weg.accountant",
+    "mv.owner_entity",
+] as const;
+
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url
@@ -206,7 +219,9 @@ function PdfRenderer({
                                     activeSectionId={activeSectionId}
                                     renderedSections={pagesReady ? sectionData
                                         .filter((section) =>
-                                            section.textPosition.page.includes(pageNumber),
+                                            section.textPosition.page.includes(pageNumber) &&
+                                            section.sectionType &&
+                                            RENDERABLE_SECTION_TYPES.includes(section.sectionType as any),
                                         )
                                         .map((section) =>
                                             calculateSectionStyle(pageNumber, section, pageMetrics),

@@ -6,11 +6,10 @@ import type { PdfSection } from "../raw/types";
 export type SectionType =
     | "core.property_overview"
     | "core.address"
-    | "core.buildings"
-    | "units.unit_blocks"
+    | "core.building"
+    | "units.unit_block"
     | "weg.mea_declaration"
     | "weg.special_rights"
-    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
@@ -70,6 +69,15 @@ export type ProcessedSection = {
 };
 
 /**
+ * Context passed to the classifier so processors can be skipped
+ * when they don't apply to the current property type.
+ */
+export type ClassificationContext = {
+    /** The confirmed management / property type (WEG or MV). */
+    managementType?: "WEG" | "MV" | "UNKNOWN";
+};
+
+/**
  * Interface for section processors that identify and extract specific section types
  */
 export interface SectionProcessor {
@@ -84,6 +92,14 @@ export interface SectionProcessor {
      * Array sections will have items[] populated.
      */
     readonly isArrayBased: boolean;
+
+    /**
+     * Restricts this processor to a specific property type.
+     * - "WEG" → only runs for WEG properties
+     * - "MV"  → only runs for MV properties
+     * - "ANY" or undefined → runs for all property types
+     */
+    readonly propertyTypeScope?: "WEG" | "MV" | "ANY";
     
     /**
      * Determines if a given PDF section matches this processor's type

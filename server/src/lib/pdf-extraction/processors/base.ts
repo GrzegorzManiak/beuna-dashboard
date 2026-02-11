@@ -6,6 +6,21 @@ import { normalizeForMatch } from "../utils/text";
  */
 
 /**
+ * Regex that matches common German / international company-type suffixes.
+ * Used to verify that a section references a real legal entity.
+ */
+const ENTITY_SUFFIX_RE =
+    /\b(gmbh|ag|kg|ug|gbr|ohg|e\.?\s?v\.?|ev|ltd|inc|llc|s\.?a\.?r\.?l\.?|s\.?a\.?|co\.?\s?kg|gmbh\s?&\s?co)\b/i;
+
+/**
+ * Returns `true` when `text` contains at least one entity-type reference
+ * (e.g. "GmbH", "AG", "KG", "e.V.", etc.).
+ */
+export function containsEntityReference(text: string): boolean {
+    return ENTITY_SUFFIX_RE.test(text);
+}
+
+/**
  * Converts PDF lines to highlight positions grouped by page
  */
 export function linesToPositions(lines: PdfLine[]): Position[] {
@@ -223,4 +238,129 @@ function findLinesForBlockFuzzy(
 
     const matched = sectionLines.slice(bestStart, bestEnd);
     return { lines: matched, nextCursor: bestEnd };
+}
+
+/**
+ * Detect MEA declaration pattern in text
+ * Looks for patterns like "Das Eigentum am Grundstück wird in X Miteigentumsanteile (MEA) zerlegt"
+ */
+export function containsMeaDeclaration(text: string): boolean {
+    const normalized = normalizeForMatch(text);
+
+    // Strong pattern: "eigentum am grundstück wird in X miteigentumsanteile zerlegt"
+    const declarationPattern =
+        /(?:das\s+)?eigentum\s+am\s+grundst(?:ü|ue)ck.*?wird\s+in\s+(\d[\d\s.,]*)\s*miteigentumsanteile?\s*\(?\s*MEA\s*\)?/i;
+
+    if (declarationPattern.test(normalized)) return true;
+
+    // Fallback: look for key MEA indicators together
+    const hasEigentum = normalized.includes("eigentum") && normalized.includes("grundst");
+    const hasMea = normalized.includes("miteigentumsanteil") || normalized.includes("mea");
+    const hasZerlegt = normalized.includes("zerlegt") || normalized.includes("geteilt");
+    const hasNumber = /\b\d{3,5}\b/.test(text); // MEA count is usually 3-5 digits
+
+    return hasEigentum && hasMea && (hasZerlegt || hasNumber);
+}
+
+/**
+ * Find the line range that contains the MEA declaration within a section
+ * Returns the start and end indices of the MEA paragraph
+ */
+export function findMeaDeclarationRange(section: PdfSection): { start: number; end: number } | null {
+    const lines = section.lines;
+    let meaStart = -1;
+    let meaEnd = -1;
+
+    // Look for the declaration pattern across consecutive lines
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!;
+        const lineText = line.text;
+
+        // Check if this line contains MEA indicators
+        if (containsMeaDeclaration(lineText)) {
+            meaStart = i;
+            meaEnd = i;
+            break;
+        }
+    }
+
+    // If not found in single line, check multi-line patterns
+    if (meaStart < 0) {
+        // Check for MEA keywords across a window of lines
+        for (let i = 0; i < lines.length - 1; i++) {
+            const windowText = lines.slice(i, i + 4).map((l) => l.text).join(" ");
+            if (containsMeaDeclaration(windowText)) {
+                meaStart = i;
+                // Find the end of the paragraph (look for unit entry indicators or blank lines)
+                meaEnd = i;
+                for (let j = i + 1; j < lines.length; j++) {
+                    const text = lines[j]!.text;
+                    // Stop if we hit a unit entry (Einheit Nr., etc.)
+                    if (/(?:einheit|unit|wohnung)\s*(?:nr\.?|nummer|\d)/i.test(text)) {
+                        break;
+                    }
+                    // Stop if we hit a major heading
+                    if (text.includes("§") || (lines[j]!.bold && text.length < 50)) {
+                        break;
+                    }
+                    meaEnd = j;
+                }
+                break;
+            }
+        }
+    }
+
+    if (meaStart >= 0 && meaEnd >= meaStart) {
+        return { start: meaStart, end: meaEnd + 1 };
+    }
+
+    return null;
+}
+
+/**
+ * Split a section into MEA declaration and remaining content
+ * Returns an array of sections (MEA section first, then the rest)
+ */
+export function splitMeaDeclaration(section: PdfSection): PdfSection[] {
+    const range = findMeaDeclarationRange(section);
+
+    if (!range) {
+        return [section];
+    }
+
+    // Check if MEA content is substantial enough to warrant a split
+    const meaLines = section.lines.slice(range.start, range.end);
+    if (meaLines.length < 1) {
+        return [section];
+    }
+
+    // Create MEA declaration section
+    const meaSection: PdfSection = {
+        ...section,
+        id: `${section.id}-mea`,
+        heading: meaLines[0]!,
+        lines: meaLines,
+        rawText: meaLines.map((l) => l.text).join("\n"),
+        textPosition: linesToPositions(meaLines),
+    };
+
+    // Create remaining section (if there are lines left)
+    const remainingLines = [
+        ...section.lines.slice(0, range.start),
+        ...section.lines.slice(range.end),
+    ];
+
+    if (remainingLines.length === 0) {
+        return [meaSection];
+    }
+
+    const remainingSection: PdfSection = {
+        ...section,
+        heading: remainingLines[0]!,
+        lines: remainingLines,
+        rawText: remainingLines.map((l) => l.text).join("\n"),
+        textPosition: linesToPositions(remainingLines),
+    };
+
+    return [meaSection, remainingSection];
 }

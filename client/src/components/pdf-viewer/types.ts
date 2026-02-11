@@ -20,13 +20,10 @@ type SectionPosition = {
 type SectionType =
     | "core.property_overview"
     | "core.address"
-    | "core.buildings"
     | "core.building"
-    | "units.unit_blocks"
     | "units.unit_block"
     | "weg.special_rights"
     | "weg.mea_declaration"
-    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
@@ -101,6 +98,7 @@ type DragSelectionResult = {
         height: number;
     }>;
     text: string;
+    heading: string;
     textRects: DragTextRect[];
 };
 

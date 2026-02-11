@@ -432,6 +432,13 @@ async function classifySectionHandler(
         }
 
         const classification = result.classifications[0];
+        if (!classification) {
+            return reply.send({
+                sectionType: "unknown",
+                confidence: 0,
+            });
+        }
+
         return reply.send({
             sectionType: classification.sectionType,
             confidence: classification.confidence,

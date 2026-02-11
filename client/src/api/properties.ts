@@ -21,11 +21,10 @@ type PropertyDetail = {
 type PropertySectionType =
     | "core.property_overview"
     | "core.address"
-    | "core.buildings"
-    | "units.unit_blocks"
+    | "core.building"
+    | "units.unit_block"
     | "weg.special_rights"
     | "weg.mea_declaration"
-    | "weg.administration"
     | "weg.property_manager"
     | "weg.accountant"
     | "mv.owner_entity"
@@ -191,7 +190,7 @@ type ClassifySectionResponse = {
     error?: string;
 };
 
-async function classifySection(propertyId: string, text: string, heading?: string): Promise<ClassifySectionResponse> {
+async function classifySection(propertyId: string, text: string, heading = ""): Promise<ClassifySectionResponse> {
     const response = await apiFetch(`/api/properties/${propertyId}/classify-section`, {
         method: "POST",
         headers: {

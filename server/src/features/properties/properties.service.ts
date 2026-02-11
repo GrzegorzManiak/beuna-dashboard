@@ -12,6 +12,8 @@ import {
     type ProcessedSection,
     type SectionItem,
 } from "../../lib/pdf-extraction/processors";
+import { splitMeaDeclaration } from "../../lib/pdf-extraction/processors/base";
+import type { PdfSection } from "../../lib/pdf-extraction/raw/types";
 
 type DocumentCacheEntry = {
     data: Buffer;
@@ -63,6 +65,27 @@ const isBasicDetailsEmpty = (extract: BasicDetailsExtract | null): boolean => {
         return !value && !sourceText && index === null;
     });
 };
+
+/**
+ * Split MEA declarations from sections before classification
+ * MEA declarations are often embedded in unit sections but need to be separate
+ */
+function splitMeaDeclarationsFromSections(sections: PdfSection[]): PdfSection[] {
+    const result: PdfSection[] = [];
+    let sectionIndex = 0;
+
+    for (const section of sections) {
+        const split = splitMeaDeclaration(section);
+        for (const s of split) {
+            result.push({
+                ...s,
+                id: s.id !== section.id ? s.id : section.id,
+            });
+        }
+    }
+
+    return result;
+}
 
 const getCachedSectionsResult = async (propertyId: string, documentData: Buffer) => {
     const cached = sectionCache.get(propertyId);
@@ -171,6 +194,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
             select: {
                 documentData: true,
                 basicDetailsExtract: true,
+                managementType: true,
             },
         });
 
@@ -181,34 +205,40 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
 
         const documentBuffer = Buffer.from(property.documentData);
         console.log('[DEBUG] Document buffer size:', documentBuffer.length);
-        
+
         // Extract sections from PDF
         console.log('[DEBUG] Extracting sections from PDF...');
         const sectionsResult = await getCachedSectionsResult(propertyId, documentBuffer);
         console.log('[DEBUG] Extracted sections count:', sectionsResult.sections.length);
+
+        // Pre-process sections to split out MEA declarations
+        console.log('[DEBUG] Splitting MEA declarations from sections...');
+        const preProcessedSections = splitMeaDeclarationsFromSections(sectionsResult.sections);
+        console.log('[DEBUG] Sections after MEA split:', preProcessedSections.length);
         
         // Check if sections already exist
         console.log('[DEBUG] Checking for existing sections...');
         const existingSections = await getStoredSections(propertyId);
         console.log('[DEBUG] Existing sections count:', existingSections.length);
         const needsSections = existingSections.length === 0;
-        
-        // Classify sections using new processor system
+
+        // Classify sections using new processor system (on pre-processed sections)
         console.log('[DEBUG] Classifying sections...');
-        const classifications = await classifySections(sectionsResult.sections, 10);
+        const managementType = (property.managementType ?? "UNKNOWN") as "WEG" | "MV" | "UNKNOWN";
+        const classifications = await classifySections(preProcessedSections, 10, { managementType });
         console.log('[DEBUG] Classifications count:', classifications.length);
         
         // Extract basic details if needed
         const basicDetailsExtract = property.basicDetailsExtract as BasicDetailsExtract | null;
         const shouldExtractBasicDetails = isBasicDetailsEmpty(basicDetailsExtract);
         console.log('[DEBUG] Should extract basic details:', shouldExtractBasicDetails);
-        
+
         const basicDetailsTask = shouldExtractBasicDetails
             ? (async () => {
                 console.log('[DEBUG] Starting basic details extraction...');
                 const basicDetails = await extractBasicDetails(sectionsResult.sections);
                 console.log('[DEBUG] Basic details extracted:', basicDetails.extract);
-                
+
                 await prisma.property.update({
                     where: { id: propertyId },
                     data: {
@@ -228,10 +258,10 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     (s) => s.id === classification.sectionId
                 );
                 if (sectionIndex < 0) continue;
-                
+
                 const section = sectionsResult.sections[sectionIndex];
                 if (!section) continue;
-                
+
                 await prisma.propertySection.updateMany({
                     where: {
                         propertyId,
@@ -244,7 +274,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     },
                 });
             }
-            
+
             // Hide first section (usually header/title page)
             await prisma.propertySection.updateMany({
                 where: {
@@ -255,7 +285,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     renderable: false,
                 },
             });
-            
+
             if (basicDetailsTask && awaitBasicDetails) {
                 const extract = await basicDetailsTask;
                 options.onBasicDetailsUpdated?.(extract ?? null);
@@ -267,6 +297,16 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
             return;
         }
 
+        // For new extractions, await basic details so we can create synthetic sections
+        let finalBasicDetails: BasicDetailsExtract | null = basicDetailsExtract;
+        if (basicDetailsTask) {
+            console.log('[DEBUG] Awaiting basic details for synthetic section creation...');
+            finalBasicDetails = await basicDetailsTask;
+            if (finalBasicDetails) {
+                options.onBasicDetailsUpdated?.(finalBasicDetails);
+            }
+        }
+
         // Process each section through its matched processor
         // This will segment array-based sections (buildings, units) into items
         console.log('[DEBUG] Processing sections through processors...');
@@ -274,31 +314,31 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
         for (let i = 0; i < classifications.length; i++) {
             const classification = classifications[i];
             if (!classification) continue;
-            
+
             console.log(`[DEBUG] Processing section ${i + 1}/${classifications.length}:`, classification.processor.sectionType);
-            
-            const sectionIndex = sectionsResult.sections.findIndex(
+
+            const sectionIndex = preProcessedSections.findIndex(
                 (s) => s.id === classification.sectionId
             );
-            const rawSection = sectionsResult.sections[sectionIndex];
+            const rawSection = preProcessedSections[sectionIndex];
             if (!rawSection) {
                 console.log('[DEBUG] Raw section not found for classification:', classification.sectionId);
                 continue;
             }
-            
+
             // Process the section (this may segment it into items for array-based types)
             console.log('[DEBUG] Calling processor.process()...');
             const processed = await classification.processor.process(rawSection);
             console.log('[DEBUG] Processor returned:', processed.sectionType, 'items:', processed.items?.length ?? 0);
-            
+
             const processedWithIndex = {
                 ...processed,
                 // Preserve the section index for ordering
                 _sectionIndex: sectionIndex,
             } as ProcessedSection & { _sectionIndex: number };
-            
+
             processedSections.push(processedWithIndex);
-            
+
             // Stream this section to client immediately
             if (options.onSectionProcessed) {
                 console.log('[DEBUG] Calling onSectionProcessed callback');
@@ -307,9 +347,89 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
         }
         console.log('[DEBUG] All sections processed, count:', processedSections.length);
 
+        // Create synthetic sections for basic details that weren't found in the document
+        // These will be added before processing completes
+        console.log('[DEBUG] Checking for missing basic detail sections...');
+        const foundSectionTypes = new Set(processedSections.map(s => s.sectionType));
+        const syntheticSections: ProcessedSection[] = [];
+
+        // Check if we should create a property overview section
+        if (!foundSectionTypes.has('core.property_overview') && finalBasicDetails) {
+            // Check if we have basic details that would constitute a property overview
+            const hasBasicInfo = finalBasicDetails.fields.some(f =>
+                f.key === 'propertyName' && f.value
+            ) || finalBasicDetails.fields.some(f =>
+                f.key === 'propertyId' && f.value
+            );
+
+            if (hasBasicInfo) {
+                console.log('[DEBUG] Creating synthetic property_overview section from basic details');
+                const propertyName = finalBasicDetails.fields.find(f => f.key === 'propertyName')?.value;
+                const propertyIdValue = finalBasicDetails.fields.find(f => f.key === 'propertyId')?.value;
+                const managementType = finalBasicDetails.fields.find(f => f.key === 'managementTypeHint')?.value;
+
+                const overviewText = [
+                    propertyName && `Objektname: ${propertyName}`,
+                    propertyIdValue && `Objektnummer: ${propertyIdValue}`,
+                    managementType && `Verwaltungsform: ${managementType}`,
+                ].filter(Boolean).join('\n');
+
+                syntheticSections.push({
+                    id: `synthetic-property-overview-${Date.now()}`,
+                    sectionType: 'core.property_overview',
+                    confidence: 0.8,
+                    headingText: 'Eigentumsverhältnisse',
+                    rawText: overviewText,
+                    renderable: true,
+                    textPosition: [],
+                    items: [],
+                    _sectionIndex: -1, // Insert at the beginning
+                } as ProcessedSection & { _sectionIndex: number });
+            }
+        }
+
+        // Check if we should create an address section
+        if (!foundSectionTypes.has('core.address') && finalBasicDetails) {
+            const hasAddress = finalBasicDetails.fields.some(f =>
+                ['street', 'houseNumber', 'postalCode', 'city'].includes(f.key) && f.value
+            );
+
+            if (hasAddress) {
+                console.log('[DEBUG] Creating synthetic address section from basic details');
+                const street = finalBasicDetails.fields.find(f => f.key === 'street')?.value;
+                const houseNumber = finalBasicDetails.fields.find(f => f.key === 'houseNumber')?.value;
+                const postalCode = finalBasicDetails.fields.find(f => f.key === 'postalCode')?.value;
+                const city = finalBasicDetails.fields.find(f => f.key === 'city')?.value;
+
+                const addressText = [
+                    'Anschrift:',
+                    street && houseNumber && `${street} ${houseNumber}`,
+                    postalCode && city && `${postalCode} ${city}`,
+                ].filter(Boolean).join('\n');
+
+                // Find the position for address from basic details
+                const addressField = finalBasicDetails.fields.find(f => f.key === 'street' || f.key === 'city');
+
+                syntheticSections.push({
+                    id: `synthetic-address-${Date.now()}`,
+                    sectionType: 'core.address',
+                    confidence: 0.8,
+                    headingText: 'Anschrift',
+                    rawText: addressText,
+                    renderable: true,
+                    textPosition: addressField?.position ? [addressField.position] : [],
+                    items: [],
+                    _sectionIndex: -2, // Insert after property overview
+                } as ProcessedSection & { _sectionIndex: number });
+            }
+        }
+
+        // Add synthetic sections to processed sections
+        const allProcessedSections = [...syntheticSections, ...processedSections];
+
         // Store processed sections in database
         console.log('[DEBUG] Storing sections in database...');
-        const rows = processedSections.map((processed, index) => {
+        const rows = allProcessedSections.map((processed, index) => {
             const sectionIndex = (processed as any)._sectionIndex ?? index;
             const items = processed.items || null;
             return {

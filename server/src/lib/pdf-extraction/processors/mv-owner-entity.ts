@@ -20,6 +20,7 @@ export class MvOwnerEntityProcessor implements SectionProcessor {
     readonly sectionType = "mv.owner_entity" as const;
     readonly description = "Owner or landlord entity information";
     readonly isArrayBased = false;
+    readonly propertyTypeScope = "MV" as const;
 
     matches(section: PdfSection): number | null {
         if (section.lines.length < 2) return null;

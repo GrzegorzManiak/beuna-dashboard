@@ -31,7 +31,7 @@ export function UnitsStep({
         if (!incomingSections.length) return;
         setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
     }, [incomingSections]);
-    
+
     useEffect(() => {
         if (!isLoaded || !incomingSections.length) return;
         setSections(mapPropertySections(incomingSections));
@@ -217,7 +217,15 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
         } else {
             // For single-object sections, map as-is
             const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
-            const state = section.sectionType === "unknown" ? "unknown" : "needs_review";
+
+            // core.address is already collected in the Basic Details step, so
+            // mark it as valid immediately — it should be visible in the viewer
+            // but must not block progression.
+            const state = section.sectionType === "unknown"
+                ? "unknown"
+                : section.sectionType === "core.address"
+                    ? "valid"
+                    : "needs_review";
 
             result.push({
                 id: section.id,

@@ -163,9 +163,10 @@ export function PdfViewer({
                             setActiveSectionId?.(normalizedSection.id);
                             setDragMode?.(false);
 
-                            // Classify the selected text
+                            // Classify the selected text with heading context
+                            const headingText = result.heading || result.text.slice(0, 100);
                             try {
-                                const classification = await classifySection(propertyId, result.text);
+                                const classification = await classifySection(propertyId, result.text, headingText);
                                 onSectionUpdate(normalizedSection.id, {
                                     sectionType: classification.sectionType as any,
                                     state: "needs_review",

@@ -38,19 +38,18 @@ import { cn } from "@/lib/utils";
 
 type Option = { label: string; value: string };
 
-const SECTION_TYPE_OPTIONS: Array<{ label: string; value: SectionType }> = [
+type SectionTypeOption = { label: string; value: SectionType; scope?: "WEG" | "MV" };
+
+const SECTION_TYPE_OPTIONS: SectionTypeOption[] = [
     { label: "Property Overview", value: "core.property_overview" },
     { label: "Address", value: "core.address" },
-    { label: "Buildings", value: "core.buildings" },
     { label: "Building", value: "core.building" },
-    { label: "Unit Blocks", value: "units.unit_blocks" },
     { label: "Unit Block", value: "units.unit_block" },
-    { label: "Special Rights", value: "weg.special_rights" },
-    { label: "MEA Declaration", value: "weg.mea_declaration" },
-    { label: "Administration", value: "weg.administration" },
-    { label: "Property Manager", value: "weg.property_manager" },
-    { label: "Accountant", value: "weg.accountant" },
-    { label: "Owner Entity", value: "mv.owner_entity" },
+    { label: "Special Rights", value: "weg.special_rights", scope: "WEG" },
+    { label: "MEA Declaration", value: "weg.mea_declaration", scope: "WEG" },
+    { label: "Property Manager", value: "weg.property_manager", scope: "WEG" },
+    { label: "Accountant", value: "weg.accountant", scope: "WEG" },
+    { label: "Owner Entity", value: "mv.owner_entity", scope: "MV" },
     { label: "Unknown", value: "unknown" },
 ];
 
@@ -119,10 +118,8 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
             return <CorePropertyOverviewEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "core.address":
             return <CoreAddressEditor section={section} onSectionUpdate={onSectionUpdate} />;
-        case "core.buildings":
         case "core.building":
             return <CoreBuildingEditor section={section} onSectionUpdate={onSectionUpdate} />;
-        case "units.unit_blocks":
         case "units.unit_block":
             return (
                 <UnitsUnitBlockEditor
@@ -136,7 +133,6 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
             return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
         case "weg.mea_declaration":
             return <WegMeaTotalCheckEditor />;
-        case "weg.administration":
         case "weg.property_manager":
         case "weg.accountant":
             return <WegAdministrationBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
@@ -187,9 +183,9 @@ function PdfSplitToolbar({
 
     const availableBuildings = useMemo(() => {
         const buildingMap = new Map<string, string>();
-        
+
         sections
-            .filter((section) => section.sectionType === "core.building" || section.sectionType === "core.buildings")
+            .filter((section) => section.sectionType === "core.building")
             .forEach((section) => {
                 const uuid = section.fields?.buildingUuid;
                 const label = section.fields?.label;
@@ -211,21 +207,26 @@ function PdfSplitToolbar({
     const sectionTypeValue = activeSection?.sectionType ?? "unknown";
     const typeLabel = SECTION_TYPE_OPTIONS.find((option) => option.value === sectionTypeValue)?.label;
 
+    // Filter section type options based on the property type.
+    // Options with no scope are always shown; scoped options only appear for
+    // the matching property type.
+    const filteredTypeOptions = useMemo(() =>
+        SECTION_TYPE_OPTIONS.filter((opt) => !opt.scope || opt.scope === propertyType),
+        [propertyType],
+    );
+
     const getActionButtonText = (): string => {
         if (!activeSection) return "Next";
         
         switch (sectionTypeValue) {
-            case "core.buildings":
             case "core.building":
                 return "Confirm building";
-            case "units.unit_blocks":
             case "units.unit_block":
                 return "Confirm unit";
             case "core.property_overview":
                 return "Confirm property";
             case "core.address":
                 return "Confirm address";
-            case "weg.administration":
             case "weg.property_manager":
             case "weg.accountant":
                 return "Confirm administration";
@@ -343,7 +344,7 @@ function PdfSplitToolbar({
                 <div className="flex flex-col gap-1">
                     <Label className="text-xs text-gray-600">Section type</Label>
                     <OptionCombobox
-                        options={SECTION_TYPE_OPTIONS}
+                        options={filteredTypeOptions}
                         value={sectionTypeValue}
                         disabled={!activeSection || !onSectionUpdate || isIdentifying}
                         placeholder="Select section type"

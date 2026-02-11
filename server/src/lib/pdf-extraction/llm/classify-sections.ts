@@ -5,13 +5,12 @@ type SectionType =
     | "core.property_overview"
     | "core.address"
     | "core.building"
-    | "core.building_shared_features"
     | "units.unit_block"
-    | "weg.special_rights_block"
-    | "weg.mea_total_check"
-    | "weg.administration_property_manager"
-    | "weg.administration_accountant"
-    | "mv.owner_entity_block"
+    | "weg.special_rights"
+    | "weg.mea_declaration"
+    | "weg.property_manager"
+    | "weg.accountant"
+    | "mv.owner_entity"
     | "unknown";
 
 type SectionClassification = {
@@ -28,14 +27,13 @@ type SectionClassificationResult = {
 const SECTION_TYPE_DESCRIPTIONS: Record<SectionType, string> = {
     "core.property_overview": "High-level property identity, name, or overview of the asset.",
     "core.address": "Primary property address lines.",
-    "core.building": "One building description block, includes building name or address.",
-    "core.building_shared_features": "Shared building infrastructure or energy standards.",
+    "core.building": "Building description block, includes building name or address.",
     "units.unit_block": "Unit block descriptions or lists of units (apartments, parking, etc.).",
-    "weg.special_rights_block": "Special usage rights (Sondernutzungsrechte) sections.",
-    "weg.mea_total_check": "MEA totals or checks for co-ownership shares.",
-    "weg.administration_property_manager": "Property manager appointment details (Verwalter), including combined Verwaltung/Buchhaltung appointment sections such as 'Erstbestellung von Verwaltung und Buchhaltung'.",
-    "weg.administration_accountant": "Accountant or finance appointment details (Buchhaltung/Abrechnung).",
-    "mv.owner_entity_block": "Owner or landlord entity information.",
+    "weg.special_rights": "Special usage rights (Sondernutzungsrechte) sections.",
+    "weg.mea_declaration": "MEA declaration (Miteigentumsanteile) - total co-ownership shares.",
+    "weg.property_manager": "Property manager appointment details (Verwalter), including combined Verwaltung/Buchhaltung appointment sections such as 'Erstbestellung von Verwaltung und Buchhaltung'.",
+    "weg.accountant": "Accountant or finance appointment details (Buchhaltung/Abrechnung).",
+    "mv.owner_entity": "Owner or landlord entity information.",
     "unknown": "Does not match any known type.",
 };
 
@@ -65,7 +63,7 @@ const buildMessages = (section: PdfSection): LlmMessage[] => {
                 "Choose the single best sectionType from the list.",
                 "Return JSON that matches the schema.",
                 "Use unknown when unsure.",
-                "If a section mentions both Verwaltung/Verwalter and Buchhaltung/Abrechnung, choose weg.administration_property_manager.",
+                "If a section mentions both Verwaltung/Verwalter and Buchhaltung/Abrechnung, choose weg.property_manager.",
                 "Section types:",
                 typeHints,
             ].join("\n"),

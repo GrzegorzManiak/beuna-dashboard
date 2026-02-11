@@ -9,6 +9,19 @@ import {
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 import { SECTION_TYPE_OPTIONS } from "./PdfSplitToolbar";
 
+// Section types that should be rendered as highlights and sidebar items
+const RENDERABLE_SECTION_TYPES = [
+    "core.property_overview",
+    "core.address",
+    "core.building",
+    "units.unit_block",
+    "weg.special_rights",
+    "weg.mea_declaration",
+    "weg.property_manager",
+    "weg.accountant",
+    "mv.owner_entity",
+] as const;
+
 type SectionBarProps = {
     sectionData: Array<SectionData>;
     pageMetrics: Record<number, PageMetrics>;
@@ -60,8 +73,14 @@ function SectionBar({
         // Don't render items until we have page metrics
         const hasMetrics = Object.keys(pageMetrics).length > 0;
         if (!hasMetrics) return [];
-        
-        const items = sectionData
+
+        // Filter to only renderable section types
+        const renderableSections = sectionData.filter((section) =>
+            section.sectionType &&
+            RENDERABLE_SECTION_TYPES.includes(section.sectionType as any)
+        );
+
+        const items = renderableSections
             .map((section) => {
                 const pageNumber = section.textPosition.page[0];
                 const metrics = pageMetrics[pageNumber];

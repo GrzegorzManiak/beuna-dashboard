@@ -626,6 +626,43 @@ function PdfDragSelectionLayer({
                 .replace(/\s+/g, " ")
                 .trim();
 
+            // Extract heading/context from text above the selection
+            let headingText = "";
+            if (startPage === endPage) {
+                const firstPageBox = textMatchesByPage.get(startPage);
+                if (firstPageBox && firstPageBox.length > 0) {
+                    // Find the top of the selection in container coordinates
+                    const selectionTop = firstPageTop;
+                    const container = pageContainerRef.current;
+                    if (container) {
+                        const slice = getSelectionSlice(startPage, (firstPageTop + lastPageBottom) / 2);
+                        const textSpans = Array.from(
+                            container.querySelectorAll(
+                                `[data-page-number="${startPage}"][data-slice="${slice}"] .textLayer span`,
+                            ),
+                        ) as HTMLSpanElement[];
+
+                        // Find text above the selection (within ~200px)
+                        const headingCandidates = textSpans
+                            .map(span => {
+                                const rect = span.getBoundingClientRect();
+                                const containerRect = container.getBoundingClientRect();
+                                return {
+                                    text: span.textContent || "",
+                                    top: rect.top - containerRect.top,
+                                };
+                            })
+                            .filter(item => item.top < selectionTop - 10 && item.top > selectionTop - 200)
+                            .sort((a, b) => b.top - a.top) // Closest to selection first
+                            .slice(0, 3)
+                            .map(item => item.text)
+                            .join(" ");
+
+                        headingText = headingCandidates || "";
+                    }
+                }
+            }
+
             const textRects = allTextMatches
                 .map((item) => ({
                     left: item.intersectionLeft,
@@ -639,6 +676,7 @@ function PdfDragSelectionLayer({
                 endPage,
                 boxes,
                 text: selectedText,
+                heading: headingText,
                 textRects,
             });
         },
