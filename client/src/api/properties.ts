@@ -185,6 +185,34 @@ async function fetchPropertySections(propertyId: string, waitMs = 25_000): Promi
     return data;
 }
 
+type ClassifySectionResponse = {
+    sectionType: PropertySectionType;
+    confidence: number;
+    error?: string;
+};
+
+async function classifySection(propertyId: string, text: string, heading?: string): Promise<ClassifySectionResponse> {
+    const response = await apiFetch(`/api/properties/${propertyId}/classify-section`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text, heading }),
+    });
+
+    if (!response.ok) {
+        const payload = (await response.json()) as { error?: string } | null;
+        return {
+            sectionType: "unknown",
+            confidence: 0,
+            error: payload?.error ?? `Classification failed (${response.status})`,
+        };
+    }
+
+    const data = (await response.json()) as ClassifySectionResponse;
+    return data;
+}
+
 function useCreatePropertyMutation() {
     return useMutation<CreatePropertyResponse, Error, File>({
         mutationFn: createPropertyFromPdf,
@@ -230,6 +258,7 @@ export {
     fetchPropertyDocument,
     usePropertyDocumentQuery,
     fetchPropertySections,
+    classifySection,
     type PropertyDetail,
     type PropertyManagementType,
     type PropertyStatus,
@@ -238,6 +267,7 @@ export {
     type PropertySectionsResponse,
     type BasicDetailsExtract,
     type BasicDetailsField,
+    type ClassifySectionResponse,
     type CreatePropertyResponse,
     type GetPropertyResponse,
     type UpdatePropertyBody,

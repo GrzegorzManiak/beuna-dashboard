@@ -1,6 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "ws";
 import { prisma } from "@db";
+import { classifySections } from "../../lib/pdf-extraction/llm/classify-sections";
 import type {
     UpdatePropertyBody,
     PropertyIdParams,
@@ -380,6 +381,71 @@ async function updatePropertyHandler(
     return reply.send({ property });
 }
 
+type ClassifySectionBody = {
+    text: string;
+    heading?: string;
+};
+
+type ClassifySectionParams = PropertyIdParams;
+
+async function classifySectionHandler(
+    req: FastifyRequest<{ Params: ClassifySectionParams; Body: ClassifySectionBody }>,
+    reply: FastifyReply
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId } = req.params;
+    const { text, heading } = req.body;
+
+    if (!text || typeof text !== "string") {
+        return reply.code(400).send({ error: "text is required and must be a string" });
+    }
+
+    // Verify user has access to this property
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+
+    if (!property) {
+        return reply.code(404).send({ error: "Property not found" });
+    }
+
+    try {
+        // Create a mock PdfSection for classification
+        const mockSection = {
+            id: `user-selection-${Date.now()}`,
+            heading: { text: heading || text.slice(0, 50) } as any,
+            lines: [] as any[],
+            rawText: text,
+            textPosition: [] as any[],
+        };
+
+        const result = await classifySections([mockSection], 1);
+
+        if (result.classifications.length === 0) {
+            return reply.send({
+                sectionType: "unknown",
+                confidence: 0,
+            });
+        }
+
+        const classification = result.classifications[0];
+        return reply.send({
+            sectionType: classification.sectionType,
+            confidence: classification.confidence,
+        });
+    } catch (error) {
+        console.error("Error classifying section:", error);
+        return reply.code(500).send({
+            error: "Classification failed",
+            sectionType: "unknown",
+            confidence: 0,
+        });
+    }
+}
+
 export {
     listPropertiesHandler,
     createPropertyHandler,
@@ -388,4 +454,5 @@ export {
     getPropertySectionsStreamHandler,
     getPropertySectionsHandler,
     updatePropertyHandler,
+    classifySectionHandler,
 };

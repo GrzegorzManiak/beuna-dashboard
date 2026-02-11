@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { classifySection } from "@/api/properties";
 import { PdfRenderer } from "./PdfRenderer";
 import { handleAutoSplit, normalizeSectionBoxes } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
@@ -14,6 +15,7 @@ interface PdfViewerProps {
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     onSectionDelete?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
+    propertyId?: string;
     autoSplitOnSelection?: boolean;
     autoSplitOnSectionClick?: boolean;
     // State can be provided externally or managed internally
@@ -73,6 +75,7 @@ export function PdfViewer({
     onSectionUpdate,
     onSectionDelete,
     propertyType = "WEG",
+    propertyId,
     autoSplitOnSelection = true,
     pageMetrics,
     setPageMetrics,
@@ -127,11 +130,11 @@ export function PdfViewer({
                     propertyType={propertyType}
                     dragMode={dragMode}
                     textWrappingEnabled={true}
-                    onDragSelection={(result) => {
+                    onDragSelection={async (result) => {
                         console.log("Selected:", result);
 
                         // Convert DragSelectionResult to SectionData
-                        if (onSectionAdd) {
+                        if (onSectionAdd && propertyId) {
                             const pages = result.boxes.map((b) => b.page);
                             const rawSection: SectionData = {
                                 id: `section-${Date.now()}`,
@@ -160,12 +163,18 @@ export function PdfViewer({
                             setActiveSectionId?.(normalizedSection.id);
                             setDragMode?.(false);
 
-                            if (onSectionUpdate) {
-                                window.setTimeout(() => {
-                                    onSectionUpdate(normalizedSection.id, {
-                                        state: "unknown",
-                                    });
-                                }, 1200);
+                            // Classify the selected text
+                            try {
+                                const classification = await classifySection(propertyId, result.text);
+                                onSectionUpdate(normalizedSection.id, {
+                                    sectionType: classification.sectionType as any,
+                                    state: "needs_review",
+                                });
+                            } catch (error) {
+                                console.error("Classification failed:", error);
+                                onSectionUpdate(normalizedSection.id, {
+                                    state: "unknown",
+                                });
                             }
 
                             // Open split toolbar below the selected area (on the last page)

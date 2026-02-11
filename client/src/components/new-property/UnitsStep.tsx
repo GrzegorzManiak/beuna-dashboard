@@ -113,6 +113,7 @@ export function UnitsStep({
                                     pdfScale={1}
                                     sections={sections}
                                     propertyType={propertyType}
+                                    propertyId={propertyId}
                                     onSectionAdd={handleSectionAdd}
                                     onSectionUpdate={handleSectionUpdate}
                                     onSectionDelete={handleSectionDelete}

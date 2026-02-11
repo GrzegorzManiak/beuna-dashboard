@@ -7,6 +7,7 @@ import {
     getPropertySectionsStreamHandler,
     getPropertySectionsHandler,
     updatePropertyHandler,
+    classifySectionHandler,
 } from "@feature/properties/properties.handlers";
 
 const propertySummarySchema = {
@@ -354,6 +355,66 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, updatePropertyHandler);
+
+    app.post("/:propertyId/classify-section", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Classify a user-selected text section.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            body: {
+                type: "object",
+                properties: {
+                    text: { type: "string" },
+                    heading: { type: "string" },
+                },
+                required: ["text"],
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        sectionType: { type: "string" },
+                        confidence: { type: "number" },
+                    },
+                    required: ["sectionType", "confidence"],
+                    additionalProperties: false,
+                },
+                400: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                500: {
+                    type: "object",
+                    properties: { error: { type: "string" }, sectionType: { type: "string" }, confidence: { type: "number" } },
+                    required: ["sectionType", "confidence"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, classifySectionHandler);
 };
 
 export {
