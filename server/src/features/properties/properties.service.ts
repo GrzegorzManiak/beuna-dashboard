@@ -37,6 +37,8 @@ type StoredSection = {
     confidence: number;
     renderable: boolean;
     items?: SectionItem[];
+    state?: string | null;
+    fields?: Record<string, unknown> | null;
 };
 
 type StartSectionTaskOptions = {
@@ -142,6 +144,8 @@ async function getStoredSections(propertyId: string): Promise<StoredSection[]> {
             confidence: true,
             renderable: true,
             items: true,
+            state: true,
+            fields: true,
         },
     });
     
@@ -155,6 +159,8 @@ async function getStoredSections(propertyId: string): Promise<StoredSection[]> {
             height: number;
         }>,
         items: section.items as SectionItem[] | undefined,
+        state: section.state ?? null,
+        fields: section.fields as Record<string, unknown> | null,
     })) as StoredSection[];
 }
 
@@ -234,35 +240,8 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
             : null;
 
         if (!needsSections) {
-            // Sections already exist — update classifications, renderable flags, and items
-            for (const classification of classifications) {
-                const sectionIndex = preProcessedSections.findIndex(
-                    (s) => s.id === classification.sectionId
-                );
-                if (sectionIndex < 0) continue;
-
-                const rawSection = preProcessedSections[sectionIndex];
-                if (!rawSection) continue;
-
-                const processed = await classification.processor.process(rawSection);
-
-                await prisma.propertySection.updateMany({
-                    where: {
-                        propertyId,
-                        sectionIndex,
-                    },
-                    data: {
-                        textPosition: rawSection.textPosition,
-                        sectionType: classification.processor.sectionType,
-                        confidence: classification.confidence,
-                        renderable: processed.renderable !== false,
-                        items: processed.items?.length
-                            ? JSON.parse(JSON.stringify(processed.items))
-                            : undefined,
-                    },
-                });
-            }
-
+            // Sections already exist in the DB — nothing to do.
+            // Basic details may still need extracting if they were missed previously.
             if (basicDetailsTask && awaitBasicDetails) {
                 const extract = await basicDetailsTask;
                 options.onBasicDetailsUpdated?.(extract ?? null);

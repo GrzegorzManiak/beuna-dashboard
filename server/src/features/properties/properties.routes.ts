@@ -8,6 +8,9 @@ import {
     updatePropertyHandler,
     classifySectionHandler,
     extractSectionFieldsHandler,
+    createPropertySectionHandler,
+    updatePropertySectionHandler,
+    deletePropertySectionHandler,
 } from "@feature/properties/properties.handlers";
 
 const propertySummarySchema = {
@@ -19,8 +22,9 @@ const propertySummarySchema = {
         managementType: { type: "string", enum: ["UNKNOWN", "WEG", "MV"] },
         status: { type: "string", enum: ["DRAFT", "ACTIVE"] },
         relation: { type: "string", enum: ["MANAGER", "ACCOUNTANT"] },
+        buildingCount: { type: "integer" },
     },
-    required: ["id", "propertyNumber", "name", "managementType", "status", "relation"],
+    required: ["id", "propertyNumber", "name", "managementType", "status", "relation", "buildingCount"],
     additionalProperties: false,
 };
 
@@ -420,6 +424,164 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, extractSectionFieldsHandler);
+
+    app.post("/:propertyId/sections", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Create a user-drawn section for a property.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            body: {
+                type: "object",
+                properties: {
+                    headingText: { type: "string" },
+                    rawText: { type: "string" },
+                    textPosition: {},
+                    sectionType: { type: "string" },
+                    confidence: { type: "number" },
+                    state: { type: "string" },
+                    fields: { type: "object", additionalProperties: true },
+                },
+                required: ["textPosition"],
+                additionalProperties: false,
+            },
+            response: {
+                201: {
+                    type: "object",
+                    properties: {
+                        section: {
+                            type: "object",
+                            additionalProperties: true,
+                        },
+                    },
+                    required: ["section"],
+                    additionalProperties: false,
+                },
+                400: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, createPropertySectionHandler);
+
+    app.patch("/:propertyId/sections/:sectionId", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Update a section (state, fields, sectionType, etc.).",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                    sectionId: { type: "string" },
+                },
+                required: ["propertyId", "sectionId"],
+                additionalProperties: false,
+            },
+            body: {
+                type: "object",
+                properties: {
+                    sectionType: { type: "string" },
+                    confidence: { type: "number" },
+                    state: { type: "string" },
+                    fields: {},
+                    rawText: { type: "string" },
+                    headingText: { type: "string" },
+                    items: {},
+                },
+                minProperties: 1,
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        section: {
+                            type: "object",
+                            additionalProperties: true,
+                        },
+                    },
+                    required: ["section"],
+                    additionalProperties: false,
+                },
+                400: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, updatePropertySectionHandler);
+
+    app.delete("/:propertyId/sections/:sectionId", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Delete a section.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                    sectionId: { type: "string" },
+                },
+                required: ["propertyId", "sectionId"],
+                additionalProperties: false,
+            },
+            response: {
+                204: {
+                    type: "null",
+                    description: "Section deleted.",
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, deletePropertySectionHandler);
 };
 
 export {

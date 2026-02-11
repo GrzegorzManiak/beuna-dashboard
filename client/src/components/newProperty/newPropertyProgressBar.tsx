@@ -17,7 +17,7 @@ const STEPS: StepDefinition[] = [
     { label: "Upload Document", icon: FileUp },
     { label: "Property Type", icon: Building },
     { label: "Basic Details", icon: ClipboardList },
-    { label: "Units", icon: Grid },
+    { label: "Sections", icon: Grid },
     { label: "Review", icon: CheckCircle },
 ];
 

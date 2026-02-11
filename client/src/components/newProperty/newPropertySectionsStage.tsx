@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdfViewer";
 import type { SectionData } from "@/components/pdfViewer";
 import type { PropertySection } from "@/api/properties";
 import { usePropertyDocumentQuery } from "@/hooks/usePropertyDocumentQuery";
 import { useSectionExtraction } from "@/hooks/useSectionExtraction";
+import { useCreateSectionMutation } from "@/hooks/useCreateSectionMutation";
+import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
+import { useDeleteSectionMutation } from "@/hooks/useDeleteSectionMutation";
 
-type NewPropertyUnitsStageProps = {
+type NewPropertySectionsStageProps = {
     onNext: () => void;
     onBack: () => void;
     propertyId: string;
@@ -14,19 +17,27 @@ type NewPropertyUnitsStageProps = {
     sectionsProcessing: boolean;
 };
 
-function NewPropertyUnitsStage({
+function NewPropertySectionsStage({
     onNext,
     onBack,
     propertyId,
     sections: incomingSections,
     propertyType,
     sectionsProcessing,
-}: NewPropertyUnitsStageProps){
+}: NewPropertySectionsStageProps){
     const [sections, setSections] = useState<SectionData[]>([]);
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
     const { data: documentBlob, isLoading: isDocumentLoading, isError: isDocumentError, error: documentError } = usePropertyDocumentQuery(propertyId);
     const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+
+    // Maps item-expanded IDs (e.g. "unit-10-xxx") to their parent section UUID
+    // so the extraction hook can persist item results back to the parent's items JSON.
+    const itemToParentMapRef = useRef<Map<string, string>>(new Map());
+
+    const createSectionMutation = useCreateSectionMutation();
+    const updateSectionMutation = useUpdateSectionMutation();
+    const deleteSectionMutation = useDeleteSectionMutation();
 
     // Automatic LLM field extraction for sections in "processing" state.
     // Enabled once sections have been mapped and the viewer is loaded.
@@ -35,16 +46,22 @@ function NewPropertyUnitsStage({
         sections,
         onSectionUpdate: handleSectionUpdate,
         enabled: isLoaded && sections.length > 0,
+        itemToParentMapRef,
+        incomingSections,
     });
 
     useEffect(() => {
         if (!incomingSections.length) return;
-        setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
+        const { sections: mapped, itemToParentMap } = mapPropertySections(incomingSections);
+        itemToParentMapRef.current = itemToParentMap;
+        setSections((prev) => mergeSectionData(prev, mapped));
     }, [incomingSections]);
 
     useEffect(() => {
         if (!isLoaded || !incomingSections.length) return;
-        setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
+        const { sections: mapped, itemToParentMap } = mapPropertySections(incomingSections);
+        itemToParentMapRef.current = itemToParentMap;
+        setSections((prev) => mergeSectionData(prev, mapped));
     }, [isLoaded]);
 
     useEffect(() => {
@@ -63,16 +80,57 @@ function NewPropertyUnitsStage({
 
     function handleSectionAdd(newSection: SectionData ){
         setSections((prev) => [...prev, newSection]);
+
+        // Persist the new section to the server and swap the temp id for the real one
+        createSectionMutation.mutateAsync({
+            propertyId,
+            headingText: "",
+            rawText: newSection.rawText ?? "",
+            textPosition: newSection.textPosition,
+            sectionType: newSection.sectionType ?? "unknown",
+            confidence: 0,
+            state: newSection.state ?? "identifying",
+        }).then((response) => {
+            const serverId = response.section.id;
+            setSections((prev) =>
+                prev.map((s) => (s.id === newSection.id ? { ...s, id: serverId } : s)),
+            );
+        }).catch((err) => {
+            console.error("[createSection] Failed to persist new section:", err);
+        });
     }
 
     function handleSectionUpdate(sectionId: string, updates: Partial<SectionData> ){
         setSections((prev) =>
             prev.map((section) => (section.id === sectionId ? { ...section, ...updates } : section)),
         );
+
+        // Persist meaningful state changes to the server (only for real DB UUIDs)
+        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sectionId);
+        if (isDbId && (updates.state || updates.fields || updates.sectionType || updates.rawText)) {
+            updateSectionMutation.mutateAsync({
+                propertyId,
+                sectionId,
+                ...(updates.state ? { state: updates.state } : {}),
+                ...(updates.fields ? { fields: updates.fields } : {}),
+                ...(updates.sectionType ? { sectionType: updates.sectionType } : {}),
+                ...(updates.rawText ? { rawText: updates.rawText } : {}),
+            }).catch((err) => {
+                console.error(`[updateSection] Failed to persist section ${sectionId}:`, err);
+            });
+        }
     }
 
     function handleSectionDelete(sectionId: string ){
         setSections((prev) => prev.filter((section) => section.id !== sectionId));
+
+        // Persist deletion to the server (only for real DB UUIDs)
+        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sectionId);
+        if (isDbId) {
+            deleteSectionMutation.mutateAsync({ propertyId, sectionId }).catch((err) => {
+                console.error(`[deleteSection] Failed to delete section ${sectionId}:`, err);
+            });
+        }
     }
 
     return (
@@ -189,10 +247,16 @@ function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; w
 
 function mapPropertySections(sections: PropertySection[] ){
     const result: SectionData[] = [];
+    const itemToParent = new Map<string, string>();
 
     for (const section of sections) {
         const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
         
+        // If the section already has a persisted state (from a previous extraction),
+        // use it directly to avoid re-running expensive LLM extraction.
+        const hasPersistedState = section.state && section.state !== "processing";
+        const hasPersistedFields = section.fields && Object.keys(section.fields).length > 0;
+
         if (isArrayContainer) {
             // For array containers (buildings, units, administration), expand items into individual sections
             
@@ -206,43 +270,79 @@ function mapPropertySections(sections: PropertySection[] ){
                 const itemType = (item.sectionType ?? section.sectionType) as any;
                 
                 const itemPositions = item.textPosition || [];
-                
-                result.push({
-                    id: item.id || `${section.id}-item-${i}`,
-                    textPosition: computeBoundingBox(itemPositions),
-                    state: "processing",
-                    sectionType: itemType as any,
-                    reusable: section.reusable,
-                    rawText: item.rawText || "",
-                    fields: {},
-                });
+
+                const itemId = item.id || `${section.id}-item-${i}`;
+
+                // Track which parent UUID owns this item so we can persist
+                // item extraction results back into the parent's items JSON.
+                itemToParent.set(itemId, section.id);
+
+                // If the item already carries persisted state/fields (saved from
+                // a previous extraction), honour them to avoid re-extraction.
+                const itemHasPersistedState = item.state && item.state !== "processing";
+                const itemHasPersistedFields = item.fields && Object.keys(item.fields).length > 0;
+
+                if (itemHasPersistedState) {
+                    result.push({
+                        id: itemId,
+                        textPosition: computeBoundingBox(itemPositions),
+                        state: item.state as SectionData["state"],
+                        sectionType: itemType as any,
+                        reusable: section.reusable,
+                        rawText: item.rawText || "",
+                        fields: (itemHasPersistedFields ? item.fields : {}) as Record<string, string | number | boolean | null>,
+                    });
+                } else {
+                    result.push({
+                        id: itemId,
+                        textPosition: computeBoundingBox(itemPositions),
+                        state: "processing",
+                        sectionType: itemType as any,
+                        reusable: section.reusable,
+                        rawText: item.rawText || "",
+                        fields: {},
+                    });
+                }
             }
         } else {
             // For single-object sections, map as-is
             const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
 
-            // core.address is already collected in the Basic Details step, so
-            // mark it as valid immediately — it should be visible in the viewer
-            // but must not block progression.
-            const state = section.sectionType === "unknown"
-                ? "unknown"
-                : section.sectionType === "core.address"
-                    ? "valid"
-                    : "processing";
+            // If state/fields were persisted from a previous session, honour them.
+            if (hasPersistedState) {
+                result.push({
+                    id: section.id,
+                    textPosition: computeBoundingBox(positions),
+                    state: section.state as SectionData["state"],
+                    sectionType: section.sectionType,
+                    reusable: section.reusable,
+                    rawText: section.rawText || "",
+                    fields: (hasPersistedFields ? section.fields : {}) as Record<string, string | number | boolean | null>,
+                });
+            } else {
+                // core.address is already collected in the Basic Details step, so
+                // mark it as valid immediately — it should be visible in the viewer
+                // but must not block progression.
+                const state = section.sectionType === "unknown"
+                    ? "unknown"
+                    : section.sectionType === "core.address"
+                        ? "valid"
+                        : "processing";
 
-            result.push({
-                id: section.id,
-                textPosition: computeBoundingBox(positions),
-                state,
-                sectionType: section.sectionType,
-                reusable: section.reusable,
-                rawText: section.rawText || "",
-                fields: {},
-            });
+                result.push({
+                    id: section.id,
+                    textPosition: computeBoundingBox(positions),
+                    state,
+                    sectionType: section.sectionType,
+                    reusable: section.reusable,
+                    rawText: section.rawText || "",
+                    fields: {},
+                });
+            }
         }
     }
     
-    return result;
+    return { sections: result, itemToParentMap: itemToParent };
 }
 
 function mergeSectionData(existing: SectionData[], incoming: SectionData[] ){
@@ -277,5 +377,5 @@ function mergeSectionData(existing: SectionData[], incoming: SectionData[] ){
 }
 
 export {
-    NewPropertyUnitsStage,
+    NewPropertySectionsStage,
 };

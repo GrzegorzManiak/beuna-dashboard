@@ -8,6 +8,9 @@ import type {
     UpdatePropertyBody,
     PropertyIdParams,
     PropertySectionsStreamQuery,
+    SectionIdParams,
+    CreateSectionBody,
+    UpdateSectionBody,
 } from "./properties";
 import {
     DEFAULT_DOCUMENT_NAME,
@@ -44,6 +47,29 @@ async function listPropertiesHandler(
         orderBy: { propertyNumber: "asc" },
     });
 
+    const propertyIds = properties.map((property) => property.id);
+    const sections = propertyIds.length > 0
+        ? await prisma.propertySection.findMany({
+            where: {
+                propertyId: { in: propertyIds },
+                sectionType: "core.building",
+            },
+            select: {
+                propertyId: true,
+                items: true,
+            },
+        })
+        : [];
+
+    const buildingCountByPropertyId = new Map<string, number>();
+    for (const section of sections) {
+        const countForSection = Array.isArray(section.items) && section.items.length > 0
+            ? section.items.length
+            : 1;
+        const previous = buildingCountByPropertyId.get(section.propertyId) ?? 0;
+        buildingCountByPropertyId.set(section.propertyId, previous + countForSection);
+    }
+
     const result = properties.map((p) => ({
         id: p.id,
         propertyNumber: p.propertyNumber,
@@ -51,6 +77,7 @@ async function listPropertiesHandler(
         managementType: p.managementType,
         status: p.status,
         relation: p.managerId === user.id ? "MANAGER" : "ACCOUNTANT",
+        buildingCount: buildingCountByPropertyId.get(p.id) ?? 0,
     }));
 
     return reply.send({ properties: result });
@@ -194,6 +221,17 @@ async function getPropertySectionsStreamHandler(
 
     if (!property) {
         sendSocketPayload(socket, { error: "Property not found." });
+        socket.close();
+        return;
+    }
+
+    // If sections have already been processed and stored, just return them
+    // immediately. No need to re-extract, re-classify, or re-process anything.
+    const storedSections = await getStoredSections(propertyId);
+    if (storedSections.length > 0) {
+        const basicDetails = await getBasicDetailsExtract(propertyId);
+        sendSocketPayload(socket, { status: "ready", sections: storedSections, basicDetails });
+        sendSocketPayload(socket, { status: "complete", sections: storedSections, basicDetails });
         socket.close();
         return;
     }
@@ -419,6 +457,25 @@ async function extractSectionFieldsHandler(
 
         console.log(`[extract] ${sectionType} ${sectionId} →`, JSON.stringify(fields));
 
+        // Persist extraction result to the database so it won't be re-extracted.
+        // Only attempt for real DB UUIDs — item-expanded IDs (e.g. "unit-10-...")
+        // are client-only and don't exist in the PropertySection table.
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (UUID_RE.test(sectionId)) {
+            try {
+                await prisma.propertySection.updateMany({
+                    where: { id: sectionId, propertyId },
+                    data: {
+                        fields: fields as any,
+                        state: "needs_review",
+                    },
+                });
+            } catch (persistErr) {
+                // Non-critical — the client will also try to persist
+                console.error(`[extract] Failed to persist fields for ${sectionId}:`, persistErr);
+            }
+        }
+
         return reply.send({
             sectionId,
             fields,
@@ -430,6 +487,133 @@ async function extractSectionFieldsHandler(
     }
 }
 
+async function createPropertySectionHandler(
+    req: FastifyRequest<{ Params: PropertyIdParams; Body: CreateSectionBody }>,
+    reply: FastifyReply,
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId } = req.params;
+    const { headingText, rawText, textPosition, sectionType, confidence, state, fields } = req.body;
+
+    if (!textPosition) {
+        return reply.code(400).send({ error: "textPosition is required." });
+    }
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+    if (!property) return reply.code(404).send({ error: "Property not found." });
+
+    // Determine next sectionIndex
+    const maxIndex = await prisma.propertySection.aggregate({
+        where: { propertyId },
+        _max: { sectionIndex: true },
+    });
+    const nextIndex = (maxIndex._max.sectionIndex ?? -1) + 1;
+
+    const section = await prisma.propertySection.create({
+        data: {
+            propertyId,
+            sectionIndex: nextIndex,
+            headingText: headingText ?? "",
+            rawText: rawText ?? "",
+            textPosition: textPosition as any,
+            sectionType: sectionType ?? "unknown",
+            confidence: confidence ?? 0,
+            state: state ?? null,
+            fields: fields ? (fields as any) : undefined,
+        },
+        select: {
+            id: true,
+            sectionIndex: true,
+            headingText: true,
+            rawText: true,
+            textPosition: true,
+            sectionType: true,
+            confidence: true,
+            renderable: true,
+            state: true,
+            fields: true,
+            items: true,
+        },
+    });
+
+    return reply.code(201).send({ section });
+}
+
+async function updatePropertySectionHandler(
+    req: FastifyRequest<{ Params: SectionIdParams; Body: UpdateSectionBody }>,
+    reply: FastifyReply,
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId, sectionId } = req.params;
+    const { sectionType, confidence, state, fields, rawText, headingText, items } = req.body;
+
+    const existing = await prisma.propertySection.findFirst({
+        where: { id: sectionId, propertyId },
+        select: { id: true },
+    });
+    if (!existing) return reply.code(404).send({ error: "Section not found." });
+
+    const data: Record<string, unknown> = {};
+    if (sectionType !== undefined) data.sectionType = sectionType;
+    if (confidence !== undefined) data.confidence = confidence;
+    if (state !== undefined) data.state = state;
+    if (fields !== undefined) data.fields = fields;
+    if (rawText !== undefined) data.rawText = rawText;
+    if (headingText !== undefined) data.headingText = headingText;
+    if (items !== undefined) data.items = items;
+
+    if (!Object.keys(data).length) {
+        return reply.code(400).send({ error: "No fields to update." });
+    }
+
+    const section = await prisma.propertySection.update({
+        where: { id: sectionId },
+        data,
+        select: {
+            id: true,
+            sectionIndex: true,
+            headingText: true,
+            rawText: true,
+            textPosition: true,
+            sectionType: true,
+            confidence: true,
+            renderable: true,
+            state: true,
+            fields: true,
+            items: true,
+        },
+    });
+
+    return reply.send({ section });
+}
+
+async function deletePropertySectionHandler(
+    req: FastifyRequest<{ Params: SectionIdParams }>,
+    reply: FastifyReply,
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId, sectionId } = req.params;
+
+    const existing = await prisma.propertySection.findFirst({
+        where: { id: sectionId, propertyId },
+        select: { id: true },
+    });
+    if (!existing) return reply.code(404).send({ error: "Section not found." });
+
+    await prisma.propertySection.delete({ where: { id: sectionId } });
+
+    return reply.code(204).send();
+}
+
 export {
     listPropertiesHandler,
     createPropertyHandler,
@@ -439,4 +623,7 @@ export {
     updatePropertyHandler,
     classifySectionHandler,
     extractSectionFieldsHandler,
+    createPropertySectionHandler,
+    updatePropertySectionHandler,
+    deletePropertySectionHandler,
 };

@@ -15,6 +15,8 @@ export type SectionItem = {
     sectionType?: SectionType;
     /** State of this item */
     state?: "valid" | "needs_review" | "unknown" | "conflict";
+    /** Extracted field data persisted after LLM extraction */
+    fields?: Record<string, string | number | boolean | null> | null;
     /** Confidence score for this item */
     confidence?: number;
     /** Position of this item in the PDF */

@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import { useExtractSectionFieldsMutation } from "@/hooks/useExtractSectionFieldsMutation";
+import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType } from "@shared/section-types";
 import type { SectionData, SectionState } from "@/components/pdfViewer/pdfViewer.types";
+import type { PropertySection } from "@/api/properties";
 
 const EXTRACTABLE_STATES: SectionState[] = ["processing"];
 const LOCKED_STATES: SectionState[] = ["valid", "identifying", "error"];
 const POOL_SIZE = 5;
 const DEPENDS_ON_BUILDINGS = new Set(["units.unit_block"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function generateBuildingUuid( ){
     return `building-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -18,6 +22,10 @@ type UseSectionExtractionOpts = {
     sections: SectionData[];
     onSectionUpdate: (sectionId: string, updates: Partial<SectionData>) => void;
     enabled?: boolean;
+    /** Ref to map of item-expanded IDs → parent section UUID for persisting item results */
+    itemToParentMapRef?: RefObject<Map<string, string>>;
+    /** Original PropertySection[] from the server, used to read parent items for persistence */
+    incomingSections?: PropertySection[];
 };
 
 function useSectionExtraction({
@@ -25,14 +33,76 @@ function useSectionExtraction({
     sections,
     onSectionUpdate,
     enabled = true,
+    itemToParentMapRef,
+    incomingSections,
 }: UseSectionExtractionOpts){
     const inflightRef = useRef(new Set<string>());
     const completedRef = useRef(new Set<string>());
     const buildingAssignmentDoneRef = useRef(false);
-    const latestRef = useRef({ sections, onSectionUpdate, propertyId, enabled });
-    latestRef.current = { sections, onSectionUpdate, propertyId, enabled };
+    const latestRef = useRef({ sections, onSectionUpdate, propertyId, enabled, incomingSections });
+    latestRef.current = { sections, onSectionUpdate, propertyId, enabled, incomingSections };
+
+    // Local cache of parent items arrays so concurrent item persists don't
+    // overwrite each other (each persist builds on the latest known state).
+    const parentItemsCacheRef = useRef(new Map<string, PropertySection["items"]>());
 
     const extractMutation = useExtractSectionFieldsMutation();
+    const updateSectionMutation = useUpdateSectionMutation();
+
+    const persistSection = useCallback((sectionId: string, updates: { state?: string; fields?: Record<string, unknown> }) => {
+        const pid = latestRef.current.propertyId;
+        if (!pid) return;
+
+        const isDbId = UUID_RE.test(sectionId);
+
+        if (isDbId) {
+            // Direct DB section — persist state/fields directly
+            updateSectionMutation.mutateAsync({
+                propertyId: pid,
+                sectionId,
+                ...updates,
+            }).catch((err) => {
+                console.error(`[persist] Failed to save section ${sectionId}:`, err);
+            });
+            return;
+        }
+
+        // Item-expanded section — persist fields/state into the parent's items JSON
+        const parentId = itemToParentMapRef?.current?.get(sectionId);
+        if (!parentId || !UUID_RE.test(parentId)) return;
+
+        // Use cached items if available, otherwise read from incomingSections
+        let currentItems = parentItemsCacheRef.current.get(parentId);
+        if (!currentItems) {
+            const parentSection = latestRef.current.incomingSections?.find((s) => s.id === parentId);
+            currentItems = parentSection?.items;
+        }
+        if (!currentItems) return;
+
+        // Clone items and update the matching item with extracted fields/state
+        const updatedItems = currentItems.map((item) => {
+            if (item.id === sectionId) {
+                return {
+                    ...item,
+                    state: (updates.state as typeof item.state) ?? item.state,
+                    fields: updates.fields ?? item.fields,
+                };
+            }
+            return item;
+        });
+
+        // Update the local cache so the next persist for a sibling item
+        // will see this item's fields already applied.
+        parentItemsCacheRef.current.set(parentId, updatedItems);
+
+        updateSectionMutation.mutateAsync({
+            propertyId: pid,
+            sectionId: parentId,
+            items: updatedItems,
+        }).catch((err) => {
+            console.error(`[persist-item] Failed to save item ${sectionId} on parent ${parentId}:`, err);
+        });
+    }, [updateSectionMutation]);
 
     const processNext = useCallback(() => {
         const { sections: secs, onSectionUpdate: update, propertyId: pid, enabled: on } = latestRef.current;
@@ -120,8 +190,10 @@ function useSectionExtraction({
 
                     if (result.error) {
                         update(section.id, { state: "error" });
+                        persistSection(section.id, { state: "error" });
                     } else if (!result.fields || !Object.keys(result.fields).length) {
                         update(section.id, { state: "error" });
+                        persistSection(section.id, { state: "error" });
                     } else {
                         const fields = { ...(current?.fields ?? {}), ...result.fields };
 
@@ -136,8 +208,10 @@ function useSectionExtraction({
 
                         if (reqKeys.length > 0 && filledRequired.length === 0) {
                             update(section.id, { fields, state: "error" });
+                            persistSection(section.id, { fields, state: "error" });
                         } else {
                             update(section.id, { fields, state: "needs_review" });
+                            persistSection(section.id, { fields, state: "needs_review" });
                         }
                     }
 
@@ -150,10 +224,11 @@ function useSectionExtraction({
                     inflight.delete(section.id);
                     completed.add(section.id);
                     update(section.id, { state: "error" });
+                    persistSection(section.id, { state: "error" });
                     setTimeout(processNext, 0);
                 });
         }
-    }, [extractMutation]);
+    }, [extractMutation, persistSection]);
 
     const maybeAutoAssignBuildings = useCallback(() => {
         if (buildingAssignmentDoneRef.current) return;

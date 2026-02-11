@@ -96,6 +96,8 @@ model PropertySection {
     confidence   Float
     renderable   Boolean  @default(true)
     items        Json?    // For array-based sections (buildings, units) - stores SectionItem[]
+    state        String?  @db.VarChar(40)
+    fields       Json?
     createdAt    DateTime @default(now())
 
     property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)

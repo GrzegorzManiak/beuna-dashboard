@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
 import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
-import { NewPropertyUnitsStage } from "./newPropertyUnitsStage";
+import { NewPropertySectionsStage } from "./newPropertySectionsStage";
 import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
 import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
@@ -20,7 +20,7 @@ function NewPropertyProjectOnboardingPage( ){
     const STEP_PROCESSING = 1;
     const STEP_PROPERTY_TYPE = 2;
     const STEP_DETAILS = 3;
-    const STEP_UNITS = 4;
+    const STEP_SECTIONS = 4;
     const STEP_REVIEW = 5;
 
     const navigate = useNavigate();
@@ -55,17 +55,17 @@ function NewPropertyProjectOnboardingPage( ){
         if (value <= STEP_PROCESSING) return 0;
         if (value === STEP_PROPERTY_TYPE) return 1;
         if (value === STEP_DETAILS) return 2;
-        if (value === STEP_UNITS) return 3;
+        if (value === STEP_SECTIONS) return 3;
         return 4;
-    }, [STEP_DETAILS, STEP_PROCESSING, STEP_PROPERTY_TYPE, STEP_UNITS]);
+    }, [STEP_DETAILS, STEP_PROCESSING, STEP_PROPERTY_TYPE, STEP_SECTIONS]);
 
     const fromProgressIndex = useCallback((index: number): number => {
         if (index <= 0) return STEP_UPLOAD;
         if (index === 1) return STEP_PROPERTY_TYPE;
         if (index === 2) return STEP_DETAILS;
-        if (index === 3) return STEP_UNITS;
+        if (index === 3) return STEP_SECTIONS;
         return STEP_REVIEW;
-    }, [STEP_DETAILS, STEP_PROPERTY_TYPE, STEP_REVIEW, STEP_UNITS]);
+    }, [STEP_DETAILS, STEP_PROPERTY_TYPE, STEP_REVIEW, STEP_SECTIONS]);
 
     const handleStepClick = useCallback((nextStep: number): void => {
         const nextInternal = fromProgressIndex(nextStep);
@@ -332,7 +332,7 @@ return (
                 return;
             }
         }
-        setStep(STEP_UNITS);
+        setStep(STEP_SECTIONS);
     }
 
     return (
@@ -407,7 +407,7 @@ return (
                             </motion.div>
                         )}
 
-                        {step === STEP_UNITS && (
+                        {step === STEP_SECTIONS && (
                             <motion.div
                                 key="step-3"
                                 initial={{ opacity: 0, x: 20 }}
@@ -416,12 +416,12 @@ return (
                                 transition={{ duration: 0.3 }}
                                 className="w-full flex justify-center"
                             >
-                                <NewPropertyUnitsStage
+                                <NewPropertySectionsStage
                                     propertyId={propertyId}
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
                                     sectionsProcessing={sectionsProcessing}
-                                    onNext={() => setStep(STEP_UNITS + 1)}
+                                    onNext={() => setStep(STEP_SECTIONS + 1)}
                                     onBack={() => setStep(STEP_DETAILS)}
                                 />
                             </motion.div>

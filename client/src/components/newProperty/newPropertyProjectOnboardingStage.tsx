@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
 import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
-import { NewPropertyUnitsStage } from "./newPropertyUnitsStage";
+import { NewPropertySectionsStage } from "./newPropertySectionsStage";
 import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
 import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
@@ -14,21 +14,41 @@ import { getSessionId } from "@/lib/sessionStorage";
 
 type PropertyTypeSelection = "condo" | "rental";
 
+const STAGE_SLUGS: Record<number, string> = {
+    0: "processing",
+    1: "processing",
+    2: "property_type",
+    3: "details",
+    4: "sections",
+    5: "review",
+};
+
+const SLUG_TO_STEP: Record<string, number> = {
+    "processing": 1,
+    "property_type": 2,
+    "details": 3,
+    "sections": 4,
+    "review": 5,
+};
+
 function NewPropertyProjectOnboardingStage( ){
     const DEFAULT_PROPERTY_NAME = "Unnamed property";
     const STEP_UPLOAD = 0;
     const STEP_PROCESSING = 1;
     const STEP_PROPERTY_TYPE = 2;
     const STEP_DETAILS = 3;
-    const STEP_UNITS = 4;
+    const STEP_SECTIONS = 4;
     const STEP_REVIEW = 5;
 
     const navigate = useNavigate();
-    const { propertyId } = useParams();
+    const { propertyId, stage: urlStage } = useParams();
     const [sessionId, setSessionId] = useState<string | null>(getSessionId());
     const { data, isLoading, isError, error } = usePropertyQuery(propertyId, Boolean(sessionId));
     const { mutateAsync: updateProperty, isPending } = useUpdatePropertyMutation();
-    const [step, setStep] = useState<number>(STEP_PROCESSING);
+    const initialStep = urlStage && SLUG_TO_STEP[urlStage] !== undefined ? SLUG_TO_STEP[urlStage]! : STEP_PROCESSING;
+    const [step, setStep] = useState<number>(initialStep);
+    const didSyncUrlStage = useRef(false);
+    const pendingStageRef = useRef<number | null>(initialStep > STEP_PROCESSING ? initialStep : null);
     const [selectedType, setSelectedType] = useState<PropertyTypeSelection | null>(null);
     const [propertyName, setPropertyName] = useState<string>("");
     const [street, setStreet] = useState<string>("");
@@ -55,17 +75,17 @@ function NewPropertyProjectOnboardingStage( ){
         if (value <= STEP_PROCESSING) return 0;
         if (value === STEP_PROPERTY_TYPE) return 1;
         if (value === STEP_DETAILS) return 2;
-        if (value === STEP_UNITS) return 3;
+        if (value === STEP_SECTIONS) return 3;
         return 4;
-    }, [STEP_DETAILS, STEP_PROCESSING, STEP_PROPERTY_TYPE, STEP_UNITS]);
+    }, [STEP_DETAILS, STEP_PROCESSING, STEP_PROPERTY_TYPE, STEP_SECTIONS]);
 
     const fromProgressIndex = useCallback((index: number): number => {
         if (index <= 0) return STEP_UPLOAD;
         if (index === 1) return STEP_PROPERTY_TYPE;
         if (index === 2) return STEP_DETAILS;
-        if (index === 3) return STEP_UNITS;
+        if (index === 3) return STEP_SECTIONS;
         return STEP_REVIEW;
-    }, [STEP_DETAILS, STEP_PROPERTY_TYPE, STEP_REVIEW, STEP_UNITS]);
+    }, [STEP_DETAILS, STEP_PROPERTY_TYPE, STEP_REVIEW, STEP_SECTIONS]);
 
     const handleStepClick = useCallback((nextStep: number): void => {
         const nextInternal = fromProgressIndex(nextStep);
@@ -81,6 +101,36 @@ function NewPropertyProjectOnboardingStage( ){
         setStep(nextInternal);
     }, [fromProgressIndex, navigate, sectionsReady, STEP_PROCESSING, STEP_UPLOAD]);
 
+    // Sync step → URL whenever step changes
+    useEffect(() => {
+        if (!propertyId) return;
+        const slug = STAGE_SLUGS[step] ?? "processing";
+        const target = `/project/${propertyId}/onboarding/${slug}`;
+        // Replace (not push) so back button doesn't replay every step
+        navigate(target, { replace: true });
+    }, [step, propertyId, navigate]);
+
+    // On initial mount: if user navigated directly to a stage that
+    // requires sections (anything past processing), guard against it
+    // until sectionsReady flips to true.
+    useEffect(() => {
+        if (didSyncUrlStage.current) return;
+        if (pendingStageRef.current === null) {
+            didSyncUrlStage.current = true;
+            return;
+        }
+        // Waiting for sections to load — stay on processing until ready
+        if (!sectionsReady) {
+            if (step !== STEP_PROCESSING) setStep(STEP_PROCESSING);
+            return;
+        }
+        // Sections are ready — jump to the stage the user originally requested
+        const target = pendingStageRef.current;
+        pendingStageRef.current = null;
+        didSyncUrlStage.current = true;
+        setStep(target);
+    }, [sectionsReady, step, STEP_PROCESSING]);
+
     function handleBackToUpload( ){
         navigate("/new");
     }
@@ -93,6 +143,8 @@ function NewPropertyProjectOnboardingStage( ){
         setSectionsProcessing(false);
         setPrefilledFromExtract(false);
         setStep(STEP_PROCESSING);
+        didSyncUrlStage.current = false;
+        pendingStageRef.current = null;
     }, [propertyId, STEP_PROCESSING]);
 
     useEffect(() => {
@@ -212,7 +264,11 @@ function NewPropertyProjectOnboardingStage( ){
                     setSections(visibleSections);
                     setSectionsReady(true);
                     setBasicDetails(payload.basicDetails ?? null);
-                    setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
+                    // Only auto-advance if there's no pending deep-link stage
+                    // (the guard effect will handle restoring the deep-linked stage)
+                    if (!pendingStageRef.current) {
+                        setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
+                    }
                 }
                 if (payload.status === "processing") {
                     setSectionsProcessing(true);
@@ -244,7 +300,9 @@ function NewPropertyProjectOnboardingStage( ){
                     if (payload.basicDetails) {
                         setBasicDetails(payload.basicDetails);
                     }
-                    setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
+                    if (!pendingStageRef.current) {
+                        setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
+                    }
                     socket.close();
                 }
             } catch {
@@ -332,7 +390,7 @@ return (
                 return;
             }
         }
-        setStep(STEP_UNITS);
+        setStep(STEP_SECTIONS);
     }
 
     return (
@@ -407,7 +465,7 @@ return (
                             </motion.div>
                         )}
 
-                        {step === STEP_UNITS && (
+                        {step === STEP_SECTIONS && (
                             <motion.div
                                 key="step-3"
                                 initial={{ opacity: 0, x: 20 }}
@@ -416,12 +474,12 @@ return (
                                 transition={{ duration: 0.3 }}
                                 className="w-full flex justify-center"
                             >
-                                <NewPropertyUnitsStage
+                                <NewPropertySectionsStage
                                     propertyId={propertyId}
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
                                     sectionsProcessing={sectionsProcessing}
-                                    onNext={() => setStep(STEP_UNITS + 1)}
+                                    onNext={() => setStep(STEP_SECTIONS + 1)}
                                     onBack={() => setStep(STEP_DETAILS)}
                                 />
                             </motion.div>
