@@ -1,72 +1,46 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Button } from "../../ui/button";
-import { ChevronDown, ChevronRight, Edit2 } from "lucide-react";
-import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { Edit2 } from "lucide-react";
+import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./section-editor";
 import { cn } from "@/lib/utils";
 
-function generateBuildingUuid(): string {
-    return `building-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
-
-function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function WegPropertyManagerEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
     const [showAddressEdit, setShowAddressEdit] = useState(false);
-    const [showAdditional, setShowAdditional] = useState(false);
-    
+
     const disabled = !onSectionUpdate;
-    const buildingUuid = toInputString(getFieldValue(section, "buildingUuid"));
-    const buildingName = toInputString(getFieldValue(section, "buildingName"));
-    const label = toInputString(getFieldValue(section, "label"));
+    const managerName = toInputString(getFieldValue(section, "managerName"));
     const addressStreet = toInputString(getFieldValue(section, "addressStreet"));
     const addressHouseNumber = toInputString(getFieldValue(section, "addressHouseNumber"));
     const addressPostalCode = toInputString(getFieldValue(section, "addressPostalCode"));
     const addressCity = toInputString(getFieldValue(section, "addressCity"));
     const addressCountry = toInputString(getFieldValue(section, "addressCountry"));
-    const buildYear = toInputString(getFieldValue(section, "buildYear"));
-    const floors = toInputString(getFieldValue(section, "floors"));
     const notes = toInputString(getFieldValue(section, "notes"));
-
-    const isMissing = (key: string) => missingFields?.has(key);
-
-    useEffect(() => {
-        if (!buildingUuid && onSectionUpdate) {
-            updateSectionField(section, onSectionUpdate, "buildingUuid", generateBuildingUuid());
-        }
-    }, [buildingUuid, section, onSectionUpdate]);
 
     const addressSummary = [
         addressStreet,
         addressHouseNumber,
         addressPostalCode,
         addressCity,
-        addressCountry
+        addressCountry,
     ].filter(Boolean).join(", ") || "No address specified";
+
+    const isMissing = (key: string) => missingFields?.has(key);
 
     return (
         <div className="flex flex-col gap-4">
-            {/* Building Identity - Always Visible */}
+            {/* Manager name */}
             <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700">Building Identity</h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                    <div className={cn("flex flex-col gap-1", isMissing("buildingName") && "ring-2 ring-amber-400 rounded-md p-1")}>
-                        <Label className="text-xs text-gray-600">Building name</Label>
-                        <Input
-                            value={buildingName}
-                            disabled={disabled}
-                            onChange={(event) => updateSectionField(section, onSectionUpdate, "buildingName", event.target.value)}
-                            placeholder="e.g., Haus A"
-                        />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs text-gray-600">Label</Label>
-                        <Input
-                            value={label}
-                            disabled={disabled}
-                            onChange={(event) => updateSectionField(section, onSectionUpdate, "label", event.target.value)}
-                            placeholder="e.g., Parkside, Cityside"
-                        />
-                    </div>
+                <h3 className="text-sm font-semibold text-gray-700">Property Manager</h3>
+                <div className={cn("flex flex-col gap-1", isMissing("managerName") && "ring-2 ring-amber-400 rounded-md p-1")}>
+                    <Label className="text-xs text-gray-600">Manager name</Label>
+                    <Input
+                        value={managerName}
+                        disabled={disabled}
+                        onChange={(event) => updateSectionField(section, onSectionUpdate, "managerName", event.target.value)}
+                        placeholder="Company or person name"
+                    />
                 </div>
             </div>
 
@@ -76,7 +50,11 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                     <Label className="text-xs text-gray-600">Address</Label>
                     {!showAddressEdit ? (
                         <div className="space-y-2">
-                            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                            <div className={cn(
+                                "rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700",
+                                (isMissing("addressStreet") || isMissing("addressHouseNumber") || isMissing("addressPostalCode") || isMissing("addressCity"))
+                                    && "ring-2 ring-amber-400",
+                            )}>
                                 {addressSummary}
                             </div>
                             <div className="flex gap-2">
@@ -108,7 +86,7 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                                 </Button>
                             </div>
                             <div className="grid gap-3 sm:grid-cols-2">
-                                <div className="sm:col-span-2 flex flex-col gap-1">
+                                <div className={cn("sm:col-span-2 flex flex-col gap-1", isMissing("addressStreet") && "ring-2 ring-amber-400 rounded-md p-1")}>
                                     <Label className="text-xs text-gray-600">Street</Label>
                                     <Input
                                         value={addressStreet}
@@ -117,7 +95,7 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                                         placeholder="e.g., Am Fiktivpark"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1">
+                                <div className={cn("flex flex-col gap-1", isMissing("addressHouseNumber") && "ring-2 ring-amber-400 rounded-md p-1")}>
                                     <Label className="text-xs text-gray-600">House number</Label>
                                     <Input
                                         value={addressHouseNumber}
@@ -126,7 +104,7 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                                         placeholder="e.g., 12"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1">
+                                <div className={cn("flex flex-col gap-1", isMissing("addressPostalCode") && "ring-2 ring-amber-400 rounded-md p-1")}>
                                     <Label className="text-xs text-gray-600">Postal code</Label>
                                     <Input
                                         value={addressPostalCode}
@@ -135,7 +113,7 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                                         placeholder="e.g., 10557"
                                     />
                                 </div>
-                                <div className="flex flex-col gap-1">
+                                <div className={cn("flex flex-col gap-1", isMissing("addressCity") && "ring-2 ring-amber-400 rounded-md p-1")}>
                                     <Label className="text-xs text-gray-600">City</Label>
                                     <Input
                                         value={addressCity}
@@ -159,57 +137,18 @@ function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: Section
                 </div>
             </div>
 
-            {/* Additional Details - Collapsed by Default */}
-            <div className="space-y-3">
-                <button
-                    type="button"
-                    onClick={() => setShowAdditional(!showAdditional)}
-                    className="flex items-center gap-1 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-                >
-                    {showAdditional ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    Additional details
-                    <span className="text-xs font-normal text-gray-500">(optional)</span>
-                </button>
-                {showAdditional && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="flex flex-col gap-1">
-                            <Label className="text-xs text-gray-600">Build year</Label>
-                            <Input
-                                type="number"
-                                value={buildYear}
-                                disabled={disabled}
-                                onChange={(event) =>
-                                    updateSectionField(section, onSectionUpdate, "buildYear", toOptionalNumber(event.target.value))
-                                }
-                                placeholder="e.g., 1995"
-                            />
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <Label className="text-xs text-gray-600">Floors</Label>
-                            <Input
-                                type="number"
-                                value={floors}
-                                disabled={disabled}
-                                onChange={(event) =>
-                                    updateSectionField(section, onSectionUpdate, "floors", toOptionalNumber(event.target.value))
-                                }
-                                placeholder="e.g., 5"
-                            />
-                        </div>
-                        <div className="sm:col-span-2 flex flex-col gap-1">
-                            <Label className="text-xs text-gray-600">Notes</Label>
-                            <Input
-                                value={notes}
-                                disabled={disabled}
-                                onChange={(event) => updateSectionField(section, onSectionUpdate, "notes", event.target.value)}
-                                placeholder="Additional information"
-                            />
-                        </div>
-                    </div>
-                )}
+            {/* Notes */}
+            <div className="flex flex-col gap-1">
+                <Label className="text-xs text-gray-600">Notes</Label>
+                <Input
+                    value={notes}
+                    disabled={disabled}
+                    onChange={(event) => updateSectionField(section, onSectionUpdate, "notes", event.target.value)}
+                    placeholder="Optional"
+                />
             </div>
         </div>
     );
 }
 
-export { CoreBuildingEditor };
+export { WegPropertyManagerEditor };

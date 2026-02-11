@@ -1,7 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "ws";
 import { prisma } from "@db";
-import { classifySection } from "../../lib/pdf-extraction/processors/classifier";
+import { classifySectionWithLlm } from "../../lib/pdf-extraction/llm/classify-sections";
+import { extractSectionFields } from "../../lib/pdf-extraction/llm/extract-section-fields";
+import type { SectionType } from "@shared/section-types";
 import type {
     UpdatePropertyBody,
     PropertyIdParams,
@@ -218,7 +220,7 @@ async function getPropertySectionsStreamHandler(
                 
                 const sectionIndex = (section as any)._sectionIndex ?? index;
                 const sectionData = {
-                    id: `temp-${index}`,
+                    id: section.id ?? `temp-${index}`,
                     sectionIndex,
                     headingText: section.headingText,
                     rawText: section.rawText,
@@ -348,18 +350,10 @@ async function classifySectionHandler(
     }
 
     try {
-        const mockSection = {
-            id: `user-selection-${Date.now()}`,
-            heading: { text: heading || text.slice(0, 50) } as any,
-            lines: [] as any[],
-            rawText: text,
-            textPosition: [] as any[],
-        };
-
-        const result = await classifySection(mockSection);
+        const result = await classifySectionWithLlm(text, heading || text.slice(0, 100));
 
         return reply.send({
-            sectionType: result.processor.sectionType,
+            sectionType: result.sectionType,
             confidence: result.confidence,
         });
     } catch (error) {
@@ -372,6 +366,70 @@ async function classifySectionHandler(
     }
 }
 
+type ExtractSectionFieldsParams = {
+    propertyId: string;
+    sectionId: string;
+};
+
+type ExtractSectionFieldsBody = {
+    rawText: string;
+    sectionType: SectionType;
+    buildings?: Array<{ uuid: string; name: string }>;
+};
+
+async function extractSectionFieldsHandler(
+    req: FastifyRequest<{ Params: ExtractSectionFieldsParams; Body: ExtractSectionFieldsBody }>,
+    reply: FastifyReply,
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId, sectionId } = req.params;
+    const { rawText, sectionType, buildings } = req.body;
+
+    if (!rawText || typeof rawText !== "string") {
+        return reply.code(400).send({ error: "rawText is required." });
+    }
+    if (!sectionType || typeof sectionType !== "string") {
+        return reply.code(400).send({ error: "sectionType is required." });
+    }
+
+    // Verify property exists
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+    if (!property) {
+        return reply.code(404).send({ error: "Property not found." });
+    }
+
+    try {
+        const result = await extractSectionFields(rawText, sectionType as SectionType, buildings);
+
+        if (!result) {
+            return reply.send({ sectionId, fields: {} });
+        }
+
+        // Convert field array to a flat key→value map so the client can
+        // spread it directly into SectionData.fields.
+        const fields: Record<string, string | number | boolean | null> = {};
+        for (const f of result.fields) {
+            fields[f.key] = f.value;
+        }
+
+        console.log(`[extract] ${sectionType} ${sectionId} →`, JSON.stringify(fields));
+
+        return reply.send({
+            sectionId,
+            fields,
+            elapsedMs: result.elapsedMs,
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "Extraction failed";
+        return reply.code(500).send({ error: message });
+    }
+}
+
 export {
     listPropertiesHandler,
     createPropertyHandler,
@@ -380,4 +438,5 @@ export {
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
     classifySectionHandler,
+    extractSectionFieldsHandler,
 };

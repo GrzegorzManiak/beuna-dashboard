@@ -137,7 +137,6 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
                 id: `admin-${subType.split(".")[1]}-${Date.now()}-${i}`,
                 rawText: blockText.trim(),
                 sectionType: subType,
-                state: "needs_review",
                 confidence: 0.8,
                 textPosition: linesToPositions(block.lines),
             });

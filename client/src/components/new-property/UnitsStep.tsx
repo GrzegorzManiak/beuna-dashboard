@@ -3,6 +3,7 @@ import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/component
 import type { SectionData } from "@/components/pdf-viewer";
 import type { PropertySection } from "@/api/properties";
 import { usePropertyDocumentQuery } from "@/api/properties";
+import { useSectionExtraction } from "@/hooks/useSectionExtraction";
 
 type UnitsStepProps = {
     onNext: () => void;
@@ -27,6 +28,15 @@ export function UnitsStep({
     const { data: documentBlob, isLoading: isDocumentLoading, isError: isDocumentError, error: documentError } = usePropertyDocumentQuery(propertyId);
     const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
+    // Automatic LLM field extraction for sections in "processing" state.
+    // Enabled once sections have been mapped and the viewer is loaded.
+    useSectionExtraction({
+        propertyId,
+        sections,
+        onSectionUpdate: handleSectionUpdate,
+        enabled: isLoaded && sections.length > 0,
+    });
+
     useEffect(() => {
         if (!incomingSections.length) return;
         setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
@@ -34,7 +44,7 @@ export function UnitsStep({
 
     useEffect(() => {
         if (!isLoaded || !incomingSections.length) return;
-        setSections(mapPropertySections(incomingSections));
+        setSections((prev) => mergeSectionData(prev, mapPropertySections(incomingSections)));
     }, [isLoaded]);
 
     useEffect(() => {
@@ -200,9 +210,10 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
                 result.push({
                     id: item.id || `${section.id}-item-${i}`,
                     textPosition: computeBoundingBox(itemPositions),
-                    state: item.state || "needs_review",
+                    state: "processing",
                     sectionType: itemType as any,
                     reusable: section.reusable,
+                    rawText: item.rawText || "",
                     fields: {},
                 });
             }
@@ -217,7 +228,7 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
                 ? "unknown"
                 : section.sectionType === "core.address"
                     ? "valid"
-                    : "needs_review";
+                    : "processing";
 
             result.push({
                 id: section.id,
@@ -225,6 +236,7 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
                 state,
                 sectionType: section.sectionType,
                 reusable: section.reusable,
+                rawText: section.rawText || "",
                 fields: {},
             });
         }
@@ -236,6 +248,30 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
 function mergeSectionData(existing: SectionData[], incoming: SectionData[]): SectionData[] {
     const map = new Map<string, SectionData>();
     for (const section of existing) map.set(section.id, section);
-    for (const section of incoming) map.set(section.id, section);
+    for (const section of incoming) {
+        const prev = map.get(section.id);
+        if (prev) {
+            // Don't regress state: if we already extracted fields, the user
+            // validated, or extraction errored, keep the richer version.
+            // Only preserve "needs_review" if the section has extracted fields —
+            // otherwise it was never truly extracted and should re-enter the queue.
+            const hasFields = prev.fields && Object.keys(prev.fields).length > 0;
+            const preserveState =
+                prev.state === "valid" ||
+                (prev.state === "needs_review" && hasFields) ||
+                prev.state === "identifying" ||
+                prev.state === "error";
+            map.set(section.id, {
+                ...section,
+                state: preserveState ? prev.state : section.state,
+                fields: preserveState && prev.fields && Object.keys(prev.fields).length
+                    ? prev.fields
+                    : section.fields,
+                rawText: section.rawText || prev.rawText,
+            });
+        } else {
+            map.set(section.id, section);
+        }
+    }
     return Array.from(map.values());
 }

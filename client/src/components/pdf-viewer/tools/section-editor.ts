@@ -5,6 +5,10 @@ type SectionEditorProps = {
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     propertyType?: "WEG" | "MV";
     availableBuildings?: Map<string, string>;
+    /** Set of required field keys that are currently missing / empty. */
+    missingFields?: Set<string>;
+    /** Total MEA denominator from the weg.mea_declaration section. */
+    totalMeaDenominator?: number | null;
 };
 
 function updateSectionField(

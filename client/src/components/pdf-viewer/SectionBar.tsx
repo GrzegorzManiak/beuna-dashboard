@@ -8,7 +8,8 @@ import {
 } from "./constants";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 import { SECTION_TYPE_OPTIONS } from "./PdfSplitToolbar";
-import { RENDERABLE_SECTION_TYPES } from "@shared/section-types";
+import { RENDERABLE_SECTION_TYPES, REQUIRED_FIELDS } from "@shared/section-types";
+import type { SectionType as SharedSectionType } from "@shared/section-types";
 
 type SectionBarProps = {
     sectionData: Array<SectionData>;
@@ -27,32 +28,52 @@ function SectionBar({
     activeSectionId,
     setActiveSectionId,
 }: SectionBarProps) {
-    const getStateClasses = (state: SectionData["state"], isSelected: boolean) => {
+    const isPartialSection = (section: SectionData): boolean => {
+        if (section.state !== "needs_review") return false;
+        const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
+        if (!reqKeys.length) return false;
+        for (const key of reqKeys) {
+            const val = section.fields?.[key];
+            if (val === null || val === undefined || val === "") return true;
+        }
+        return false;
+    };
+
+    const getStateClasses = (state: SectionData["state"], isSelected: boolean, isPartial = false) => {
         switch (state) {
             case "valid":
                 return isSelected
                     ? "border-emerald-500 bg-emerald-500/40 z-10 scale-105"
                     : "border-emerald-500 bg-emerald-500/20 hover:bg-emerald-500/30";
             case "needs_review":
+                if (isPartial) {
+                    return isSelected
+                        ? "border-amber-500 bg-amber-500/40 z-10 scale-105 animate-slow-pulse"
+                        : "border-amber-500 bg-amber-500/20 hover:bg-amber-500/30 animate-slow-pulse";
+                }
                 return isSelected
-                    ? "border-amber-500 bg-amber-500/40 z-10 scale-105"
+                    ? "border-amber-500 bg-amber-500/40 z-10 scale-105 animate-slow-pulse"
                     : "border-amber-500 bg-amber-500/20 hover:bg-amber-500/30";
             case "conflict":
                 return isSelected
-                    ? "border-red-500 bg-red-500/40 z-10 scale-105"
+                    ? "border-red-500 bg-red-500/40 z-10 scale-105 animate-slow-pulse"
                     : "border-red-500 bg-red-500/20 hover:bg-red-500/30";
             case "processing":
                 return isSelected
-                    ? "border-amber-500 bg-amber-500/40 z-10 scale-105 animate-pulse"
-                    : "border-amber-400 bg-amber-400/20 hover:bg-amber-400/30 animate-pulse";
+                    ? "border-sky-500 bg-sky-500/40 z-10 scale-105 animate-slow-pulse"
+                    : "border-sky-400 bg-sky-400/20 hover:bg-sky-400/30 animate-slow-pulse";
             case "identifying":
                 return isSelected
-                    ? "border-indigo-500 bg-indigo-500/40 z-10 scale-105 animate-pulse"
-                    : "border-indigo-400 bg-indigo-400/20 hover:bg-indigo-400/30 animate-pulse";
+                    ? "border-indigo-500 bg-indigo-500/40 z-10 scale-105 animate-slow-pulse"
+                    : "border-indigo-400 bg-indigo-400/20 hover:bg-indigo-400/30 animate-slow-pulse";
+            case "error":
+                return isSelected
+                    ? "border-red-500 bg-red-500/40 z-10 scale-105 animate-slow-pulse"
+                    : "border-red-400 bg-red-400/20 hover:bg-red-400/30 animate-slow-pulse";
             case "unknown":
             default:
                 return isSelected
-                    ? "border-red-500 bg-red-500/40 z-10 scale-105"
+                    ? "border-red-500 bg-red-500/40 z-10 scale-105 animate-slow-pulse"
                     : "border-red-500 bg-red-500/20 hover:bg-red-500/30";
         }
     };
@@ -158,13 +179,14 @@ function SectionBar({
             )}
             {sidebarItems.map((section) => {
                 const isSelected = section.id === activeSectionId;
+                const partial = isPartialSection(section);
                 return (
                     <div
                         key={section.id}
                         onClick={() => setActiveSectionId(section.id)}
                         className={cn(
                             "border rounded absolute h-7 w-32 cursor-pointer transition-all duration-300 border-r-0 rounded-r-none pl-2",
-                            getStateClasses(section.state, isSelected),
+                            getStateClasses(section.state, isSelected, partial),
                         )}
                         style={{ 
                             top: section.top,

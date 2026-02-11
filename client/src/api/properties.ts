@@ -166,6 +166,13 @@ type ClassifySectionResponse = {
     error?: string;
 };
 
+type ExtractSectionFieldsResponse = {
+    sectionId: string;
+    fields: Record<string, string | number | boolean | null>;
+    elapsedMs?: number;
+    error?: string;
+};
+
 async function classifySection(propertyId: string, text: string, heading = ""): Promise<ClassifySectionResponse> {
     const response = await apiFetch(`/api/properties/${propertyId}/classify-section`, {
         method: "POST",
@@ -186,6 +193,37 @@ async function classifySection(propertyId: string, text: string, heading = ""): 
 
     const data = (await response.json()) as ClassifySectionResponse;
     return data;
+}
+
+async function extractSectionFields(
+    propertyId: string,
+    sectionId: string,
+    rawText: string,
+    sectionType: string,
+    buildings?: Array<{ uuid: string; name: string }>,
+): Promise<ExtractSectionFieldsResponse> {
+    const body: Record<string, unknown> = { rawText, sectionType };
+    if (buildings && buildings.length > 0) body.buildings = buildings;
+
+    const response = await apiFetch(
+        `/api/properties/${propertyId}/sections/${encodeURIComponent(sectionId)}/extract`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        },
+    );
+
+    if (!response.ok) {
+        const payload = (await response.json()) as { error?: string } | null;
+        return {
+            sectionId,
+            fields: {},
+            error: payload?.error ?? `Extraction failed (${response.status})`,
+        };
+    }
+
+    return (await response.json()) as ExtractSectionFieldsResponse;
 }
 
 function useCreatePropertyMutation() {
@@ -233,6 +271,7 @@ export {
     fetchPropertyDocument,
     usePropertyDocumentQuery,
     classifySection,
+    extractSectionFields,
     type PropertyDetail,
     type PropertyManagementType,
     type PropertyStatus,
@@ -241,6 +280,7 @@ export {
     type BasicDetailsExtract,
     type BasicDetailsField,
     type ClassifySectionResponse,
+    type ExtractSectionFieldsResponse,
     type CreatePropertyResponse,
     type GetPropertyResponse,
     type UpdatePropertyBody,

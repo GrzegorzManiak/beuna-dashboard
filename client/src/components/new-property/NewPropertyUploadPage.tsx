@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiStatus } from "./ApiStatus";
 import { ProgressBar } from "./ProgressBar";
 import { UploadDocumentStep } from "./UploadDocumentStep";
 import { useCreatePropertyMutation } from "@/api/properties";
@@ -31,7 +30,6 @@ export function NewPropertyUploadPage() {
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
             <SessionSelector className="absolute left-6 top-6 z-20" />
             <ProgressBar currentStep={0} onStepClick={() => undefined} />
-            <ApiStatus className="self-end pr-6 -mt-4" />
             <div className="w-full flex justify-center px-4 relative">
                 <UploadDocumentStep
                     onUpload={handleUpload}

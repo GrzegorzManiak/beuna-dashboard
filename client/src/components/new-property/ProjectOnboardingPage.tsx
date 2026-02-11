@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ApiStatus } from "./ApiStatus";
 import { ProgressBar } from "./ProgressBar";
 import { PropertyDetailsStep } from "./PropertyDetailsStep";
 import { PropertyTypePicker } from "./PropertyTypePicker";
@@ -337,7 +336,6 @@ export function ProjectOnboardingPage() {
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
             <SessionSelector className="absolute left-6 top-6 z-20" />
             <ProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
-            <ApiStatus className="self-end pr-6 -mt-4" />
 
             <div className="w-full flex justify-center px-4 relative">
                 {!sessionId && <p className="text-sm text-gray-600">Waiting for session...</p>}

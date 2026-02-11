@@ -166,13 +166,14 @@ export function PdfViewer({
                             const headingText = result.heading || result.text.slice(0, 100);
                             try {
                                 const classification = await classifySection(propertyId, result.text, headingText);
-                                onSectionUpdate(normalizedSection.id, {
+                                onSectionUpdate?.(normalizedSection.id, {
                                     sectionType: classification.sectionType as any,
-                                    state: "needs_review",
+                                    rawText: result.text,
+                                    state: classification.sectionType === "unknown" ? "unknown" : "processing",
                                 });
                             } catch (error) {
                                 console.error("Classification failed:", error);
-                                onSectionUpdate(normalizedSection.id, {
+                                onSectionUpdate?.(normalizedSection.id, {
                                     state: "unknown",
                                 });
                             }

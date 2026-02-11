@@ -304,6 +304,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
 
             const processedWithIndex = {
                 ...processed,
+                id: crypto.randomUUID(),
                 // Preserve the section index for ordering
                 _sectionIndex: sectionIndex,
             } as ProcessedSection & { _sectionIndex: number };
@@ -342,7 +343,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                 ].filter(Boolean).join('\n');
 
                 syntheticSections.push({
-                    id: `synthetic-property-overview-${Date.now()}`,
+                    id: crypto.randomUUID(),
                     sectionType: 'core.property_overview',
                     confidence: 0.8,
                     headingText: 'Eigentumsverhältnisse',
@@ -396,7 +397,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
 
 
                 syntheticSections.push({
-                    id: `synthetic-address-${Date.now()}`,
+                    id: crypto.randomUUID(),
                     sectionType: 'core.address',
                     confidence: 0.8,
                     headingText: 'Anschrift',
@@ -417,6 +418,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
             const sectionIndex = (processed as any)._sectionIndex ?? index;
             const items = processed.items || null;
             return {
+                id: processed.id ?? crypto.randomUUID(),
                 propertyId,
                 sectionIndex,
                 headingText: processed.headingText,

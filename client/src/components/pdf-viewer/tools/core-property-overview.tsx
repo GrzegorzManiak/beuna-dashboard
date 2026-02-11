@@ -2,6 +2,7 @@ import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, 
 import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./section-editor";
+import { cn } from "@/lib/utils";
 
 const managementOptions = [
     { label: "Unknown", value: "unknown" },
@@ -9,7 +10,7 @@ const managementOptions = [
     { label: "MV", value: "MV" },
 ];
 
-function CorePropertyOverviewEditor({ section, onSectionUpdate }: SectionEditorProps) {
+function CorePropertyOverviewEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
     const disabled = !onSectionUpdate;
     const propertyName = toInputString(getFieldValue(section, "propertyName"));
     const propertyId = toInputString(getFieldValue(section, "propertyId"));
@@ -17,9 +18,11 @@ function CorePropertyOverviewEditor({ section, onSectionUpdate }: SectionEditorP
     const managementItems = managementOptions.map((option) => option.value);
     const labelByValue = new Map(managementOptions.map((option) => [option.value, option.label]));
 
+    const isMissing = (key: string) => missingFields?.has(key);
+
     return (
         <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2 flex flex-col gap-1">
+            <div className={cn("sm:col-span-2 flex flex-col gap-1", isMissing("propertyName") && "ring-2 ring-amber-400 rounded-md p-1")}>
                 <Label className="text-xs text-gray-600">Property name</Label>
                 <Input
                     value={propertyName}

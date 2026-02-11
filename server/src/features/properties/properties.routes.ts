@@ -7,6 +7,7 @@ import {
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
     classifySectionHandler,
+    extractSectionFieldsHandler,
 } from "@feature/properties/properties.handlers";
 
 const propertySummarySchema = {
@@ -345,6 +346,80 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, classifySectionHandler);
+
+    app.post("/:propertyId/sections/:sectionId/extract", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Extract structured field values from a section using LLM.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                    sectionId: { type: "string" },
+                },
+                required: ["propertyId", "sectionId"],
+                additionalProperties: false,
+            },
+            body: {
+                type: "object",
+                properties: {
+                    rawText: { type: "string" },
+                    sectionType: { type: "string" },
+                    buildings: {
+                        type: "array",
+                        items: {
+                            type: "object",
+                            properties: {
+                                uuid: { type: "string" },
+                                name: { type: "string" },
+                            },
+                            required: ["uuid", "name"],
+                            additionalProperties: false,
+                        },
+                    },
+                },
+                required: ["rawText", "sectionType"],
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        sectionId: { type: "string" },
+                        fields: { type: "object", additionalProperties: true },
+                        elapsedMs: { type: "number" },
+                    },
+                    required: ["sectionId", "fields"],
+                    additionalProperties: false,
+                },
+                400: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                500: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, extractSectionFieldsHandler);
 };
 
 export {

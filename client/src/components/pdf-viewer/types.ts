@@ -24,6 +24,7 @@ type SectionState =
     | "conflict"
     | "processing"
     | "identifying"
+    | "error"
     | "unknown";
 
 type SectionFieldValue = string | number | boolean | null;
@@ -37,6 +38,8 @@ type SectionData = {
     propertyTypeScope?: "WEG" | "MV" | "ANY";
     fields?: Record<string, SectionFieldValue>;
     reusable?: boolean;
+    /** Raw text from the PDF section, used for LLM field extraction. */
+    rawText?: string;
 };
 
 type RenderedSection = {
@@ -46,6 +49,8 @@ type RenderedSection = {
     style: CSSProperties;
     state?: SectionState;
     sectionType?: SectionType;
+    /** True when state is needs_review but some required fields are still missing. */
+    isPartial?: boolean;
 };
 
 type PageMetrics = {

@@ -79,7 +79,6 @@ export class UnitsBlockProcessor implements SectionProcessor {
             return {
                 id: `unit-${index + 1}-${Date.now()}`,
                 rawText: block.blockText.trim(),
-                state: "needs_review" as const,
                 confidence: 0.87,
                 textPosition: positions,
             };

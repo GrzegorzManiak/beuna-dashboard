@@ -5,6 +5,7 @@ import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./section-editor";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "../../ui/button";
+import { cn } from "@/lib/utils";
 
 const unitTypeOptions = [
     { label: "Apartment", value: "apartment" },
@@ -15,7 +16,7 @@ const unitTypeOptions = [
     { label: "Other", value: "other" },
 ];
 
-function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", availableBuildings }: SectionEditorProps) {
+function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", availableBuildings, missingFields, totalMeaDenominator }: SectionEditorProps) {
     const [showLocation, setShowLocation] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     
@@ -29,8 +30,7 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
     const rooms = toInputString(getFieldValue(section, "rooms"));
     const description = toInputString(getFieldValue(section, "description"));
     const meaNumerator = toInputString(getFieldValue(section, "meaNumerator"));
-    const meaDenominator = toInputString(getFieldValue(section, "meaDenominator")) || "1000";
-    const meaRawText = toInputString(getFieldValue(section, "meaRawText"));
+    const meaDenominatorDisplay = totalMeaDenominator != null ? String(totalMeaDenominator) : "1000";
 
     const unitTypeItems = unitTypeOptions.map((option) => option.value);
     const labelByValue = new Map(unitTypeOptions.map((option) => [option.value, option.label]));
@@ -38,13 +38,15 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
     const buildingUuids = availableBuildings ? Array.from(availableBuildings.keys()) : [];
     const hasBuildingsAvailable = buildingUuids.length > 0;
 
+    const isMissing = (key: string) => missingFields?.has(key);
+
     return (
         <div className="flex flex-col gap-4">
             {/* Basic Info */}
             <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-gray-700">Basic Info</h3>
                 <div className="grid gap-3 sm:grid-cols-3">
-                    <div className="flex flex-col gap-1">
+                    <div className={cn("flex flex-col gap-1", isMissing("unitNumber") && "ring-2 ring-amber-400 rounded-md p-1")}>
                         <Label className="text-xs text-gray-600">Unit number</Label>
                         <Input
                             value={unitNumber}
@@ -52,7 +54,7 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
                             onChange={(event) => updateSectionField(section, onSectionUpdate, "unitNumber", event.target.value)}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className={cn("flex flex-col gap-1", isMissing("unitType") && "ring-2 ring-amber-400 rounded-md p-1")}>
                         <Label className="text-xs text-gray-600">Type</Label>
                         <Combobox
                             items={unitTypeItems}
@@ -74,7 +76,7 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
                             </ComboboxContent>
                         </Combobox>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className={cn("flex flex-col gap-1", isMissing("buildingRef") && "ring-2 ring-amber-400 rounded-md p-1")}>
                         <Label className="text-xs text-gray-600">Building</Label>
                         {hasBuildingsAvailable ? (
                             <Combobox
@@ -177,7 +179,7 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
                 {propertyType === "WEG" && (
                     <div className="space-y-3">
                         <h3 className="text-sm font-semibold text-gray-700">Ownership (WEG)</h3>
-                        <div className="flex flex-col gap-1">
+                        <div className={cn("flex flex-col gap-1", isMissing("meaNumerator") && "ring-2 ring-amber-400 rounded-md p-1")}>
                             <Label className="text-xs text-gray-600">MEA (Miteigentumsanteil)</Label>
                             <div className="flex items-center gap-2">
                                 <Input
@@ -191,10 +193,10 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
                                 <span className="text-gray-500">/</span>
                                 <Input
                                     type="number"
-                                    value={meaDenominator}
-                                    disabled={disabled}
-                                    onChange={(event) => updateSectionField(section, onSectionUpdate, "meaDenominator", toOptionalNumber(event.target.value))}
-                                    className="flex-1"
+                                    value={meaDenominatorDisplay}
+                                    disabled
+                                    className="flex-1 bg-gray-50"
+                                    title="Sourced from MEA Declaration total"
                                 />
                             </div>
                         </div>
@@ -227,17 +229,6 @@ function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", 
                             placeholder="Additional notes"
                         />
                     </div>
-                    {propertyType === "WEG" && (
-                        <div className="flex flex-col gap-1">
-                            <Label className="text-xs text-gray-600">MEA raw text</Label>
-                            <Input
-                                value={meaRawText}
-                                disabled={disabled}
-                                onChange={(event) => updateSectionField(section, onSectionUpdate, "meaRawText", event.target.value)}
-                                placeholder="Original extracted text"
-                            />
-                        </div>
-                    )}
                 </div>
             )}
         </div>

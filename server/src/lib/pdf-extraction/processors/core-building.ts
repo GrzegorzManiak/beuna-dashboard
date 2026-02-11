@@ -82,7 +82,6 @@ export class CoreBuildingProcessor implements SectionProcessor {
             return {
                 id: `building-${index + 1}-${Date.now()}`,
                 rawText: block.blockText.trim(),
-                state: "needs_review" as const,
                 confidence: 0.85,
                 textPosition: positions,
             };

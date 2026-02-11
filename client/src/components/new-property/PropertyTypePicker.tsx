@@ -43,7 +43,7 @@ export function PropertyTypePicker({
                     >
                         <AspectRatio ratio={1}>
                             <img
-                                src="https://buena-case-study.preview.buena.com/images/8e48b6e0-1c0b-4ccf-b809-b63eabbb67e9.png"
+                                src="/property_types/weg.png"
                                 alt="WEG (Condominium)"
                             />
                         </AspectRatio>
@@ -70,7 +70,7 @@ export function PropertyTypePicker({
                     >
                         <AspectRatio ratio={1}>
                             <img
-                                src="https://buena-case-study.preview.buena.com/images/76556c9e-f1e2-4496-9144-d261fce7f6d1.png"
+                                src="/property_types/mv.png"
                                 alt="MV (Rental)"
                             />
                         </AspectRatio>

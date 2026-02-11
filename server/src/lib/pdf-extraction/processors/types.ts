@@ -31,6 +31,8 @@ export type SectionItem = {
  * Represents a processed section with its boundaries and metadata
  */
 export type ProcessedSection = {
+    /** Stable identifier, pre-generated so streaming and DB stay in sync. */
+    id?: string;
     /** Raw text content of the entire section */
     rawText: string;
     /** Heading or title for display */

@@ -1,4 +1,6 @@
 import type { ActiveSplit, PageMetrics, RenderedSection, SectionData, SectionBox } from "./types";
+import { REQUIRED_FIELDS } from "@shared/section-types";
+import type { SectionType as SharedSectionType } from "@shared/section-types";
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(max, Math.max(min, value));
@@ -173,6 +175,18 @@ function normalizeSectionBoxes(
     return frozenSection;
 }
 
+/** Check if a section is partially extracted (needs_review but missing required fields). */
+function computeIsPartial(section: SectionData): boolean {
+    if (section.state !== "needs_review") return false;
+    const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
+    if (!reqKeys.length) return false;
+    for (const key of reqKeys) {
+        const val = section.fields?.[key];
+        if (val === null || val === undefined || val === "") return true;
+    }
+    return false;
+}
+
 function calculateSectionStyle(
     pageNumber: number,
     section: SectionData,
@@ -186,6 +200,8 @@ function calculateSectionStyle(
     const pages = normalizedSection.textPosition.page;
     const boxes = normalizedSection.textPosition.boxes;
 
+    const isPartial = computeIsPartial(section);
+
     if (boxes && boxes.length) {
         const box = boxes.find((entry) => entry.page === pageNumber);
         if (!box) {
@@ -193,6 +209,7 @@ function calculateSectionStyle(
                 id: section.id,
                 state: section.state,
                 sectionType: section.sectionType,
+                isPartial,
                 hasTopBorder: false,
                 hasBottomBorder: false,
                 style: {
@@ -208,6 +225,7 @@ function calculateSectionStyle(
             id: section.id,
             state: section.state,
             sectionType: section.sectionType,
+            isPartial,
             hasTopBorder: pageNumber === pages[0],
             hasBottomBorder: pageNumber === pages[pages.length - 1],
             style: {
@@ -224,6 +242,7 @@ function calculateSectionStyle(
         id: section.id,
         state: section.state,
         sectionType: section.sectionType,
+        isPartial,
         hasTopBorder: true,
         hasBottomBorder: true,
         style: {
@@ -265,7 +284,7 @@ function handleAutoSplit(
                 const splitElement = document.getElementById('pdf-split-toolbar');
                 if (splitElement) splitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 else {
-                    const element = document.querySelector(`[data-page-number="${pageNumber}"]`);
+                    const element = document.querySelector(`[data-page-number="${lastPage}"]`);
                     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
                 }
             }, 100);

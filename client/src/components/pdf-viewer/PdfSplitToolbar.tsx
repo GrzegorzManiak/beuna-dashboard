@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import type { ReactNode, Ref } from "react";
 import type { SectionData, SectionType } from "./types";
+import { REQUIRED_FIELDS } from "@shared/section-types";
+import type { SectionType as SharedSectionType } from "@shared/section-types";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -30,7 +32,8 @@ import {
     MvOwnerEntityBlockEditor,
     UnitsUnitBlockEditor,
     UnknownSectionEditor,
-    WegAdministrationBlockEditor,
+    WegPropertyManagerEditor,
+    WegAccountantEditor,
     WegMeaTotalCheckEditor,
     WegSpecialRightsBlockEditor,
 } from "./tools";
@@ -56,11 +59,44 @@ const SECTION_TYPE_OPTIONS: SectionTypeOption[] = [
 const STATE_BADGES: Record<string, { label: string; className: string }> = {
     valid: { label: "Valid", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     needs_review: { label: "Needs review", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    partial: { label: "Partially extracted", className: "bg-amber-100 text-amber-700 border-amber-200 animate-slow-pulse" },
     conflict: { label: "Conflict", className: "bg-red-100 text-red-700 border-red-200" },
-    processing: { label: "Processing", className: "bg-amber-100 text-amber-700 border-amber-200" },
-    identifying: { label: "Identifying", className: "bg-indigo-100 text-indigo-700 border-indigo-200" },
-    unknown: { label: "Unknown", className: "bg-orange-100 text-orange-700 border-orange-200" },
+    processing: { label: "Extracting…", className: "bg-sky-100 text-sky-700 border-sky-200 animate-slow-pulse" },
+    identifying: { label: "Identifying…", className: "bg-indigo-100 text-indigo-700 border-indigo-200 animate-slow-pulse" },
+    error: { label: "Extraction failed", className: "bg-red-100 text-red-700 border-red-200 animate-slow-pulse" },
+    unknown: { label: "Unknown", className: "bg-red-100 text-red-700 border-red-200" },
 };
+
+/**
+ * Returns the set of required field keys that are missing (null / undefined / "")
+ * for a given section.  Returns an empty set when the section type has no
+ * required field metadata or all required fields are filled.
+ */
+function getMissingRequiredFields(section: SectionData): Set<string> {
+    const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
+    if (!reqKeys.length) return new Set();
+    const missing = new Set<string>();
+    for (const key of reqKeys) {
+        const val = section.fields?.[key];
+        if (val === null || val === undefined || val === "") {
+            missing.add(key);
+        }
+    }
+    return missing;
+}
+
+/**
+ * Compute the effective display state for a section.  Sections in
+ * `needs_review` that have missing required fields are shown as `partial`.
+ */
+function getDisplayState(section: SectionData | null): string {
+    if (!section) return "unknown";
+    if (section.state !== "needs_review") return section.state ?? "unknown";
+    const missing = getMissingRequiredFields(section);
+    const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
+    if (reqKeys.length > 0 && missing.size > 0) return "partial";
+    return "needs_review";
+}
 
 type OptionComboboxProps = {
     options: Option[];
@@ -75,6 +111,8 @@ type SectionEditorConfig = {
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     propertyType: "WEG" | "MV";
     availableBuildings?: Map<string, string>;
+    missingFields?: Set<string>;
+    totalMeaDenominator?: number | null;
 };
 
 function OptionCombobox({ options, value, disabled, placeholder, onChange }: OptionComboboxProps) {
@@ -112,14 +150,14 @@ function OptionCombobox({ options, value, disabled, placeholder, onChange }: Opt
     );
 }
 
-function renderSectionEditor({ section, onSectionUpdate, propertyType, availableBuildings }: SectionEditorConfig): ReactNode {
+function renderSectionEditor({ section, onSectionUpdate, propertyType, availableBuildings, missingFields, totalMeaDenominator }: SectionEditorConfig): ReactNode {
     switch (section.sectionType) {
         case "core.property_overview":
-            return <CorePropertyOverviewEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <CorePropertyOverviewEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "core.address":
-            return <CoreAddressEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <CoreAddressEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "core.building":
-            return <CoreBuildingEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <CoreBuildingEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "units.unit_block":
             return (
                 <UnitsUnitBlockEditor
@@ -127,17 +165,20 @@ function renderSectionEditor({ section, onSectionUpdate, propertyType, available
                     onSectionUpdate={onSectionUpdate}
                     propertyType={propertyType}
                     availableBuildings={availableBuildings}
+                    missingFields={missingFields}
+                    totalMeaDenominator={totalMeaDenominator}
                 />
             );
         case "weg.special_rights":
-            return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <WegSpecialRightsBlockEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "weg.mea_declaration":
-            return <WegMeaTotalCheckEditor />;
+            return <WegMeaTotalCheckEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "weg.property_manager":
+            return <WegPropertyManagerEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "weg.accountant":
-            return <WegAdministrationBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <WegAccountantEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "mv.owner_entity":
-            return <MvOwnerEntityBlockEditor section={section} onSectionUpdate={onSectionUpdate} />;
+            return <MvOwnerEntityBlockEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
         case "unknown":
         default:
             return <UnknownSectionEditor />;
@@ -179,6 +220,8 @@ function PdfSplitToolbar({
     }, [activeSectionId, sections, sectionsOnPage]);
 
     const isIdentifying = useMemo(() => activeSection?.state === "identifying", [activeSection]);
+    const isProcessing = useMemo(() => activeSection?.state === "processing", [activeSection]);
+    const isBusy = isIdentifying || isProcessing;
     const isUnknown = useMemo(() => activeSection?.sectionType === "unknown", [activeSection]);
 
     const availableBuildings = useMemo(() => {
@@ -194,16 +237,43 @@ function PdfSplitToolbar({
                 if (!uuid) return;
                 
                 const uuidStr = String(uuid);
-                const displayName = label || name || `Building ${uuidStr.slice(-8)}`;
-                if (displayName && typeof displayName === 'string' && displayName.trim() !== "") {
-                    buildingMap.set(uuidStr, displayName);
-                }
+                const namePart = name ? String(name).trim() : "";
+                const labelPart = label ? String(label).trim() : "";
+                const displayName = namePart && labelPart
+                    ? `${namePart} — ${labelPart}`
+                    : namePart || labelPart || `Building ${uuidStr.slice(-8)}`;
+                buildingMap.set(uuidStr, displayName);
             });
         
         return buildingMap;
     }, [sections]);
 
-    const stateBadge = activeSection?.state ? STATE_BADGES[activeSection.state] : STATE_BADGES.unknown;
+    /** Derive the total MEA denominator from the weg.mea_declaration section. */
+    const totalMeaDenominator = useMemo(() => {
+        const meaSection = sections.find((s) => s.sectionType === "weg.mea_declaration");
+        if (!meaSection) return null;
+        const raw = meaSection.fields?.totalMea;
+        if (raw === null || raw === undefined || raw === "") return null;
+        const num = Number(raw);
+        return Number.isNaN(num) ? null : num;
+    }, [sections]);
+
+    const displayState = useMemo(() => getDisplayState(activeSection), [activeSection]);
+    const stateBadge = STATE_BADGES[displayState] ?? STATE_BADGES.unknown;
+    const missingFields = useMemo(() => {
+        if (!activeSection) return new Set<string>();
+        const missing = getMissingRequiredFields(activeSection);
+        // Dynamically flag buildingRef as missing for units when buildings
+        // are available but the unit has no building assigned.
+        if (
+            activeSection.sectionType === "units.unit_block" &&
+            availableBuildings.size > 0 &&
+            !activeSection.fields?.buildingRef
+        ) {
+            missing.add("buildingRef");
+        }
+        return missing;
+    }, [activeSection, availableBuildings]);
     const sectionTypeValue = activeSection?.sectionType ?? "unknown";
     const typeLabel = SECTION_TYPE_OPTIONS.find((option) => option.value === sectionTypeValue)?.label;
 
@@ -263,7 +333,10 @@ function PdfSplitToolbar({
             updateSection({ state: "valid" });
         }
         
-        const candidates = sectionsOnPage.length ? sectionsOnPage : sections;
+        // Search ALL sections for the next one that needs attention, not just
+        // sections on the current page.  This lets the "Confirm" button walk
+        // through the entire document.
+        const candidates = sections;
         if (!candidates.length) {
             closeSplit();
             return;
@@ -275,9 +348,10 @@ function PdfSplitToolbar({
         }
         const currentIndex = candidates.findIndex((section) => section.id === currentId);
         
-        const needsReviewStates = ["needs_review", "conflict", "processing", "identifying", "unknown"];
+        const needsReviewStates = ["needs_review", "conflict", "processing", "identifying", "unknown", "error"];
         
-        let nextSection = null;
+        // Look forward from the current position first
+        let nextSection: SectionData | null = null;
         for (let i = currentIndex + 1; i < candidates.length; i++) {
             const section = candidates[i];
             if (section.id !== currentId && (!section.state || needsReviewStates.includes(section.state))) {
@@ -286,6 +360,7 @@ function PdfSplitToolbar({
             }
         }
         
+        // Wrap around to the beginning if nothing found after
         if (!nextSection) {
             for (let i = 0; i < currentIndex; i++) {
                 const section = candidates[i];
@@ -297,6 +372,7 @@ function PdfSplitToolbar({
         }
         
         if (!nextSection) {
+            // Everything is reviewed — close the split toolbar
             closeSplit();
             return;
         }
@@ -330,8 +406,11 @@ function PdfSplitToolbar({
                         >
                             {stateBadge?.label ?? "Unknown"}
                         </Badge>
-                        {isIdentifying && (
-                            <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                        {isBusy && (
+                            <Loader2 className={cn(
+                                "h-5 w-5 animate-spin",
+                                isIdentifying ? "text-indigo-600" : "text-sky-600",
+                            )} />
                         )}
                         <div className="text-lg font-semibold uppercase tracking-wide">
                             {typeLabel ?? "Section editor"}
@@ -343,7 +422,7 @@ function PdfSplitToolbar({
                     <OptionCombobox
                         options={filteredTypeOptions}
                         value={sectionTypeValue}
-                        disabled={!activeSection || !onSectionUpdate || isIdentifying}
+                        disabled={!activeSection || !onSectionUpdate || isBusy}
                         placeholder="Select section type"
                         onChange={(nextValue) => updateSection({ sectionType: nextValue as SectionType })}
                     />
@@ -351,7 +430,7 @@ function PdfSplitToolbar({
             </div>
 
             <div className="w-full border-t border-gray-200" >
-                <div className={cn("p-4", isIdentifying && "opacity-50 pointer-events-none")}>
+                <div className={cn("p-4", isBusy && "opacity-50 pointer-events-none")}>
                     <div>
   
                         {activeSection
@@ -360,6 +439,8 @@ function PdfSplitToolbar({
                                 onSectionUpdate,
                                 propertyType,
                                 availableBuildings,
+                                missingFields,
+                                totalMeaDenominator,
                             })
                             : (
                                 <div className="rounded border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-xs text-gray-500">
@@ -376,7 +457,7 @@ function PdfSplitToolbar({
                         variant="outline"
                         className="text-lg h-10 px-10 py-5 cursor-pointer"
                         onClick={closeSplit}
-                        disabled={isIdentifying}
+                        disabled={isBusy}
                     >
                         Close
                     </Button>
@@ -385,7 +466,7 @@ function PdfSplitToolbar({
                             variant="destructive"
                             className="text-lg h-10 px-10 py-5 cursor-pointer"
                             onClick={handleDelete}
-                            disabled={!activeSection || !onSectionDelete || isIdentifying}
+                            disabled={!activeSection || !onSectionDelete || isBusy}
                         >
                             Delete
                         </Button>
@@ -415,7 +496,7 @@ function PdfSplitToolbar({
                         type="submit"
                         className="grow py-5 text-lg h-10 cursor-pointer"
                         onClick={handleNext}
-                        disabled={!activeSection || isIdentifying || isUnknown}
+                        disabled={!activeSection || isBusy || isUnknown}
                     >
                         {getActionButtonText()}
                     </Button>
