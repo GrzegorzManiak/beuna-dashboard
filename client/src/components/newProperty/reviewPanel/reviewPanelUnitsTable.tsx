@@ -189,7 +189,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
             {renderTypeCell(row)}
             {renderBuildingCell(row)}
             {renderTextCell(row, "area", row.area)}
-            {renderTextCell(row, "meaNumerator", row.meaNumerator)}
+            {propertyType === "WEG" && renderTextCell(row, "meaNumerator", row.meaNumerator)}
             <td className="px-3 py-2 text-sm text-gray-600">{row.specialRightsLabel || EM_DASH}</td>
             <td className="px-2 py-2">
                 <div className="flex items-center">
@@ -244,7 +244,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                             <th className="px-3 py-2">Type</th>
                             <th className="px-3 py-2">Building</th>
                             <th className="px-3 py-2">Area</th>
-                            <th className="px-3 py-2">MEA</th>
+                            {propertyType === "WEG" && <th className="px-3 py-2">MEA</th>}
                             <th className="px-3 py-2">Special Rights</th>
                             <th className="w-8 px-2 py-2" />
                         </tr>
@@ -275,7 +275,7 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                         <tr className="text-sm font-semibold text-gray-700">
                             <td className="px-3 py-2" colSpan={3}>Total</td>
                             <td className="px-3 py-2">{totalArea > 0 ? (totalArea % 1 === 0 ? String(totalArea) : totalArea.toFixed(2)) : EM_DASH}</td>
-                            <td className="px-3 py-2">{totalMea > 0 ? (totalMea % 1 === 0 ? String(totalMea) : totalMea.toFixed(2)) : EM_DASH}</td>
+                            {propertyType === "WEG" && <td className="px-3 py-2">{totalMea > 0 ? (totalMea % 1 === 0 ? String(totalMea) : totalMea.toFixed(2)) : EM_DASH}</td>}
                             <td className="px-3 py-2" colSpan={2} />
                         </tr>
                     </tfoot>

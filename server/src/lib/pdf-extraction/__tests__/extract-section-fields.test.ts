@@ -526,6 +526,20 @@ describe("postProcessFields buildingRef", () => {
         expect(map.buildingRef).toBe("bld-bbb");
     });
 
+    test("falls back to regex for English alias 'Building A' vs stored 'Haus A'", () => {
+        const fields = postProcessFields(
+            "Unit 05 Building A",
+            "units.unit_block",
+            [
+                { key: "unitNumber", value: "5" },
+                { key: "buildingRef", value: null },
+            ],
+            BUILDINGS_2,
+        );
+        const map = Object.fromEntries(fields.map((f) => [f.key, f.value]));
+        expect(map.buildingRef).toBe("bld-aaa");
+    });
+
     test("returns null when text matches no building name", () => {
         const fields = postProcessFields(
             "Einheit Nr. 5 im Erdgeschoss",
@@ -565,6 +579,10 @@ describe("inferBuildingRef", () => {
 
     test("matches 'Haus B' in text to second building", () => {
         expect(inferBuildingRef("Gebäude: Haus B, 2. OG", BUILDINGS)).toBe("bld-bbb");
+    });
+
+    test("matches 'Building A' in text to stored 'Haus A'", () => {
+        expect(inferBuildingRef("Unit 05 in Building A", BUILDINGS)).toBe("bld-aaa");
     });
 
     test("matches 'Parkside' keyword", () => {

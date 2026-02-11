@@ -14,6 +14,11 @@ const OVERVIEW_KEYWORDS = [
     "eigentumsverhaeltnisse",
     "grundbuch",
     "teilungsplan",
+    "property overview",
+    "property name",
+    "legal owner",
+    "land registry",
+    "ownership structure",
 ];
 
 export class CorePropertyOverviewProcessor implements SectionProcessor {

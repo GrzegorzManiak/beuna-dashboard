@@ -18,6 +18,10 @@ const UNIT_KEYWORDS = [
     "stellplatz",
     "kellerraum",
     "gartenanteil",
+    "unit",
+    "units",
+    "rental unit",
+    "apartment",
 ];
 
 const UNIT_CONTENT_KEYWORDS = [
@@ -31,6 +35,11 @@ const UNIT_CONTENT_KEYWORDS = [
     "anteil",
     "raum",
     "zimmer",
+    "floor",
+    "area",
+    "description",
+    "unit",
+    "type",
 ];
 
 export class UnitsBlockProcessor implements SectionProcessor {

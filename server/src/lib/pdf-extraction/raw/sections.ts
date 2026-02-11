@@ -177,7 +177,13 @@ function buildSections(
         const hasSectionSymbol = line.text.includes("§");
         const hasHeadingKeyword = SECTION_HEADING_KEYWORDS.some((keyword) => normalized.includes(keyword));
         const hasUnitKeyword = UNIT_ENTRY_KEYWORDS.some((keyword) => normalized.includes(keyword));
-        if (hasUnitKeyword && /\d/.test(line.text) && !hasSectionSymbol) return false;
+        const enumScore = leadingEnumerationScore(line.text);
+        const isEnumeratedUnitHeading =
+            hasUnitKeyword
+            && enumScore >= 0.7
+            && tokens.length <= 8
+            && !/\bnr\.?\b/i.test(line.text);
+        if (hasUnitKeyword && /\d/.test(line.text) && !hasSectionSymbol && !isEnumeratedUnitHeading) return false;
 
         if (!hasSectionSymbol && INLINE_LABEL_KEYWORDS.some((keyword) => normalized.includes(keyword))) return false;
         if (!hasSectionSymbol && !hasHeadingKeyword &&
@@ -187,7 +193,6 @@ function buildSections(
         const hasRooms = /\bzimmer\b/i.test(line.text);
         if (!hasSectionSymbol && hasArea && (hasRooms || hasUnitKeyword)) return false;
 
-        const enumScore = leadingEnumerationScore(line.text);
         const capsScore = uppercaseRatio(line.text);
         const hasFraction = /\d+\s*\/\s*\d+/.test(line.text);
         if (hasFraction && !hasHeadingKeyword && enumScore < 1) return false;

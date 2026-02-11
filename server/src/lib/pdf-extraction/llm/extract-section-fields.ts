@@ -274,6 +274,10 @@ function inferMeaNumerator(rawText: string): number | null {
  * Attempt to parse total MEA (denominator) from raw text.
  */
 function inferTotalMea(rawText: string): number | null {
+    // If exact match of a formatted number (e.g. "1.000") is passed directly from LLM
+    const exact = parseGermanNumber(rawText);
+    if (exact !== null && exact >= 100) return exact;
+
     // Clean OCR artifacts
     const cleaned = rawText.replace(/[.,]{2,}/g, ".");
     // Look for explicit total MEA patterns
@@ -316,6 +320,17 @@ function inferAddressFields(rawText: string): Record<string, string> | null {
 
 type BuildingRef = { uuid: string; name: string };
 
+function extractBuildingIdentifiers(text: string): Set<string> {
+    const identifiers = new Set<string>();
+    const regex = /\b(?:haus|building|geb(?:ä|ae)?ude)\s*([a-z]|\d{1,3})\b/gi;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(text)) !== null) {
+        const value = match[1]?.trim().toLowerCase();
+        if (value) identifiers.add(value);
+    }
+    return identifiers;
+}
+
 /**
  * Try to match a building from the raw text by looking for building names.
  * Uses a two-pass approach:
@@ -325,6 +340,18 @@ type BuildingRef = { uuid: string; name: string };
  */
 function inferBuildingRef(rawText: string, buildings: BuildingRef[]): string | null {
     const textLower = rawText.toLowerCase();
+    const textIdentifiers = extractBuildingIdentifiers(rawText);
+
+    if (textIdentifiers.size > 0) {
+        const matches = buildings.filter((building) => {
+            const buildingIdentifiers = extractBuildingIdentifiers(building.name);
+            for (const identifier of textIdentifiers) {
+                if (buildingIdentifiers.has(identifier)) return true;
+            }
+            return false;
+        });
+        if (matches.length === 1) return matches[0]!.uuid;
+    }
 
     // Split each building name into segments on em-dashes / dashes
     // e.g. "Haus A — Parkside" → ["Haus A", "Parkside"]

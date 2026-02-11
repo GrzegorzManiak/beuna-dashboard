@@ -12,13 +12,16 @@ const ACCOUNTANT_KEYWORDS = [
     "buchhaltung",
     "abrechnung",
     "buchfuehrung",
+    "accountant",
+    "bookkeeping",
+    "finance",
 ];
 
 export class WegAccountantProcessor implements SectionProcessor {
     readonly sectionType = "weg.accountant" as const;
     readonly description = "Accountant appointment section";
     readonly isArrayBased = false;
-    readonly propertyTypeScope = "WEG" as const;
+    readonly propertyTypeScope = "ANY" as const;
 
     matches(section: PdfSection): number | null {
         if (section.lines.length < 2) return null;

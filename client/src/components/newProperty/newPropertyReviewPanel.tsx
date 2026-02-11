@@ -909,14 +909,16 @@ function NewPropertyReviewPanel({
                         />
                     </ReviewPanelSection>
 
-                    <ReviewPanelSection id="review-section-ownership" title="Ownership Structure" defaultOpen>
-                        <ReviewPanelOwnershipCard
-                            propertyType={propertyType}
-                            totalMea={totalMea}
-                            allocatedMea={allocatedMea}
-                            onEdit={() => setOwnershipModalOpen(true)}
-                        />
-                    </ReviewPanelSection>
+                    {propertyType === "WEG" && (
+                        <ReviewPanelSection id="review-section-ownership" title="Ownership Structure" defaultOpen>
+                            <ReviewPanelOwnershipCard
+                                propertyType={propertyType}
+                                totalMea={totalMea}
+                                allocatedMea={allocatedMea}
+                                onEdit={() => setOwnershipModalOpen(true)}
+                            />
+                        </ReviewPanelSection>
+                    )}
 
                     <ReviewPanelSection id="review-section-special-rights" title={`Special Rights (${specialRightsRows.length})`} defaultOpen={specialRightsRows.length > 0}>
                         <ReviewPanelSpecialRightsList

@@ -12,12 +12,26 @@ const ADMIN_HEADING_KEYWORDS = [
     "verwaltung",
     "verwalter",
     "hausverwaltung",
+    "administration",
+    "property manager",
+    "accountant",
 ];
 
 const ACCOUNTANT_KEYWORDS = [
     "buchhaltung",
     "abrechnung",
     "buchfuehrung",
+    "accountant",
+    "bookkeeping",
+    "finance",
+];
+
+const MANAGER_KEYWORDS = [
+    "verwalter",
+    "verwaltung",
+    "hausverwaltung",
+    "property manager",
+    "manager",
 ];
 
 /**
@@ -46,7 +60,7 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
     readonly sectionType = "weg.property_manager" as const;
     readonly description = "Combined administration section (manager + accountant)";
     readonly isArrayBased = true;
-    readonly propertyTypeScope = "WEG" as const;
+    readonly propertyTypeScope = "ANY" as const;
 
     matches(section: PdfSection): number | null {
         if (section.lines.length < 4) return null;
@@ -56,27 +70,23 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
 
         // Body must contain both manager AND accountant indicators
         const bodyNorm = normalizeForMatch(section.rawText);
-        const hasManager =
-            bodyNorm.includes("verwalter") ||
-            bodyNorm.includes("verwaltung") ||
-            bodyNorm.includes("hausverwaltung");
-        const hasAccountant =
-            bodyNorm.includes("buchhaltung") ||
-            bodyNorm.includes("abrechnung") ||
-            bodyNorm.includes("buchfuehrung");
+        const hasManager = MANAGER_KEYWORDS.some((keyword) => bodyNorm.includes(keyword));
+        const hasAccountant = ACCOUNTANT_KEYWORDS.some((keyword) => bodyNorm.includes(keyword));
 
         if (!hasManager || !hasAccountant) return null;
 
-        // Must have at least one enumeration marker to split on
         const hasEnum = section.lines.some((l) => ENUM_MARKER_RE.test(l.text));
-        if (!hasEnum) return null;
+        const roleBlocks = splitAtRoleHeadings(section.lines);
+        if (!hasEnum && roleBlocks.length < 2) return null;
 
         // Higher confidence than the individual processors so we win the bid
         return 0.75;
     }
 
     async process(section: PdfSection): Promise<ProcessedSection> {
-        const subBlocks = splitAtEnumMarkers(section.lines);
+        const enumBlocks = splitAtEnumMarkers(section.lines);
+        const roleBlocks = splitAtRoleHeadings(section.lines);
+        const subBlocks = enumBlocks.length > 0 ? enumBlocks : roleBlocks;
         const sectionPositions = linesToPositions(section.lines);
 
         const items: SectionItem[] = [];
@@ -92,39 +102,17 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
             const firstLineNorm = normalizeForMatch(block.lines[0]?.text ?? "");
             const fullBlockNorm = normalizeForMatch(blockText);
 
-            // Determine sub-type — check accountant first since "Verwalter"
-            // can appear in the accountant body as a passing reference.
-            let subType: "weg.property_manager" | "weg.accountant" | null = null;
-            if (
-                firstLineNorm.includes("buchhaltung") ||
-                firstLineNorm.includes("abrechnung") ||
-                firstLineNorm.includes("buchfuehrung") ||
-                firstLineNorm.includes("buchfuhrung") ||
-                firstLineNorm.includes("accountant")
-            ) {
+            let subType: "weg.property_manager" | "weg.accountant" | null = block.roleHint ?? null;
+            if (!subType && ACCOUNTANT_KEYWORDS.some((keyword) => firstLineNorm.includes(keyword))) {
                 subType = "weg.accountant";
-            } else if (
-                firstLineNorm.includes("verwalter") ||
-                firstLineNorm.includes("verwaltung") ||
-                firstLineNorm.includes("hausverwaltung") ||
-                firstLineNorm.includes("property manager")
-            ) {
+            } else if (!subType && MANAGER_KEYWORDS.some((keyword) => firstLineNorm.includes(keyword))) {
                 subType = "weg.property_manager";
             }
 
-            // Fallback: try the full block text if the first line wasn't enough
             if (!subType) {
-                if (
-                    fullBlockNorm.includes("buchhaltung") ||
-                    fullBlockNorm.includes("abrechnung") ||
-                    fullBlockNorm.includes("buchfuehrung")
-                ) {
+                if (ACCOUNTANT_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword))) {
                     subType = "weg.accountant";
-                } else if (
-                    fullBlockNorm.includes("verwalter") ||
-                    fullBlockNorm.includes("verwaltung") ||
-                    fullBlockNorm.includes("hausverwaltung")
-                ) {
+                } else if (MANAGER_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword))) {
                     subType = "weg.property_manager";
                 }
             }
@@ -159,8 +147,8 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
  * Returns one sub-block per marker.  Lines before the first marker are
  * discarded (they're usually the heading / intro paragraph).
  */
-function splitAtEnumMarkers(lines: PdfLine[]): Array<{ lines: PdfLine[] }> {
-    const blocks: Array<{ lines: PdfLine[] }> = [];
+function splitAtEnumMarkers(lines: PdfLine[]): Array<{ lines: PdfLine[]; roleHint?: "weg.property_manager" | "weg.accountant" }> {
+    const blocks: Array<{ lines: PdfLine[]; roleHint?: "weg.property_manager" | "weg.accountant" }> = [];
     let current: PdfLine[] | null = null;
 
     for (const line of lines) {
@@ -181,5 +169,30 @@ function splitAtEnumMarkers(lines: PdfLine[]): Array<{ lines: PdfLine[] }> {
         blocks.push({ lines: current });
     }
 
+    return blocks;
+}
+
+function detectRoleHint(text: string): "weg.property_manager" | "weg.accountant" | null {
+    const normalized = normalizeForMatch(text);
+    if (ACCOUNTANT_KEYWORDS.some((keyword) => normalized.includes(keyword))) return "weg.accountant";
+    if (MANAGER_KEYWORDS.some((keyword) => normalized.includes(keyword))) return "weg.property_manager";
+    return null;
+}
+
+function splitAtRoleHeadings(lines: PdfLine[]): Array<{ lines: PdfLine[]; roleHint?: "weg.property_manager" | "weg.accountant" }> {
+    const blocks: Array<{ lines: PdfLine[]; roleHint?: "weg.property_manager" | "weg.accountant" }> = [];
+    let current: { lines: PdfLine[]; roleHint?: "weg.property_manager" | "weg.accountant" } | null = null;
+
+    for (const line of lines) {
+        const roleHint = detectRoleHint(line.text);
+        if (roleHint) {
+            if (current && current.lines.length > 0) blocks.push(current);
+            current = { lines: [line], roleHint };
+            continue;
+        }
+        if (current) current.lines.push(line);
+    }
+
+    if (current && current.lines.length > 0) blocks.push(current);
     return blocks;
 }

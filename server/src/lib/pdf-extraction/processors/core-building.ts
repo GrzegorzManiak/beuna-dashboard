@@ -19,6 +19,8 @@ const BUILDING_KEYWORDS = [
     "bauwerk",
     "anwesen",
     "liegenschaft",
+    "building",
+    "buildings",
 ];
 
 const BUILDING_CONTENT_KEYWORDS = [
@@ -31,6 +33,12 @@ const BUILDING_CONTENT_KEYWORDS = [
     "grundstueck",
     "wohnflaeche",
     "nutzflaeche",
+    "address",
+    "floor",
+    "floors",
+    "year built",
+    "total units",
+    "total area",
 ];
 
 export class CoreBuildingProcessor implements SectionProcessor {

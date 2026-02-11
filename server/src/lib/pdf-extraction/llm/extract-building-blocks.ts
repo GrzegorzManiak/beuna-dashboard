@@ -5,7 +5,7 @@ type ExtractedBlock = {
     blockText: string;
 };
 
-const BUILDING_MARKER_REGEX = /^\s*(\(\s*\d+\s*\)\s*)?geb[äa]ude\s*\d+/i;
+const BUILDING_MARKER_REGEX = /^\s*(\(\s*\d+\s*\)\s*)?(?:geb[äa]ude\s*\d+|building\s*[a-z0-9]+)/i;
 
 const BUILDING_BLOCK_TOOL: JsonToolSchema = {
     name: "extract_building_blocks",

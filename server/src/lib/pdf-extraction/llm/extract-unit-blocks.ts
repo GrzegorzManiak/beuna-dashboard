@@ -21,6 +21,8 @@ const UNIT_KEYWORDS = [
     "keller",
     "lager",
     "gewerbe",
+    "office",
+    "commercial",
     "buero",
     "buro",
 ];

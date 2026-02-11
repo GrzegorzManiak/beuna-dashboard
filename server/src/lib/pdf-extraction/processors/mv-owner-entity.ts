@@ -9,7 +9,11 @@ import {
 
 const OWNER_KEYWORDS = [
     "eigentuemer",
+    "owner",
+    "ownership",
+    "legal owner",
     "vermieter",
+    "landlord",
     "gesellschaft",
     "gmbh",
     "firma",

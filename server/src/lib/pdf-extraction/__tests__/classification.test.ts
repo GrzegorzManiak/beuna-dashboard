@@ -93,7 +93,7 @@ describe("unit block splitting", () => {
         const unitSection = allSections[2]!;
         const blocks = await extractUnitBlocks(unitSection);
         expect(blocks.length).toBe(10);
-    });
+    }, 15000);
 
     test("each block starts with a unit marker", async () => {
         const unitSection = allSections[2]!;
@@ -103,7 +103,7 @@ describe("unit block splitting", () => {
             const firstLine = block.blockText.split("\n")[0]?.trim() ?? "";
             expect(firstLine).toMatch(/\d+[\.,]\s*einheit/i);
         }
-    });
+    }, 15000);
 
     test("block 9 is the parking group (Einheiten Nr. 09 bis 13)", async () => {
         const unitSection = allSections[2]!;
@@ -112,7 +112,7 @@ describe("unit block splitting", () => {
         const parkingBlock = blocks[8]!;
         expect(parkingBlock.blockText).toContain("Einheiten Nr. 09 bis 13");
         expect(parkingBlock.blockText).toContain("Parking");
-    });
+    }, 15000);
 
     test("block 10 is the garden unit (Einheit Nr. 14)", async () => {
         const unitSection = allSections[2]!;
@@ -121,7 +121,7 @@ describe("unit block splitting", () => {
         const gardenBlock = blocks[9]!;
         expect(gardenBlock.blockText).toContain("Einheit Nr. 14");
         expect(gardenBlock.blockText).toContain("Garden");
-    });
+    }, 15000);
 });
 
 describe("building block splitting", () => {

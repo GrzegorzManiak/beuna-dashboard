@@ -11,11 +11,17 @@ const SPECIAL_RIGHTS_KEYWORDS = [
     "sondernutzungsrecht",
     "sonderrecht",
     "nutzungsrecht",
+    "special rights",
+    "exclusive access",
+    "usage rights",
+    "contractual rights",
     "garten",
     "terrasse",
     "balkon",
     "stellplatz",
     "parkplatz",
+    "roof terrace",
+    "parking spaces",
 ];
 
 export class WegSpecialRightsProcessor implements SectionProcessor {
