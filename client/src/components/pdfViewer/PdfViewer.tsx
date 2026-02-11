@@ -14,6 +14,7 @@ interface PdfViewerProps {
     onSectionAdd?: (section: SectionData) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     onSectionDelete?: (sectionId: string) => void;
+    onRetrySection?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     propertyId?: string;
     autoSplitOnSelection?: boolean;
@@ -36,6 +37,7 @@ function PdfViewer({
     onSectionAdd,
     onSectionUpdate,
     onSectionDelete,
+    onRetrySection,
     propertyType = "WEG",
     propertyId,
     autoSplitOnSelection = true,
@@ -91,6 +93,7 @@ function PdfViewer({
                     onActiveSectionChange={setActiveSectionId}
                     onSectionUpdate={onSectionUpdate}
                     onSectionDelete={handleSectionDelete}
+                    onRetrySection={onRetrySection}
                     propertyType={propertyType}
                     dragMode={dragMode}
                     onDragSelection={async (result) => {

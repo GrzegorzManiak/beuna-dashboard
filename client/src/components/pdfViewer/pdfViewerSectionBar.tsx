@@ -18,6 +18,7 @@ type SectionBarProps = {
     splitToolbarHeight: number;
     activeSectionId: string | null;
     setActiveSectionId: (id: string | null) => void;
+    onRetrySection?: (sectionId: string) => void;
 };
 
 function SectionBar({
@@ -27,6 +28,7 @@ function SectionBar({
     splitToolbarHeight,
     activeSectionId,
     setActiveSectionId,
+    onRetrySection,
 }: SectionBarProps){
     const isPartialSection = (section: SectionData): boolean => {
         if (section.state !== "needs_review") return false;
@@ -183,19 +185,32 @@ function SectionBar({
                 return (
                     <div
                         key={section.id}
-                        onClick={() => setActiveSectionId(section.id)}
-                        className={cn(
-                            "border rounded absolute h-7 w-32 cursor-pointer transition-all duration-300 border-r-0 rounded-r-none pl-2",
-                            getStateClasses(section.state, isSelected, partial),
-                        )}
-                        style={{ 
+                        className="absolute"
+                        style={{
                             top: section.top,
                             transform: `translateX(-${isSelected ? 2 : 0}px)`,
                         }}
                     >
-                        <span className="text-xs w-full font">
-                            {SECTION_TYPE_OPTIONS.find((option) => option.value === section.sectionType)?.label || section.sectionType || "Unknown type"}
-                        </span>
+                        <div
+                            onClick={() => setActiveSectionId(section.id)}
+                            className={cn(
+                                "border rounded h-7 w-32 cursor-pointer transition-all duration-300 border-r-0 rounded-r-none pl-2",
+                                getStateClasses(section.state, isSelected, partial),
+                            )}
+                        >
+                            <span className="text-xs w-full font">
+                                {SECTION_TYPE_OPTIONS.find((option) => option.value === section.sectionType)?.label || section.sectionType || "Unknown type"}
+                            </span>
+                        </div>
+                        {section.state === "error" && onRetrySection && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onRetrySection(section.id); }}
+                                className="mt-0.5 w-32 rounded rounded-r-none border border-r-0 border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
+                            >
+                                Retry extraction
+                            </button>
+                        )}
                     </div>
                 );
             })}

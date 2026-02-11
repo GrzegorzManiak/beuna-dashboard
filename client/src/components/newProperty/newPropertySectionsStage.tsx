@@ -45,7 +45,7 @@ function NewPropertySectionsStage({
     const updateSectionMutation = useUpdateSectionMutation();
     const deleteSectionMutation = useDeleteSectionMutation();
 
-    useSectionExtraction({
+    const { retrySection } = useSectionExtraction({
         propertyId,
         sections,
         onSectionUpdate: handleSectionUpdate,
@@ -341,6 +341,7 @@ function NewPropertySectionsStage({
                                 splitToolbarHeight={viewerState.splitToolbarHeight}
                                 activeSectionId={viewerState.activeSectionId}
                                 setActiveSectionId={viewerActions.setActiveSectionId}
+                                onRetrySection={retrySection}
                             />
                         </div>
 
@@ -362,6 +363,7 @@ function NewPropertySectionsStage({
                                     onSectionAdd={handleSectionAdd}
                                     onSectionUpdate={handleSectionUpdate}
                                     onSectionDelete={handleSectionDelete}
+                                    onRetrySection={retrySection}
                                     {...viewerState}
                                     {...viewerActions}
                                 />

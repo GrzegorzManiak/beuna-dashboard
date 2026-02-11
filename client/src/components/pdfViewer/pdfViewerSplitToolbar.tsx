@@ -192,6 +192,7 @@ type PdfViewerSplitToolbarProps = {
     onActiveSectionChange?: (sectionId: string | null) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     onSectionDelete?: (sectionId: string) => void;
+    onRetrySection?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     pageNumber: number;
 };
@@ -204,6 +205,7 @@ function PdfViewerSplitToolbar({
     onActiveSectionChange,
     onSectionUpdate,
     onSectionDelete,
+    onRetrySection,
     propertyType = "WEG",
     pageNumber,
 }: PdfViewerSplitToolbarProps){
@@ -221,6 +223,7 @@ function PdfViewerSplitToolbar({
 
     const isIdentifying = useMemo(() => activeSection?.state === "identifying", [activeSection]);
     const isProcessing = useMemo(() => activeSection?.state === "processing", [activeSection]);
+    const isError = useMemo(() => activeSection?.state === "error", [activeSection]);
     const isBusy = isIdentifying || isProcessing;
     const isUnknown = useMemo(() => activeSection?.sectionType === "unknown", [activeSection]);
 
@@ -411,6 +414,15 @@ function PdfViewerSplitToolbar({
                                 "h-5 w-5 animate-spin",
                                 isIdentifying ? "text-indigo-600" : "text-sky-600",
                             )} />
+                        )}
+                        {isError && onRetrySection && activeSection && (
+                            <button
+                                type="button"
+                                onClick={() => onRetrySection(activeSection.id)}
+                                className="rounded-md border border-red-300 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
+                            >
+                                Retry
+                            </button>
                         )}
                         <div className="text-lg font-semibold uppercase tracking-wide">
                             {typeLabel ?? "Section editor"}

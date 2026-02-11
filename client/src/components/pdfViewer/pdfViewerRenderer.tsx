@@ -41,6 +41,7 @@ type PdfViewerRendererProps = {
     onActiveSectionChange?: (sectionId: string | null) => void;
     onSectionUpdate?: (sectionId: string, updates: Partial<SectionData>) => void;
     onSectionDelete?: (sectionId: string) => void;
+    onRetrySection?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     dragMode?: boolean;
     onDragSelection?: (result: DragSelectionResult) => void;
@@ -63,6 +64,7 @@ function PdfViewerRenderer({
     onActiveSectionChange,
     onSectionUpdate,
     onSectionDelete,
+    onRetrySection,
     propertyType,
     dragMode = false,
     onDragSelection,
@@ -186,6 +188,7 @@ function PdfViewerRenderer({
                                 onActiveSectionChange={onActiveSectionChange}
                                 onSectionUpdate={onSectionUpdate}
                                 onSectionDelete={onSectionDelete}
+                                onRetrySection={onRetrySection}
                                 propertyType={propertyType}
                                 pageNumber={pageNumber}
                             />

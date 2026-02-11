@@ -313,13 +313,21 @@ function useSectionExtraction({
         processNext();
     }, [sections, enabled, processNext, maybeAutoAssignBuildings]);
 
+    const retrySection = useCallback((sectionId: string) => {
+        completedRef.current.delete(sectionId);
+        inflightRef.current.delete(sectionId);
+        const { onSectionUpdate: update } = latestRef.current;
+        update(sectionId, { state: "processing" });
+        setTimeout(processNext, 0);
+    }, [processNext]);
+
     const reset = useCallback(() => {
         inflightRef.current.clear();
         completedRef.current.clear();
         buildingAssignmentDoneRef.current = false;
     }, []);
 
-    return { reset };
+    return { reset, retrySection };
 }
 
 export {
