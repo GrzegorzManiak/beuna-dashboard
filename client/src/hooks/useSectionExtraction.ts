@@ -8,6 +8,7 @@ import type { SectionData, SectionState } from "@/components/pdfViewer/pdfViewer
 import type { PropertySection } from "@/api/properties";
 
 const EXTRACTABLE_STATES: SectionState[] = ["processing"];
+const TRANSIENT_STATES: SectionState[] = ["identifying"];
 const LOCKED_STATES: SectionState[] = ["valid", "identifying", "error"];
 const POOL_SIZE = 5;
 const DEPENDS_ON_BUILDINGS = new Set(["units.unit_block"]);
@@ -22,10 +23,9 @@ type UseSectionExtractionOpts = {
     sections: SectionData[];
     onSectionUpdate: (sectionId: string, updates: Partial<SectionData>) => void;
     enabled?: boolean;
-    /** Ref to map of item-expanded IDs → parent section UUID for persisting item results */
     itemToParentMapRef?: RefObject<Map<string, string>>;
-    /** Original PropertySection[] from the server, used to read parent items for persistence */
     incomingSections?: PropertySection[];
+    tempIdToRealIdRef?: RefObject<Map<string, string>>;
 };
 
 function useSectionExtraction({
@@ -35,12 +35,17 @@ function useSectionExtraction({
     enabled = true,
     itemToParentMapRef,
     incomingSections,
+    tempIdToRealIdRef,
 }: UseSectionExtractionOpts){
     const inflightRef = useRef(new Set<string>());
     const completedRef = useRef(new Set<string>());
     const buildingAssignmentDoneRef = useRef(false);
     const latestRef = useRef({ sections, onSectionUpdate, propertyId, enabled, incomingSections });
     latestRef.current = { sections, onSectionUpdate, propertyId, enabled, incomingSections };
+
+    const resolveId = useCallback((id: string): string => {
+        return tempIdToRealIdRef?.current?.get(id) ?? id;
+    }, [tempIdToRealIdRef]);
 
     // Local cache of parent items arrays so concurrent item persists don't
     // overwrite each other (each persist builds on the latest known state).
@@ -114,20 +119,26 @@ function useSectionExtraction({
         const free = POOL_SIZE - inflight.size;
         if (free <= 0) return;
 
+        const resolvedInflight = new Set(Array.from(inflight).map(resolveId));
+        const resolvedCompleted = new Set(Array.from(completed).map(resolveId));
+
         const allCandidates = secs.filter(
             (s) =>
                 s.sectionType &&
                 s.sectionType !== "unknown" &&
                 EXTRACTABLE_STATES.includes(s.state as SectionState) &&
                 !inflight.has(s.id) &&
-                !completed.has(s.id),
+                !completed.has(s.id) &&
+                !resolvedInflight.has(s.id) &&
+                !resolvedCompleted.has(s.id),
         );
 
         const allBuildings = secs.filter((s) => s.sectionType === "core.building");
         const pendingBuildings = allBuildings.filter(
             (s) =>
                 EXTRACTABLE_STATES.includes(s.state as SectionState) ||
-                inflight.has(s.id),
+                inflight.has(s.id) ||
+                resolvedInflight.has(s.id),
         );
         const buildingsDone = pendingBuildings.length === 0 && allBuildings.length > 0;
 
@@ -179,21 +190,28 @@ function useSectionExtraction({
                 buildings,
             })
                 .then((result) => {
+                    const realId = resolveId(section.id);
                     inflight.delete(section.id);
+                    inflight.delete(realId);
                     completed.add(section.id);
+                    completed.add(realId);
 
-                    const current = latestRef.current.sections.find((s) => s.id === section.id);
+                    const current = latestRef.current.sections.find(
+                        (s) => s.id === section.id || s.id === realId,
+                    );
+                    const updateId = current?.id ?? section.id;
+
                     if (current && LOCKED_STATES.includes(current.state as SectionState)) {
                         setTimeout(processNext, 0);
                         return;
                     }
 
                     if (result.error) {
-                        update(section.id, { state: "error" });
-                        persistSection(section.id, { state: "error" });
+                        update(updateId, { state: "error" });
+                        persistSection(updateId, { state: "error" });
                     } else if (!result.fields || !Object.keys(result.fields).length) {
-                        update(section.id, { state: "error" });
-                        persistSection(section.id, { state: "error" });
+                        update(updateId, { state: "error" });
+                        persistSection(updateId, { state: "error" });
                     } else {
                         const fields = { ...(current?.fields ?? {}), ...result.fields };
 
@@ -207,11 +225,11 @@ function useSectionExtraction({
                         );
 
                         if (reqKeys.length > 0 && filledRequired.length === 0) {
-                            update(section.id, { fields, state: "error" });
-                            persistSection(section.id, { fields, state: "error" });
+                            update(updateId, { fields, state: "error" });
+                            persistSection(updateId, { fields, state: "error" });
                         } else {
-                            update(section.id, { fields, state: "needs_review" });
-                            persistSection(section.id, { fields, state: "needs_review" });
+                            update(updateId, { fields, state: "needs_review" });
+                            persistSection(updateId, { fields, state: "needs_review" });
                         }
                     }
 
@@ -221,14 +239,21 @@ function useSectionExtraction({
                     }, 0);
                 })
                 .catch(() => {
+                    const realId = resolveId(section.id);
                     inflight.delete(section.id);
+                    inflight.delete(realId);
                     completed.add(section.id);
-                    update(section.id, { state: "error" });
-                    persistSection(section.id, { state: "error" });
+                    completed.add(realId);
+                    const current = latestRef.current.sections.find(
+                        (s) => s.id === section.id || s.id === realId,
+                    );
+                    const updateId = current?.id ?? section.id;
+                    update(updateId, { state: "error" });
+                    persistSection(updateId, { state: "error" });
                     setTimeout(processNext, 0);
                 });
         }
-    }, [extractMutation, persistSection]);
+    }, [extractMutation, persistSection, resolveId]);
 
     const maybeAutoAssignBuildings = useCallback(() => {
         if (buildingAssignmentDoneRef.current) return;
@@ -269,8 +294,21 @@ function useSectionExtraction({
         }
     }, []);
 
+    // Seed completedRef with sections that are already extracted / not
+    // in a processable state so they are never re-sent for LLM extraction
+    // (e.g. when the component remounts after navigating back from review).
     useEffect(() => {
         if (!enabled) return;
+        const completed = completedRef.current;
+        for (const s of latestRef.current.sections) {
+            if (
+                !EXTRACTABLE_STATES.includes(s.state as SectionState) &&
+                !TRANSIENT_STATES.includes(s.state as SectionState) &&
+                !completed.has(s.id)
+            ) {
+                completed.add(s.id);
+            }
+        }
         maybeAutoAssignBuildings();
         processNext();
     }, [sections, enabled, processNext, maybeAutoAssignBuildings]);

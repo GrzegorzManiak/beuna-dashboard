@@ -144,20 +144,9 @@ function PdfViewer({
                                     state: "unknown",
                                 });
                             }
-                            if (autoSplitOnSelection) {
-                                const lastPage = pages[pages.length - 1];
-                                const box = normalizedSection.textPosition.boxes?.find((b) => b.page === lastPage);
-                                if (box) {
-                                    const metrics = pageMetrics?.[lastPage];
-                                    if (metrics) {
-                                        const splitRatio = (box.y + box.height) / metrics.originalHeight;
-                                        setActiveSplit({
-                                            pageNumber: lastPage,
-                                            splitRatio: Math.min(splitRatio, 1),
-                                        });
-                                    }
-                                }
-                            }
+                            // Split toolbar is now opened explicitly by the
+                            // user rather than automatically after every
+                            // drag-selection, to avoid unexpected UI jumps.
                         }
                     }}
                 />

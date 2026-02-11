@@ -77,7 +77,7 @@ type PropertySection = {
     sectionType: SectionType;
     confidence: number;
     renderable: boolean;
-    reusable: boolean;
+    reusable?: boolean;
     items?: PropertySectionItem[];
     state?: string | null;
     fields?: Record<string, string | number | boolean | null> | null;

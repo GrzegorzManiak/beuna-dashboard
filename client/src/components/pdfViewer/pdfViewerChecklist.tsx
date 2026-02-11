@@ -8,7 +8,7 @@ type ChecklistProps = {
     sections: SectionData[];
     propertyType: "WEG" | "MV";
     onSectionClick?: (sectionId: string) => void;
-    onNext?: () => void;
+    onNext?: () => void | Promise<void>;
     onBack?: () => void;
 };
 

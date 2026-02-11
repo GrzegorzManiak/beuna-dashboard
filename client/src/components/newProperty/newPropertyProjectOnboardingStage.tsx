@@ -6,8 +6,10 @@ import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
 import { NewPropertySectionsStage } from "./newPropertySectionsStage";
 import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
+import { NewPropertyReviewPanel } from "./newPropertyReviewPanel";
 import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
+import { usePropertySectionsQuery } from "@/hooks/usePropertySectionsQuery";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
 import type { PropertyManagementType, PropertySection, BasicDetailsExtract } from "@/api/properties";
 import { getSessionId } from "@/lib/sessionStorage";
@@ -44,6 +46,7 @@ function NewPropertyProjectOnboardingStage( ){
     const { propertyId, stage: urlStage } = useParams();
     const [sessionId, setSessionId] = useState<string | null>(getSessionId());
     const { data, isLoading, isError, error } = usePropertyQuery(propertyId, Boolean(sessionId));
+    const { refetch: refetchSections } = usePropertySectionsQuery(propertyId, false);
     const { mutateAsync: updateProperty, isPending } = useUpdatePropertyMutation();
     const initialStep = urlStage && SLUG_TO_STEP[urlStage] !== undefined ? SLUG_TO_STEP[urlStage]! : STEP_PROCESSING;
     const [step, setStep] = useState<number>(initialStep);
@@ -399,9 +402,10 @@ return (
         }
         setStep(STEP_SECTIONS);
     }
+    const isReviewStep = step === STEP_REVIEW;
 
     return (
-        <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
+        <div className={`h-screen w-full flex flex-col items-center gap-6 bg-gray-50/50 relative ${isReviewStep ? "overflow-y-auto py-6" : "justify-center overflow-hidden"}`}>
             <SessionSelector className="absolute left-6 top-6 z-20" />
             <NewPropertyProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
 
@@ -486,8 +490,54 @@ return (
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
                                     sectionsProcessing={sectionsProcessing}
-                                    onNext={() => setStep(STEP_SECTIONS + 1)}
+                                    onNext={async () => {
+                                        // Re-fetch sections from the server so the review
+                                        // panel sees the latest persisted data (field
+                                        // extractions, type changes, deletes, etc.)
+                                        try {
+                                            const { data: fresh } = await refetchSections();
+                                            if (fresh?.sections) {
+                                                const visible = fresh.sections.filter(
+                                                    (s) => s.renderable !== false || (s.items && s.items.length > 0),
+                                                );
+                                                setSections(visible);
+                                            }
+                                        } catch {
+                                            // Non-critical — proceed with stale data
+                                        }
+                                        setStep(STEP_REVIEW);
+                                    }}
                                     onBack={() => setStep(STEP_DETAILS)}
+                                />
+                            </motion.div>
+                        )}
+
+                        {step === STEP_REVIEW && (
+                            <motion.div
+                                key="step-4"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                                className="w-full flex justify-center"
+                            >
+                                <NewPropertyReviewPanel
+                                    propertyId={propertyId}
+                                    propertyType={resolvedPropertyType}
+                                    propertyName={propertyName}
+                                    street={street}
+                                    postalCode={postalCode}
+                                    city={city}
+                                    sections={sections}
+                                    onBack={() => setStep(STEP_SECTIONS)}
+                                    onSectionsChange={setSections}
+                                    onPropertyDetailsChange={(next) => {
+                                        setPropertyName(next.name);
+                                        setStreet(next.street);
+                                        setPostalCode(next.postalCode);
+                                        setCity(next.city);
+                                    }}
+                                    onCreated={() => navigate("/dashboard")}
                                 />
                             </motion.div>
                         )}

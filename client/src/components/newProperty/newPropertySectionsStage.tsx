@@ -9,7 +9,7 @@ import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
 import { useDeleteSectionMutation } from "@/hooks/useDeleteSectionMutation";
 
 type NewPropertySectionsStageProps = {
-    onNext: () => void;
+    onNext: () => void | Promise<void>;
     onBack: () => void;
     propertyId: string;
     sections: PropertySection[];
@@ -52,6 +52,7 @@ function NewPropertySectionsStage({
         enabled: isLoaded && sections.length > 0,
         itemToParentMapRef,
         incomingSections,
+        tempIdToRealIdRef,
     });
 
     useEffect(() => {
@@ -115,17 +116,18 @@ function NewPropertySectionsStage({
     }
 
     function handleSectionUpdate(sectionId: string, updates: Partial<SectionData> ){
-        // Resolve temp IDs → real server UUIDs (e.g. classify callback arrives
-        // after the create mutation has already swapped the temp ID).
         const resolvedId = tempIdToRealIdRef.current.get(sectionId) ?? sectionId;
 
         setSections((prev) =>
             prev.map((section) => (section.id === resolvedId ? { ...section, ...updates } : section)),
         );
 
-        // Persist meaningful state changes to the server (only for real DB UUIDs)
+        const hasMeaningfulUpdate = updates.state || updates.fields || updates.sectionType || updates.rawText;
+        if (!hasMeaningfulUpdate) return;
+
         const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
-        if (isDbId && (updates.state || updates.fields || updates.sectionType || updates.rawText)) {
+
+        if (isDbId) {
             updateSectionMutation.mutateAsync({
                 propertyId,
                 sectionId: resolvedId,
@@ -136,7 +138,31 @@ function NewPropertySectionsStage({
             }).catch((err) => {
                 console.error(`[updateSection] Failed to persist section ${resolvedId}:`, err);
             });
+            return;
         }
+
+        const parentId = itemToParentMapRef.current.get(resolvedId);
+        if (!parentId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parentId)) return;
+
+        const parentSection = incomingSections.find((s) => s.id === parentId);
+        if (!parentSection?.items) return;
+
+        const updatedItems = parentSection.items.map((item) => {
+            if (item.id !== resolvedId) return item;
+            return {
+                ...item,
+                ...(updates.state ? { state: updates.state as typeof item.state } : {}),
+                ...(updates.fields ? { fields: updates.fields } : {}),
+            };
+        });
+
+        updateSectionMutation.mutateAsync({
+            propertyId,
+            sectionId: parentId,
+            items: updatedItems,
+        }).catch((err) => {
+            console.error(`[updateSection] Failed to persist item ${resolvedId} on parent ${parentId}:`, err);
+        });
     }
 
     function handleSectionDelete(sectionId: string ){

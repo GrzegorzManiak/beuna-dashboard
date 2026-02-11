@@ -8,6 +8,9 @@ type UpdatePropertyBody = {
     addressStreet?: string | null;
     addressPostalCode?: string | null;
     addressCity?: string | null;
+    managerId?: string;
+    accountantId?: string;
+    status?: PropertyDetail["status"];
 };
 
 type UpdatePropertyResponse = {

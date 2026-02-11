@@ -4,6 +4,7 @@ import {
     createPropertyHandler,
     getPropertyDocumentHandler,
     getPropertyHandler,
+    getPropertySectionsHandler,
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
     classifySectionHandler,
@@ -185,6 +186,47 @@ const propertiesRoutes: FastifyPluginAsync = async (app) => {
             },
         },
     }, getPropertyHandler);
+
+    app.get("/:propertyId/sections", {
+        config: secureConfig,
+        schema: {
+            tags: ["properties"],
+            summary: "Get all sections for a property.",
+            params: {
+                type: "object",
+                properties: {
+                    propertyId: { type: "string", format: "uuid" },
+                },
+                required: ["propertyId"],
+                additionalProperties: false,
+            },
+            response: {
+                200: {
+                    type: "object",
+                    properties: {
+                        sections: {
+                            type: "array",
+                            items: { type: "object", additionalProperties: true },
+                        },
+                    },
+                    required: ["sections"],
+                    additionalProperties: false,
+                },
+                401: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+                404: {
+                    type: "object",
+                    properties: { error: { type: "string" } },
+                    required: ["error"],
+                    additionalProperties: false,
+                },
+            },
+        },
+    }, getPropertySectionsHandler);
 
     app.get("/:propertyId/sections/stream", {
         websocket: true,

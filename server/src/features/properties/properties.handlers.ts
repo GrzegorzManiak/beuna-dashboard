@@ -190,6 +190,25 @@ const sendSocketPayload = (
     socket.send(jsonStr);
 };
 
+async function getPropertySectionsHandler(
+    req: FastifyRequest<{ Params: PropertyIdParams }>,
+    reply: FastifyReply
+) {
+    const user = req.user;
+    if (!user) return reply.code(401).send({ error: "Unauthorized" });
+
+    const { propertyId } = req.params;
+
+    const property = await prisma.property.findUnique({
+        where: { id: propertyId },
+        select: { id: true },
+    });
+    if (!property) return reply.code(404).send({ error: "Property not found" });
+
+    const sections = await getStoredSections(propertyId);
+    return reply.send({ sections });
+}
+
 async function getPropertySectionsStreamHandler(
     socket: WebSocket,
     req: FastifyRequest<{ Params: PropertyIdParams; Querystring: PropertySectionsStreamQuery }>
@@ -619,6 +638,7 @@ export {
     createPropertyHandler,
     getPropertyDocumentHandler,
     getPropertyHandler,
+    getPropertySectionsHandler,
     getPropertySectionsStreamHandler,
     updatePropertyHandler,
     classifySectionHandler,
