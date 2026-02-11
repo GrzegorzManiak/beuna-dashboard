@@ -21,7 +21,7 @@ const STEPS: StepDefinition[] = [
     { label: "Review", icon: CheckCircle },
 ];
 
-export function NewPropertyProgressBar({ currentStep, onStepClick }: NewPropertyProgressBarProps) {
+function NewPropertyProgressBar({ currentStep, onStepClick }: NewPropertyProgressBarProps){
     return (
         <div className="w-full max-w-3xl mx-auto px-4 mb-8">
             <div className="relative flex justify-between items-start">
@@ -85,3 +85,7 @@ export function NewPropertyProgressBar({ currentStep, onStepClick }: NewProperty
         </div>
     );
 }
+
+export {
+    NewPropertyProgressBar,
+};

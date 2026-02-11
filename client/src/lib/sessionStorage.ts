@@ -1,43 +1,43 @@
 const SESSION_ID_KEY = "beuna.sessionId";
 const SESSION_USER_KEY = "beuna.sessionUserId";
 
-function getSessionId(): string | null {
+function getSessionId( ){
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(SESSION_ID_KEY);
 }
 
-function setSessionId(value: string): void {
+function setSessionId(value: string ){
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SESSION_ID_KEY, value);
     window.dispatchEvent(new CustomEvent("session-change", { detail: value }));
 }
 
-function clearSessionId(): void {
+function clearSessionId( ){
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(SESSION_ID_KEY);
     window.dispatchEvent(new CustomEvent("session-change", { detail: null }));
 }
 
-function getSessionUserId(): string | null {
+function getSessionUserId( ){
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(SESSION_USER_KEY);
 }
 
-function setSessionUserId(value: string): void {
+function setSessionUserId(value: string ){
     if (typeof window === "undefined") return;
     window.localStorage.setItem(SESSION_USER_KEY, value);
 }
 
-function clearSessionUserId(): void {
+function clearSessionUserId( ){
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(SESSION_USER_KEY);
 }
 
 export {
-    getSessionId,
-    setSessionId,
     clearSessionId,
-    getSessionUserId,
-    setSessionUserId,
     clearSessionUserId,
+    getSessionId,
+    getSessionUserId,
+    setSessionId,
+    setSessionUserId,
 };

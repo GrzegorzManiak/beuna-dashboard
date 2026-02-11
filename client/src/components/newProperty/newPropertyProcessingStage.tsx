@@ -14,11 +14,11 @@ const LOADING_MESSAGES = [
     "Extracting units",
 ];
 
-export function NewPropertyProcessingStage({
+function NewPropertyProcessingStage({
     title = "Preparing your property",
     description = "We are extracting sections and classifying the document. This should only take a moment.",
     errorMessage,
-}: NewPropertyProcessingStageProps) {
+}: NewPropertyProcessingStageProps){
     const [messageIndex, setMessageIndex] = useState(0);
 
     useEffect(() => {
@@ -49,3 +49,7 @@ export function NewPropertyProcessingStage({
         </Card>
     );
 }
+
+export {
+    NewPropertyProcessingStage,
+};

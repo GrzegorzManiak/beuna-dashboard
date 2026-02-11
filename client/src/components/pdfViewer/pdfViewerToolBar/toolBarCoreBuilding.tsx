@@ -6,11 +6,11 @@ import { ChevronDown, ChevronRight, Edit2 } from "lucide-react";
 import { getFieldValue, toInputString, toOptionalNumber, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 import { cn } from "@/lib/utils";
 
-function generateBuildingUuid(): string {
+function generateBuildingUuid( ){
     return `building-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function CoreBuildingEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const [showAddressEdit, setShowAddressEdit] = useState(false);
     const [showAdditional, setShowAdditional] = useState(false);
     

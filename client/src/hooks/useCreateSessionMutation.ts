@@ -9,7 +9,7 @@ type CreateSessionResponse = {
     sessionId: string;
 };
 
-async function createSession(userId: string): Promise<CreateSessionResponse> {
+async function createSession(userId: string ){
     const response = await apiFetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -30,10 +30,10 @@ async function createSession(userId: string): Promise<CreateSessionResponse> {
     return (await response.json()) as CreateSessionResponse;
 }
 
-function useCreateSessionMutation() {
+function useCreateSessionMutation( ){
     return useMutation<CreateSessionResponse, Error, string>({
         mutationFn: createSession,
     });
 }
 
-export { useCreateSessionMutation, type CreateSessionResponse };
+export { type CreateSessionResponse, useCreateSessionMutation };

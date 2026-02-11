@@ -10,7 +10,7 @@ const managementOptions = [
     { label: "MV", value: "MV" },
 ];
 
-function CorePropertyOverviewEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function CorePropertyOverviewEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const propertyName = toInputString(getFieldValue(section, "propertyName"));
     const propertyId = toInputString(getFieldValue(section, "propertyId"));

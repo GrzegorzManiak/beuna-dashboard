@@ -1,4 +1,4 @@
-import type { ActiveSplit, PageMetrics, RenderedSection, SectionData, SectionBox } from "./pdfViewer.types";
+import type { ActiveSplit, PageMetrics, SectionData, SectionBox } from "./pdfViewer.types";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType as SharedSectionType } from "@shared/section-types";
 
@@ -20,8 +20,7 @@ const clamp = (value: number, min: number, max: number) =>
  */
 function normalizeSectionBoxes(
     section: SectionData,
-    pageMetrics: Record<number, PageMetrics>
-): SectionData {
+    pageMetrics: Record<number, PageMetrics> ){
     const { textPosition } = section;
     const pages = textPosition.page;
 
@@ -176,7 +175,7 @@ function normalizeSectionBoxes(
 }
 
 /** Check if a section is partially extracted (needs_review but missing required fields). */
-function computeIsPartial(section: SectionData): boolean {
+function computeIsPartial(section: SectionData ){
     if (section.state !== "needs_review") return false;
     const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
     if (!reqKeys.length) return false;
@@ -190,8 +189,7 @@ function computeIsPartial(section: SectionData): boolean {
 function calculateSectionStyle(
     pageNumber: number,
     section: SectionData,
-    pageMetrics: Record<number, PageMetrics>,
-): RenderedSection {
+    pageMetrics: Record<number, PageMetrics>, ){
     // Normalize boxes first (THE GATE)
     const normalizedSection = normalizeSectionBoxes(section, pageMetrics);
 
@@ -258,8 +256,7 @@ function handleAutoSplit(
     sectionId: string | null,
     sections: SectionData[],
     pageMetrics: Record<number, PageMetrics>,
-    setActiveSplit: (split: ActiveSplit) => void
-) {
+    setActiveSplit: (split: ActiveSplit) => void ){
     if (!sectionId) return;
 
     const section = sections.find((s) => s.id === sectionId);
@@ -293,8 +290,8 @@ function handleAutoSplit(
 }
 
 export {
-    clamp,
-    normalizeSectionBoxes,
     calculateSectionStyle,
+    clamp,
     handleAutoSplit,
+    normalizeSectionBoxes,
 }

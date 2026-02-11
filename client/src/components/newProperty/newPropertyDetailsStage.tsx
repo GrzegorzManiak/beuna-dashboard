@@ -18,7 +18,7 @@ type NewPropertyDetailsStageProps = {
     errorMessage?: string | null;
 };
 
-export function NewPropertyDetailsStage({
+function NewPropertyDetailsStage({
     onNext,
     onBack,
     name,
@@ -31,7 +31,7 @@ export function NewPropertyDetailsStage({
     onCityChange,
     isSubmitting = false,
     errorMessage,
-}: NewPropertyDetailsStageProps) {
+}: NewPropertyDetailsStageProps){
     return (
         <Card className="w-full pb-0 max-w-2xl">
             <CardHeader className="mb-2">
@@ -91,3 +91,7 @@ export function NewPropertyDetailsStage({
         </Card>
     );
 }
+
+export {
+    NewPropertyDetailsStage,
+};

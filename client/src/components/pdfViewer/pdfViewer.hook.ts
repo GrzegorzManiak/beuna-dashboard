@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { handleAutoSplit } from "./pdfViewer.utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./pdfViewer.types";
 
-export interface PdfViewerState {
+interface PdfViewerState {
     pageMetrics: Record<number, PageMetrics>;
     activeSplit: ActiveSplit;
     splitToolbarHeight: number;
@@ -11,7 +11,7 @@ export interface PdfViewerState {
     dragMode: boolean;
 }
 
-export interface PdfViewerActions {
+interface PdfViewerActions {
     setPageMetrics: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
     setActiveSplit: Dispatch<SetStateAction<ActiveSplit>>;
     setSplitToolbarHeight: Dispatch<SetStateAction<number>>;
@@ -19,18 +19,16 @@ export interface PdfViewerActions {
     setDragMode: Dispatch<SetStateAction<boolean>>;
 }
 
-export function usePdfViewerState(sections: SectionData[], autoSplitOnSectionClick = true): [PdfViewerState, PdfViewerActions] {
+function usePdfViewerState(sections: SectionData[], autoSplitOnSectionClick = true): [PdfViewerState, PdfViewerActions] {
     const [pageMetrics, setPageMetrics] = useState<Record<number, PageMetrics>>({});
     const [activeSplit, setActiveSplit] = useState<ActiveSplit>(null);
     const [splitToolbarHeight, setSplitToolbarHeight] = useState(0);
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
     const [dragMode, setDragMode] = useState(false);
 
-    const handleSectionSelect = (id: string | null) => {
+    const handleSectionSelect = (id: string | null): void => {
         setActiveSectionId(id);
-        if (id && autoSplitOnSectionClick) {
-            handleAutoSplit(id, sections, pageMetrics, setActiveSplit);
-        }
+        if (id && autoSplitOnSectionClick) handleAutoSplit(id, sections, pageMetrics, setActiveSplit);
     };
 
     return [
@@ -38,3 +36,9 @@ export function usePdfViewerState(sections: SectionData[], autoSplitOnSectionCli
         { setPageMetrics, setActiveSplit, setSplitToolbarHeight, setActiveSectionId: handleSectionSelect, setDragMode }
     ];
 }
+
+export {
+    type PdfViewerActions,
+    type PdfViewerState,
+    usePdfViewerState,
+};

@@ -16,7 +16,7 @@ const unitTypeOptions = [
     { label: "Other", value: "other" },
 ];
 
-function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", availableBuildings, missingFields, totalMeaDenominator }: SectionEditorProps) {
+function UnitsUnitBlockEditor({ section, onSectionUpdate, propertyType = "WEG", availableBuildings, missingFields, totalMeaDenominator }: SectionEditorProps){
     const [showLocation, setShowLocation] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
     

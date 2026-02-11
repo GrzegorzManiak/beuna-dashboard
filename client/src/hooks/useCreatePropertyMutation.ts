@@ -6,7 +6,7 @@ type CreatePropertyResponse = {
     property: PropertyDetail;
 };
 
-async function createPropertyFromPdf(file: File): Promise<CreatePropertyResponse> {
+async function createPropertyFromPdf(file: File ){
     const formData = new FormData();
     formData.append("file", file);
 
@@ -28,10 +28,10 @@ async function createPropertyFromPdf(file: File): Promise<CreatePropertyResponse
     throw new Error(message);
 }
 
-function useCreatePropertyMutation() {
+function useCreatePropertyMutation( ){
     return useMutation<CreatePropertyResponse, Error, File>({
         mutationFn: createPropertyFromPdf,
     });
 }
 
-export { useCreatePropertyMutation, type CreatePropertyResponse };
+export { type CreatePropertyResponse, useCreatePropertyMutation };

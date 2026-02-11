@@ -15,14 +15,14 @@ type NewPropertyTypePickerProps = {
     errorMessage?: string | null;
 };
 
-export function NewPropertyTypePicker({
+function NewPropertyTypePicker({
     onNext,
     onBack,
     selectedType,
     onSelect,
     isSubmitting = false,
     errorMessage,
-}: NewPropertyTypePickerProps) {
+}: NewPropertyTypePickerProps){
     return (
         <Card className="w-full pb-0 max-w-2xl">
             <CardHeader className="mb-2">
@@ -105,3 +105,7 @@ export function NewPropertyTypePicker({
         </Card>
     );
 }
+
+export {
+    NewPropertyTypePicker,
+};

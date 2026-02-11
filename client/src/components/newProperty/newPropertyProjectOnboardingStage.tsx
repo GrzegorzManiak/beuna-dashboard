@@ -14,7 +14,7 @@ import { getSessionId } from "@/lib/sessionStorage";
 
 type PropertyTypeSelection = "condo" | "rental";
 
-export function NewPropertyProjectOnboardingStage() {
+function NewPropertyProjectOnboardingStage( ){
     const DEFAULT_PROPERTY_NAME = "Unnamed property";
     const STEP_UPLOAD = 0;
     const STEP_PROCESSING = 1;
@@ -45,7 +45,7 @@ export function NewPropertyProjectOnboardingStage() {
     const property = data?.property;
     const selectedManagementType = selectedType ? mapSelectionToManagementType(selectedType) : null;
     const resolvedPropertyType =
-        selectedManagementType && selectedManagementType !== "UNKNOWN"
+        selectedManagementType
             ? selectedManagementType
             : property?.managementType === "MV"
                 ? "MV"
@@ -81,7 +81,7 @@ export function NewPropertyProjectOnboardingStage() {
         setStep(nextInternal);
     }, [fromProgressIndex, navigate, sectionsReady, STEP_PROCESSING, STEP_UPLOAD]);
 
-    function handleBackToUpload(): void {
+    function handleBackToUpload( ){
         navigate("/new");
     }
 
@@ -96,7 +96,7 @@ export function NewPropertyProjectOnboardingStage() {
     }, [propertyId, STEP_PROCESSING]);
 
     useEffect(() => {
-        function handleSessionChange(event: Event): void {
+        function handleSessionChange(event: Event ){
             const detail = (event as CustomEvent<string | null>).detail ?? null;
             setSessionId(detail);
         }
@@ -269,14 +269,16 @@ export function NewPropertyProjectOnboardingStage() {
         };
     }, [propertyId, sessionId, STEP_PROCESSING, STEP_PROPERTY_TYPE]);
 
-    if (!propertyId) return (
+    if (!propertyId) {
+return (
         <div className="h-screen w-full flex items-center justify-center bg-gray-50/50">
             <p className="text-sm text-gray-600">Project ID is missing.</p>
         </div>
     );
+}
 
 
-    async function handleTypeNext(): Promise<void> {
+    async function handleTypeNext( ){
         if (!property) return;
         if (!propertyId) return;
         setErrorMessage(null);
@@ -297,7 +299,7 @@ export function NewPropertyProjectOnboardingStage() {
         setStep(STEP_DETAILS);
     }
 
-    async function handleDetailsNext(): Promise<void> {
+    async function handleDetailsNext( ){
         if (!property) return;
         if (!propertyId) return;
         setErrorMessage(null);
@@ -431,19 +433,23 @@ export function NewPropertyProjectOnboardingStage() {
     );
 }
 
-function mapManagementTypeToSelection(type: PropertyManagementType): PropertyTypeSelection | null {
+function mapManagementTypeToSelection(type: PropertyManagementType ){
     if (type === "WEG") return "condo";
     if (type === "MV") return "rental";
     return null;
 }
 
-function mapSelectionToManagementType(selection: PropertyTypeSelection): PropertyManagementType {
+function mapSelectionToManagementType(selection: PropertyTypeSelection ){
     return selection === "condo" ? "WEG" : "MV";
 }
 
-function mergeSections(existing: PropertySection[], incoming: PropertySection[]): PropertySection[] {
+function mergeSections(existing: PropertySection[], incoming: PropertySection[] ){
     const map = new Map<string, PropertySection>();
     for (const section of existing) map.set(section.id, section);
     for (const section of incoming) map.set(section.id, section);
     return Array.from(map.values()).sort((a, b) => a.sectionIndex - b.sectionIndex);
 }
+
+export {
+    NewPropertyProjectOnboardingStage,
+};

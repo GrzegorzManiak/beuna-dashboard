@@ -70,12 +70,12 @@ type PropertySection = {
 };
 
 export {
-    type PropertyDetail,
-    type PropertyManagementType,
-    type PropertyStatus,
-    type PropertySection,
-    type PropertySectionItem,
-    type SectionType,
     type BasicDetailsExtract,
     type BasicDetailsField,
+    type PropertyDetail,
+    type PropertyManagementType,
+    type PropertySection,
+    type PropertySectionItem,
+    type PropertyStatus,
+    type SectionType,
 };

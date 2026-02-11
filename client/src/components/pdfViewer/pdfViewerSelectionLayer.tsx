@@ -38,7 +38,7 @@ function PdfViewerSelectionLayer({
     splitToolbarHeight,
     pageContainerRef,
     onSelectionComplete,
-}: PdfViewerSelectionLayerProps) {
+}: PdfViewerSelectionLayerProps){
     const [dragSelection, setDragSelection] = useState<DragSelection | null>(null);
     const [dragTextRects, setDragTextRects] = useState<DragTextRect[]>([]);
     const [dragBoxes, setDragBoxes] = useState<MultiPageDragBox[]>([]);
@@ -66,17 +66,6 @@ function PdfViewerSelectionLayer({
 
         return offsets;
     }, [pages, pageMetrics, activeSplit, splitToolbarHeight]);
-
-    const getPageRange = useCallback((yInContainer: number) => {
-        const startPage = pages.find((page) => {
-            const metrics = pageMetrics[page];
-            if (!metrics) return false;
-            const offset = pageOffsets[page] ?? 0;
-            const totalHeight = metrics.height + (activeSplit?.pageNumber === page ? splitToolbarHeight : 0);
-            return yInContainer >= offset && yInContainer <= offset + totalHeight;
-        });
-        return startPage ?? null;
-    }, [pages, pageMetrics, pageOffsets, activeSplit, splitToolbarHeight]);
 
     const getPageWidthPx = useCallback(
         (page: number) => {
@@ -180,7 +169,6 @@ function PdfViewerSelectionLayer({
 
             const boxes: MultiPageDragBox[] = [];
 
-            // Get start and end Y positions in container coordinates
             const startContainerY = getContainerYFromLocal(selection.startPage, selection.startY);
             const endContainerY = getContainerYFromLocal(selection.endPage, selection.currentY);
 
@@ -199,7 +187,6 @@ function PdfViewerSelectionLayer({
                 const pageHeight = metrics.height;
                 const pageBottom = offset + pageHeight;
 
-                // Calculate intersection with selection
                 const boxTop = Math.max(pageTop, topY);
                 const boxBottom = Math.min(pageBottom, bottomY);
 
@@ -399,11 +386,9 @@ function PdfViewerSelectionLayer({
 
             setDragSelection(nextSelection);
 
-            // Update drag boxes for visual feedback
             const boxes = getMultiPageSelectionBoxes(nextSelection);
             setDragBoxes(boxes);
 
-            // Collect text highlights from all affected pages
             const allTextRects: DragTextRect[] = [];
             const startPage = Math.min(nextSelection.startPage, nextSelection.endPage);
             const endPage = Math.max(nextSelection.startPage, nextSelection.endPage);
@@ -415,8 +400,6 @@ function PdfViewerSelectionLayer({
                 const pageOffset = pageOffsets[page];
                 if (pageOffset === undefined) continue;
 
-                // For each page, we need to create a selection rect
-                // that covers the intersection of the drag selection with that page
                 const box = boxes.find((b) => b.page === page);
                 if (!box) continue;
 
@@ -480,7 +463,6 @@ function PdfViewerSelectionLayer({
 
             if (width < MIN_SELECTION_PX) return;
 
-            // Collect all text matches, grouped by page
             const textMatchesByPage = new Map<number, TextMatch[]>();
             const allTextMatches: TextMatch[] = [];
 
@@ -488,30 +470,23 @@ function PdfViewerSelectionLayer({
                 const metrics = pageMetrics[page];
                 if (!metrics) continue;
 
-                const scale = metrics.scale;
-
-                // Calculate Y range: extend full height on multi-page selections
                 let localYStart: number;
                 let localYEnd: number;
 
                 if (page === finalSelection.startPage && page === finalSelection.endPage) {
-                    // Single page selection
                     localYStart = Math.min(finalSelection.startY, finalSelection.currentY);
                     localYEnd = Math.max(finalSelection.startY, finalSelection.currentY);
                 } else if (page === finalSelection.startPage) {
-                    // First page: from drag start to bottom
                     localYStart = finalSelection.startPage < finalSelection.endPage
                         ? finalSelection.startY
                         : finalSelection.currentY;
                     localYEnd = metrics.height;
                 } else if (page === finalSelection.endPage) {
-                    // Last page: from top to drag end
                     localYStart = 0;
                     localYEnd = finalSelection.startPage < finalSelection.endPage
                         ? finalSelection.currentY
                         : finalSelection.startY;
                 } else {
-                    // Middle pages: full height
                     localYStart = 0;
                     localYEnd = metrics.height;
                 }
@@ -538,7 +513,6 @@ function PdfViewerSelectionLayer({
 
             if (allTextMatches.length === 0) return;
 
-            // --- Find extremes ---
             const PADDING = 3;
             let minX = Infinity;
             let maxX = -Infinity;
@@ -554,13 +528,9 @@ function PdfViewerSelectionLayer({
 
             const boxX = Math.max(0, minX - PADDING);
             const boxWidth = (maxX + PADDING) - boxX;
-            // -----------------------
-
-            // --- Create boxes ---
             const boxes: Array<{ page: number; x: number; y: number; width: number; height: number }> = [];
 
             for (let page = startPage; page <= endPage; page++) {
-                const pageMatches = textMatchesByPage.get(page);
                 const metrics = pageMetrics[page];
                 if (!metrics) continue;
 
@@ -568,7 +538,6 @@ function PdfViewerSelectionLayer({
                 const pageHeight = metrics.originalHeight;
 
                 if (page === startPage && page === endPage) {
-                    // Single page
                     const localYTop = getLocalYForPage(page, firstPageTop);
                     const localYBottom = getLocalYForPage(page, lastPageBottom);
                     if (localYTop !== null && localYBottom !== null) {
@@ -581,7 +550,6 @@ function PdfViewerSelectionLayer({
                         });
                     }
                 } else if (page === startPage) {
-                    // First page: from text top to page bottom
                     const localYTop = getLocalYForPage(page, firstPageTop);
                     if (localYTop !== null) {
                         boxes.push({
@@ -593,7 +561,6 @@ function PdfViewerSelectionLayer({
                         });
                     }
                 } else if (page === endPage) {
-                    // Last page: from page top to text bottom
                     const localYBottom = getLocalYForPage(page, lastPageBottom);
                     if (localYBottom !== null) {
                         boxes.push({
@@ -605,7 +572,6 @@ function PdfViewerSelectionLayer({
                         });
                     }
                 } else {
-                    // Middle pages: full height
                     boxes.push({
                         page,
                         x: boxX / scale,
@@ -615,7 +581,6 @@ function PdfViewerSelectionLayer({
                     });
                 }
             }
-            // -------------------
 
             const selectedText = allTextMatches
                 .sort((a, b) => (a.top === b.top ? a.left - b.left : a.top - b.top))
@@ -624,12 +589,10 @@ function PdfViewerSelectionLayer({
                 .replace(/\s+/g, " ")
                 .trim();
 
-            // Extract heading/context from text above the selection
             let headingText = "";
             if (startPage === endPage) {
                 const firstPageBox = textMatchesByPage.get(startPage);
                 if (firstPageBox && firstPageBox.length > 0) {
-                    // Find the top of the selection in container coordinates
                     const selectionTop = firstPageTop;
                     const container = pageContainerRef.current;
                     if (container) {
@@ -640,7 +603,6 @@ function PdfViewerSelectionLayer({
                             ),
                         ) as HTMLSpanElement[];
 
-                        // Find text above the selection (within ~200px)
                         const headingCandidates = textSpans
                             .map(span => {
                                 const rect = span.getBoundingClientRect();
@@ -651,7 +613,7 @@ function PdfViewerSelectionLayer({
                                 };
                             })
                             .filter(item => item.top < selectionTop - 10 && item.top > selectionTop - 200)
-                            .sort((a, b) => b.top - a.top) // Closest to selection first
+                            .sort((a, b) => b.top - a.top)
                             .slice(0, 3)
                             .map(item => item.text)
                             .join(" ");

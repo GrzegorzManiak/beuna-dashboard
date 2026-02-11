@@ -3,7 +3,7 @@ import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 import { cn } from "@/lib/utils";
 
-function MvOwnerEntityBlockEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function MvOwnerEntityBlockEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const ownerName = toInputString(getFieldValue(section, "ownerName"));
     const ownerType = toInputString(getFieldValue(section, "ownerType"));

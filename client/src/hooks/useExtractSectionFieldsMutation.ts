@@ -16,7 +16,7 @@ type ExtractSectionFieldsResponse = {
     error?: string;
 };
 
-async function extractSectionFields(input: ExtractSectionFieldsInput): Promise<ExtractSectionFieldsResponse> {
+async function extractSectionFields(input: ExtractSectionFieldsInput ){
     const body: Record<string, unknown> = { rawText: input.rawText, sectionType: input.sectionType };
     if (input.buildings && input.buildings.length > 0) body.buildings = input.buildings;
 
@@ -41,14 +41,14 @@ async function extractSectionFields(input: ExtractSectionFieldsInput): Promise<E
     return (await response.json()) as ExtractSectionFieldsResponse;
 }
 
-function useExtractSectionFieldsMutation() {
+function useExtractSectionFieldsMutation( ){
     return useMutation<ExtractSectionFieldsResponse, Error, ExtractSectionFieldsInput>({
         mutationFn: extractSectionFields,
     });
 }
 
 export {
-    useExtractSectionFieldsMutation,
     type ExtractSectionFieldsInput,
     type ExtractSectionFieldsResponse,
+    useExtractSectionFieldsMutation,
 };

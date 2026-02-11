@@ -3,7 +3,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 
-function CoreBuildingSharedFeaturesEditor({ section, onSectionUpdate }: SectionEditorProps) {
+function CoreBuildingSharedFeaturesEditor({ section, onSectionUpdate }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const hasGarage = Boolean(getFieldValue(section, "hasGarage"));
     const heatingType = toInputString(getFieldValue(section, "heatingType"));

@@ -12,7 +12,7 @@ type SessionSelectorProps = {
     className?: string;
 };
 
-export function SessionSelector({ className }: SessionSelectorProps) {
+function SessionSelector({ className }: SessionSelectorProps){
     const { data, isLoading, isError, error } = useUsersQuery();
     const { mutateAsync, isPending } = useCreateSessionMutation();
     const [selectedUserId, setSelectedUserId] = useState<string | null>(getSessionUserId());
@@ -96,3 +96,7 @@ export function SessionSelector({ className }: SessionSelectorProps) {
         </div>
     );
 }
+
+export {
+    SessionSelector,
+};

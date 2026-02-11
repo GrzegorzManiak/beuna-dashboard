@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { ReactNode, Ref } from "react";
+import type { Ref } from "react";
 import type { SectionData, SectionType } from "./pdfViewer.types";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType as SharedSectionType } from "@shared/section-types";
@@ -58,7 +58,7 @@ const SECTION_TYPE_OPTIONS: SectionTypeOption[] = [
 
 const STATE_BADGES: Record<string, { label: string; className: string }> = {
     valid: { label: "Valid", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-    needs_review: { label: "Needs review", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    "needs_review": { label: "Needs review", className: "bg-amber-100 text-amber-700 border-amber-200" },
     partial: { label: "Partially extracted", className: "bg-amber-100 text-amber-700 border-amber-200 animate-slow-pulse" },
     conflict: { label: "Conflict", className: "bg-red-100 text-red-700 border-red-200" },
     processing: { label: "Extracting…", className: "bg-sky-100 text-sky-700 border-sky-200 animate-slow-pulse" },
@@ -72,9 +72,9 @@ const STATE_BADGES: Record<string, { label: string; className: string }> = {
  * for a given section.  Returns an empty set when the section type has no
  * required field metadata or all required fields are filled.
  */
-function getMissingRequiredFields(section: SectionData): Set<string> {
+function getMissingRequiredFields(section: SectionData ){
     const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];
-    if (!reqKeys.length) return new Set();
+    if (!reqKeys.length) return new Set<string>();
     const missing = new Set<string>();
     for (const key of reqKeys) {
         const val = section.fields?.[key];
@@ -89,7 +89,7 @@ function getMissingRequiredFields(section: SectionData): Set<string> {
  * Compute the effective display state for a section.  Sections in
  * `needs_review` that have missing required fields are shown as `partial`.
  */
-function getDisplayState(section: SectionData | null): string {
+function getDisplayState(section: SectionData | null ){
     if (!section) return "unknown";
     if (section.state !== "needs_review") return section.state ?? "unknown";
     const missing = getMissingRequiredFields(section);
@@ -115,7 +115,7 @@ type SectionEditorConfig = {
     totalMeaDenominator?: number | null;
 };
 
-function OptionCombobox({ options, value, disabled, placeholder, onChange }: OptionComboboxProps) {
+function OptionCombobox({ options, value, disabled, placeholder, onChange }: OptionComboboxProps){
     const items = options.map((option) => option.value);
     const labelByValue = new Map(options.map((option) => [option.value, option.label]));
 
@@ -150,7 +150,7 @@ function OptionCombobox({ options, value, disabled, placeholder, onChange }: Opt
     );
 }
 
-function renderSectionEditor({ section, onSectionUpdate, propertyType, availableBuildings, missingFields, totalMeaDenominator }: SectionEditorConfig): ReactNode {
+function renderSectionEditor({ section, onSectionUpdate, propertyType, availableBuildings, missingFields, totalMeaDenominator }: SectionEditorConfig){
     switch (section.sectionType) {
         case "core.property_overview":
             return <CorePropertyOverviewEditor section={section} onSectionUpdate={onSectionUpdate} missingFields={missingFields} />;
@@ -206,7 +206,7 @@ function PdfViewerSplitToolbar({
     onSectionDelete,
     propertyType = "WEG",
     pageNumber,
-}: PdfViewerSplitToolbarProps) {
+}: PdfViewerSplitToolbarProps){
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const sectionsOnPage = useMemo(

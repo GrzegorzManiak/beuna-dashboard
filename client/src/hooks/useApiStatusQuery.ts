@@ -15,13 +15,13 @@ type ApiStatusResponse = {
     openApiUrl: string;
 };
 
-async function fetchApiStatus(): Promise<ApiStatusResponse> {
+async function fetchApiStatus( ){
     const response = await apiFetch("/api/help/apistatus");
     if (!response.ok) throw new Error(`Failed to load API status (${response.status})`);
     return (await response.json()) as ApiStatusResponse;
 }
 
-function useApiStatusQuery() {
+function useApiStatusQuery( ){
     return useQuery<ApiStatusResponse, Error>({
         queryKey: ["api-status"],
         queryFn: fetchApiStatus,
@@ -29,7 +29,7 @@ function useApiStatusQuery() {
 }
 
 export {
-    useApiStatusQuery,
     type ApiStatusInfo,
     type ApiStatusResponse,
+    useApiStatusQuery,
 };

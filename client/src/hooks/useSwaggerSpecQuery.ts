@@ -14,13 +14,13 @@ type OpenApiSpec = {
     components?: Record<string, unknown>;
 };
 
-async function fetchSwaggerSpec(): Promise<OpenApiSpec> {
+async function fetchSwaggerSpec( ){
     const response = await apiFetch("/api/openapi.json");
     if (!response.ok) throw new Error(`Failed to load API spec (${response.status})`);
     return (await response.json()) as OpenApiSpec;
 }
 
-function useSwaggerSpecQuery() {
+function useSwaggerSpecQuery( ){
     return useQuery<OpenApiSpec, Error>({
         queryKey: ["swagger-spec"],
         queryFn: fetchSwaggerSpec,
@@ -28,7 +28,7 @@ function useSwaggerSpecQuery() {
 }
 
 export {
-    useSwaggerSpecQuery,
     type OpenApiInfo,
     type OpenApiSpec,
+    useSwaggerSpecQuery,
 };

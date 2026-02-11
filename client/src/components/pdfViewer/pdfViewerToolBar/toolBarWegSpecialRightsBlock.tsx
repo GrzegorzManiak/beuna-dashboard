@@ -13,7 +13,7 @@ const rightTypeOptions = [
     { label: "Other", value: "other" },
 ];
 
-function WegSpecialRightsBlockEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function WegSpecialRightsBlockEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const unitRef = toInputString(getFieldValue(section, "unitRef"));
     const rightType = toInputString(getFieldValue(section, "rightType"));

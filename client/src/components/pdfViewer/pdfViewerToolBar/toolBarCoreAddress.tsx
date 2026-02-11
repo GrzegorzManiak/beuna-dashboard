@@ -3,7 +3,7 @@ import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 import { cn } from "@/lib/utils";
 
-function CoreAddressEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function CoreAddressEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const street = toInputString(getFieldValue(section, "street"));
     const houseNumber = toInputString(getFieldValue(section, "houseNumber"));

@@ -117,17 +117,17 @@ type TextMatch = {
 };
 
 export type {
-    SectionBox,
-    SectionType,
-    SectionState,
-    SectionFieldValue,
-    SectionData,
-    RenderedSection,
-    PageMetrics,
     ActiveSplit,
     DragSelection,
-    DragTextRect,
     DragSelectionResult,
+    DragTextRect,
+    PageMetrics,
+    RenderedSection,
+    SectionBox,
+    SectionData,
+    SectionFieldValue,
+    SectionState,
+    SectionType,
     SelectionRect,
     TextMatch,
 }

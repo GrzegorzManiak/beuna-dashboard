@@ -17,7 +17,6 @@ interface PdfViewerProps {
     propertyType?: "WEG" | "MV";
     propertyId?: string;
     autoSplitOnSelection?: boolean;
-    // State can be provided externally or managed internally
     pageMetrics?: Record<number, PageMetrics>;
     setPageMetrics?: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
     activeSplit?: ActiveSplit;
@@ -30,7 +29,7 @@ interface PdfViewerProps {
     setDragMode?: Dispatch<SetStateAction<boolean>>;
 }
 
-export function PdfViewer({
+function PdfViewer({
     pdfUrl,
     pdfScale = 0.7,
     sections,
@@ -50,7 +49,7 @@ export function PdfViewer({
     setActiveSectionId,
     dragMode,
     setDragMode,
-}: PdfViewerProps & PdfViewerState & PdfViewerActions) {
+}: PdfViewerProps & PdfViewerState & PdfViewerActions){
     const classifyMutation = useClassifySectionMutation();
 
     const handleSectionDelete = (sectionId: string) => {
@@ -94,10 +93,7 @@ export function PdfViewer({
                     onSectionDelete={handleSectionDelete}
                     propertyType={propertyType}
                     dragMode={dragMode}
-                    textWrappingEnabled={true}
                     onDragSelection={async (result) => {
-
-                        // Convert DragSelectionResult to SectionData
                         if (onSectionAdd && propertyId) {
                             const pages = result.boxes.map((b) => b.page);
                             const rawSection: SectionData = {
@@ -119,15 +115,12 @@ export function PdfViewer({
                                     })),
                                 }
                             };
-
-                            // Pass through THE GATE - normalize multi-page boxes
                             const normalizedSection = normalizeSectionBoxes(rawSection, pageMetrics);
 
                             onSectionAdd(normalizedSection);
                             setActiveSectionId?.(normalizedSection.id);
                             setDragMode?.(false);
 
-                            // Classify the selected text with heading context
                             const headingText = result.heading || result.text.slice(0, 100);
                             try {
                                 const classification = await classifyMutation.mutateAsync({
@@ -145,8 +138,6 @@ export function PdfViewer({
                                     state: "unknown",
                                 });
                             }
-
-                            // Open split toolbar below the selected area (on the last page)
                             if (autoSplitOnSelection) {
                                 const lastPage = pages[pages.length - 1];
                                 const box = normalizedSection.textPosition.boxes?.find((b) => b.page === lastPage);
@@ -168,3 +159,7 @@ export function PdfViewer({
         </div>
     );
 }
+
+export {
+    PdfViewer,
+};

@@ -1,6 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-function createQueryClient(): QueryClient {
+function createQueryClient( ){
     return new QueryClient({
         defaultOptions: {
             queries: { retry: 2 },

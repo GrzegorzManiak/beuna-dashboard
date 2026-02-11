@@ -27,7 +27,7 @@ function SectionBar({
     splitToolbarHeight,
     activeSectionId,
     setActiveSectionId,
-}: SectionBarProps) {
+}: SectionBarProps){
     const isPartialSection = (section: SectionData): boolean => {
         if (section.state !== "needs_review") return false;
         const reqKeys = REQUIRED_FIELDS[section.sectionType as SharedSectionType] ?? [];

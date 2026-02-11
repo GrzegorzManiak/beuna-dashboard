@@ -1,5 +1,9 @@
 import { NewPropertyProjectOnboardingStage } from "@/components/newProperty/newPropertyProjectOnboardingStage";
 
-export function ProjectOnboarding() {
+function ProjectOnboarding( ){
     return <NewPropertyProjectOnboardingStage />;
 }
+
+export {
+    ProjectOnboarding,
+};

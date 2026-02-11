@@ -9,7 +9,7 @@ const LOCKED_STATES: SectionState[] = ["valid", "identifying", "error"];
 const POOL_SIZE = 5;
 const DEPENDS_ON_BUILDINGS = new Set(["units.unit_block"]);
 
-function generateBuildingUuid(): string {
+function generateBuildingUuid( ){
     return `building-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
@@ -20,12 +20,12 @@ type UseSectionExtractionOpts = {
     enabled?: boolean;
 };
 
-export function useSectionExtraction({
+function useSectionExtraction({
     propertyId,
     sections,
     onSectionUpdate,
     enabled = true,
-}: UseSectionExtractionOpts) {
+}: UseSectionExtractionOpts){
     const inflightRef = useRef(new Set<string>());
     const completedRef = useRef(new Set<string>());
     const buildingAssignmentDoneRef = useRef(false);
@@ -208,3 +208,7 @@ export function useSectionExtraction({
 
     return { reset };
 }
+
+export {
+    useSectionExtraction,
+};

@@ -6,13 +6,13 @@ type GetPropertyResponse = {
     property: PropertyDetail;
 };
 
-async function fetchProperty(propertyId: string): Promise<GetPropertyResponse> {
+async function fetchProperty(propertyId: string ){
     const response = await apiFetch(`/api/properties/${propertyId}`);
     if (!response.ok) throw new Error(`Failed to load property (${response.status})`);
     return (await response.json()) as GetPropertyResponse;
 }
 
-function usePropertyQuery(propertyId: string | undefined, enabled = true) {
+function usePropertyQuery(propertyId: string | undefined, enabled = true ){
     return useQuery<GetPropertyResponse, Error>({
         queryKey: ["property", propertyId],
         queryFn: () => fetchProperty(propertyId ?? ""),
@@ -20,4 +20,4 @@ function usePropertyQuery(propertyId: string | undefined, enabled = true) {
     });
 }
 
-export { usePropertyQuery, type GetPropertyResponse };
+export { type GetPropertyResponse, usePropertyQuery };

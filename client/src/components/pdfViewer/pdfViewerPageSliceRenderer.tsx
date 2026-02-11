@@ -26,7 +26,7 @@ function PdfViewerPageSliceRenderer({
     renderedSections,
     activeSectionId,
     dragMode = false,
-}: PdfViewerPageSliceRendererProps) {
+}: PdfViewerPageSliceRendererProps){
     const containerRef = useRef<HTMLDivElement>(null);
 
     return (

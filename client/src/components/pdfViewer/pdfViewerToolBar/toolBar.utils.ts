@@ -13,23 +13,22 @@ function updateSectionField(
     section: SectionData,
     onSectionUpdate: SectionEditorProps["onSectionUpdate"],
     key: string,
-    value: SectionFieldValue,
-): void {
+    value: SectionFieldValue, ){
     if (!onSectionUpdate) return;
     const nextFields = { ...(section.fields ?? {}), [key]: value };
     onSectionUpdate(section.id, { fields: nextFields });
 }
 
-function getFieldValue(section: SectionData, key: string): SectionFieldValue {
+function getFieldValue(section: SectionData, key: string ){
     return section.fields?.[key] ?? "";
 }
 
-function toInputString(value: SectionFieldValue): string {
+function toInputString(value: SectionFieldValue ){
     if (value === null || value === undefined) return "";
     return String(value);
 }
 
-function toOptionalNumber(value: string): number | null {
+function toOptionalNumber(value: string ){
     if (!value.trim()) return null;
     const next = Number(value);
     if (Number.isNaN(next)) return null;
@@ -37,9 +36,9 @@ function toOptionalNumber(value: string): number | null {
 }
 
 export {
-    updateSectionField,
     getFieldValue,
+    type SectionEditorProps,
     toInputString,
     toOptionalNumber,
-    type SectionEditorProps,
+    updateSectionField,
 };

@@ -27,7 +27,7 @@ type ChecklistSectionProps = {
     items: ChecklistItemProps[];
 };
 
-function getStatusIcon(status: ItemStatus) {
+function getStatusIcon(status: ItemStatus ){
     if (status === "complete") return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
     if (status === "processing") return <Loader2 className="h-4 w-4 text-sky-600 animate-spin" />;
     if (status === "error") return <XCircle className="h-4 w-4 text-red-600" />;
@@ -36,7 +36,7 @@ function getStatusIcon(status: ItemStatus) {
 }
 
 /** Map a SectionData state to a checklist ItemStatus */
-function sectionStatus(section: SectionData | undefined): ItemStatus {
+function sectionStatus(section: SectionData | undefined ){
     if (!section) return "warning";
     switch (section.state) {
         case "valid": return "complete";
@@ -48,14 +48,16 @@ function sectionStatus(section: SectionData | undefined): ItemStatus {
     }
 }
 
-function ChecklistItem({ label, status, onClick }: ChecklistItemProps) {
+function ChecklistItem({ label, status, onClick }: ChecklistItemProps){
     return (
         <div
             className={`flex items-center gap-2 py-1 ${onClick ? 'cursor-pointer hover:bg-gray-50 rounded px-2 -mx-2 transition-colors' : ''}`}
             onClick={onClick}
             role={onClick ? "button" : undefined}
             tabIndex={onClick ? 0 : undefined}
-            onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+            onKeyDown={onClick ? (e) => {
+ if (e.key === "Enter" || e.key === " ") onClick(); 
+} : undefined}
         >
             {getStatusIcon(status)}
             <span className="text-sm text-gray-700">{label}</span>
@@ -63,7 +65,7 @@ function ChecklistItem({ label, status, onClick }: ChecklistItemProps) {
     );
 }
 
-function ChecklistSection({ title, subtitle, items }: ChecklistSectionProps) {
+function ChecklistSection({ title, subtitle, items }: ChecklistSectionProps){
     return (
         <div className="space-y-2">
             <div className="flex items-baseline gap-2">
@@ -84,7 +86,7 @@ function ChecklistSection({ title, subtitle, items }: ChecklistSectionProps) {
     );
 }
 
-function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: ChecklistProps) {
+function Checklist({ sections, propertyType, onSectionClick, onNext, onBack }: ChecklistProps){
     const unknownSections = useMemo(() => {
         return sections.filter((s) => s.sectionType === "unknown" && s.state !== "identifying");
     }, [sections]);

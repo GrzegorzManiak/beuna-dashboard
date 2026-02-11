@@ -6,12 +6,12 @@ import { useCreatePropertyMutation } from "@/hooks/useCreatePropertyMutation";
 import { SessionSelector } from "@/components/SessionSelector";
 import { getSessionId } from "@/lib/sessionStorage";
 
-export function NewPropertyUploadStage() {
+function NewPropertyUploadStage( ){
     const navigate = useNavigate();
     const { mutateAsync, isPending } = useCreatePropertyMutation();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    async function handleUpload(file: File): Promise<void> {
+    async function handleUpload(file: File ){
         setErrorMessage(null);
         if (!getSessionId()) {
             setErrorMessage("Session not ready. Please wait and try again.");
@@ -40,3 +40,7 @@ export function NewPropertyUploadStage() {
         </div>
     );
 }
+
+export {
+    NewPropertyUploadStage,
+};

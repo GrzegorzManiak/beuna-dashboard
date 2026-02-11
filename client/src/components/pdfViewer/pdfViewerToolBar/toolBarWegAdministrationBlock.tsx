@@ -2,7 +2,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 
-function WegAdministrationBlockEditor({ section, onSectionUpdate }: SectionEditorProps) {
+function WegAdministrationBlockEditor({ section, onSectionUpdate }: SectionEditorProps){
     const disabled = !onSectionUpdate;
     const managerName = toInputString(getFieldValue(section, "managerName"));
     const managerAddress = toInputString(getFieldValue(section, "managerAddress"));

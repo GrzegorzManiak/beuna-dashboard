@@ -6,7 +6,7 @@ type SectionHighlightsProps = {
     activeSectionId: string | null;
 };
 
-function SectionHighlights({ sections, activeSectionId }: SectionHighlightsProps) {
+function SectionHighlights({ sections, activeSectionId }: SectionHighlightsProps){
     const getStatusColor = (isActive: boolean, state: string | undefined, isPartial?: boolean) => {
         switch (state) {
             case "valid":

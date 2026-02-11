@@ -12,16 +12,16 @@ type NewPropertyUploadDocumentStageProps = {
     errorMessage?: string | null;
 };
 
-export function NewPropertyUploadDocumentStage({ onUpload, isSubmitting = false, errorMessage }: NewPropertyUploadDocumentStageProps) {
+function NewPropertyUploadDocumentStage({ onUpload, isSubmitting = false, errorMessage }: NewPropertyUploadDocumentStageProps){
     const [file, setFile] = useState<File | null>(null);
 
-    function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    function handleFileChange(event: ChangeEvent<HTMLInputElement> ){
         const nextFile = event.target.files?.[0];
         if (!nextFile) return;
         setFile(nextFile);
     }
 
-    function handleSubmit(): void {
+    function handleSubmit( ){
         if (!file) return;
         void onUpload(file);
     }
@@ -81,3 +81,7 @@ export function NewPropertyUploadDocumentStage({ onUpload, isSubmitting = false,
         </Card>
     );
 }
+
+export {
+    NewPropertyUploadDocumentStage,
+};

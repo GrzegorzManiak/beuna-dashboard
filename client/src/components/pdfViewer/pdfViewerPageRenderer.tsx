@@ -28,7 +28,7 @@ function PdfViewerPageRenderer({
     renderedSections,
     activeSectionId,
     dragMode = false,
-}: PdfViewerPageRendererProps) {
+}: PdfViewerPageRendererProps){
     const splitY = isActiveSplit ? Math.round(pageHeight * splitRatio) : 0;
     const pageLoadRef = useRef<boolean | null>(null);
 

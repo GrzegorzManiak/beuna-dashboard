@@ -11,4 +11,4 @@ export { calculateSectionStyle } from "./pdfViewer.utils";
 export * from "./pdfViewer.constants";
 export * from "./pdfViewer.types";
 export { usePdfViewerState } from "./pdfViewer.hook";
-export type { PdfViewerState, PdfViewerActions } from "./pdfViewer.hook";
+export type { PdfViewerActions, PdfViewerState } from "./pdfViewer.hook";

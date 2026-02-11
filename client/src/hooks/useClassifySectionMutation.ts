@@ -24,7 +24,7 @@ async function classifySection(input: ClassifySectionInput): Promise<ClassifySec
     if (!response.ok) {
         const payload = (await response.json()) as { error?: string } | null;
         return {
-            sectionType: "unknown",
+            sectionType: "unknown" as SectionType,
             confidence: 0,
             error: payload?.error ?? `Classification failed (${response.status})`,
         };
@@ -33,14 +33,14 @@ async function classifySection(input: ClassifySectionInput): Promise<ClassifySec
     return (await response.json()) as ClassifySectionResponse;
 }
 
-function useClassifySectionMutation() {
+function useClassifySectionMutation( ){
     return useMutation<ClassifySectionResponse, Error, ClassifySectionInput>({
         mutationFn: classifySection,
     });
 }
 
 export {
-    useClassifySectionMutation,
     type ClassifySectionInput,
     type ClassifySectionResponse,
+    useClassifySectionMutation,
 };

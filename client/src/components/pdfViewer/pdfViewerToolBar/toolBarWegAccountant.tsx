@@ -6,7 +6,7 @@ import { Edit2 } from "lucide-react";
 import { getFieldValue, toInputString, updateSectionField, type SectionEditorProps } from "./toolBar.utils.ts";
 import { cn } from "@/lib/utils";
 
-function WegAccountantEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps) {
+function WegAccountantEditor({ section, onSectionUpdate, missingFields }: SectionEditorProps){
     const [showAddressEdit, setShowAddressEdit] = useState(false);
 
     const disabled = !onSectionUpdate;

@@ -19,7 +19,7 @@ type UpdatePropertyInput = {
     updates: UpdatePropertyBody;
 };
 
-async function updateProperty(input: UpdatePropertyInput): Promise<UpdatePropertyResponse> {
+async function updateProperty(input: UpdatePropertyInput ){
     const response = await apiFetch(`/api/properties/${input.propertyId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -40,7 +40,7 @@ async function updateProperty(input: UpdatePropertyInput): Promise<UpdatePropert
     return (await response.json()) as UpdatePropertyResponse;
 }
 
-function useUpdatePropertyMutation() {
+function useUpdatePropertyMutation( ){
     const queryClient = useQueryClient();
 
     return useMutation<UpdatePropertyResponse, Error, UpdatePropertyInput>({
@@ -52,8 +52,8 @@ function useUpdatePropertyMutation() {
 }
 
 export {
-    useUpdatePropertyMutation,
     type UpdatePropertyBody,
-    type UpdatePropertyResponse,
     type UpdatePropertyInput,
+    type UpdatePropertyResponse,
+    useUpdatePropertyMutation,
 };

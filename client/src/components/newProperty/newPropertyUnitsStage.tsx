@@ -14,14 +14,14 @@ type NewPropertyUnitsStageProps = {
     sectionsProcessing: boolean;
 };
 
-export function NewPropertyUnitsStage({
+function NewPropertyUnitsStage({
     onNext,
     onBack,
     propertyId,
     sections: incomingSections,
     propertyType,
     sectionsProcessing,
-}: NewPropertyUnitsStageProps) {
+}: NewPropertyUnitsStageProps){
     const [sections, setSections] = useState<SectionData[]>([]);
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
@@ -61,17 +61,17 @@ export function NewPropertyUnitsStage({
         return () => clearTimeout(timer);
     }, [viewerState.pageMetrics, isLoaded, documentUrl]);
 
-    function handleSectionAdd(newSection: SectionData) {
+    function handleSectionAdd(newSection: SectionData ){
         setSections((prev) => [...prev, newSection]);
     }
 
-    function handleSectionUpdate(sectionId: string, updates: Partial<SectionData>) {
+    function handleSectionUpdate(sectionId: string, updates: Partial<SectionData> ){
         setSections((prev) =>
             prev.map((section) => (section.id === sectionId ? { ...section, ...updates } : section)),
         );
     }
 
-    function handleSectionDelete(sectionId: string) {
+    function handleSectionDelete(sectionId: string ){
         setSections((prev) => prev.filter((section) => section.id !== sectionId));
     }
 
@@ -157,7 +157,7 @@ export function NewPropertyUnitsStage({
  * the fallback path in calculateSectionStyle work correctly.  The full
  * per-page boxes array is preserved for per-page highlight rendering.
  */
-function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; width: number; height: number }>) {
+function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; width: number; height: number }> ){
     if (!boxes.length) return { page: [] as number[], x: 0, y: 0, width: 0, height: 0, boxes: undefined as any };
 
     const pages = [...new Set(boxes.map((b) => b.page))].sort((a, b) => a - b);
@@ -187,7 +187,7 @@ function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; w
     };
 }
 
-function mapPropertySections(sections: PropertySection[]): SectionData[] {
+function mapPropertySections(sections: PropertySection[] ){
     const result: SectionData[] = [];
 
     for (const section of sections) {
@@ -245,7 +245,7 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
     return result;
 }
 
-function mergeSectionData(existing: SectionData[], incoming: SectionData[]): SectionData[] {
+function mergeSectionData(existing: SectionData[], incoming: SectionData[] ){
     const map = new Map<string, SectionData>();
     for (const section of existing) map.set(section.id, section);
     for (const section of incoming) {
@@ -275,3 +275,7 @@ function mergeSectionData(existing: SectionData[], incoming: SectionData[]): Sec
     }
     return Array.from(map.values());
 }
+
+export {
+    NewPropertyUnitsStage,
+};

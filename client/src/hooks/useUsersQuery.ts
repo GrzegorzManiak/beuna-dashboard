@@ -16,13 +16,13 @@ type UsersResponse = {
     users: UserSummary[];
 };
 
-async function fetchUsers(): Promise<UsersResponse> {
+async function fetchUsers( ){
     const response = await apiFetch("/api/users");
     if (!response.ok) throw new Error(`Failed to load users (${response.status})`);
     return (await response.json()) as UsersResponse;
 }
 
-function useUsersQuery() {
+function useUsersQuery( ){
     return useQuery<UsersResponse, Error>({
         queryKey: ["users"],
         queryFn: fetchUsers,
@@ -30,8 +30,8 @@ function useUsersQuery() {
 }
 
 export {
-    useUsersQuery,
     type UserRole,
-    type UserSummary,
     type UsersResponse,
+    type UserSummary,
+    useUsersQuery,
 };

@@ -43,7 +43,6 @@ type PdfViewerRendererProps = {
     onSectionDelete?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     dragMode?: boolean;
-    textWrappingEnabled?: boolean;
     onDragSelection?: (result: DragSelectionResult) => void;
 };
 
@@ -66,9 +65,8 @@ function PdfViewerRenderer({
     onSectionDelete,
     propertyType,
     dragMode = false,
-    textWrappingEnabled,
     onDragSelection,
-}: PdfViewerRendererProps) {
+}: PdfViewerRendererProps){
     const [numPages, setNumPages] = useState(0);
     const [pageWidth] = useState(960 * pdfScale);
     const [showContent, setShowContent] = useState(false);
@@ -85,7 +83,9 @@ function PdfViewerRenderer({
                 
                 resizeObserver.observe(node);
                 
-                return () => { resizeObserver.disconnect(); };
+                return () => {
+ resizeObserver.disconnect(); 
+};
             } else {
                 setSplitToolbarHeight(0);
             }
