@@ -333,9 +333,6 @@ function PdfSplitToolbar({
                         {isIdentifying && (
                             <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
                         )}
-                        {/* <span className="text-lg font-semibold text-gray-900">
-                            {activeSection?.id ?? `Page ${pageNumber}`}
-                        </span> */}
                         <div className="text-lg font-semibold uppercase tracking-wide">
                             {typeLabel ?? "Section editor"}
                         </div>

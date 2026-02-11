@@ -131,7 +131,6 @@ export function PdfViewer({
                     dragMode={dragMode}
                     textWrappingEnabled={true}
                     onDragSelection={async (result) => {
-                        console.log("Selected:", result);
 
                         // Convert DragSelectionResult to SectionData
                         if (onSectionAdd && propertyId) {

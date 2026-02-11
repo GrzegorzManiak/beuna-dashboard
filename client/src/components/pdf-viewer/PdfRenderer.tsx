@@ -16,19 +16,7 @@ import type {
     SectionData,
 } from "./types";
 import { calculateSectionStyle } from "./utils";
-
-// Section types that should be rendered as highlights
-const RENDERABLE_SECTION_TYPES = [
-    "core.property_overview",
-    "core.address",
-    "core.building",
-    "units.unit_block",
-    "weg.special_rights",
-    "weg.mea_declaration",
-    "weg.property_manager",
-    "weg.accountant",
-    "mv.owner_entity",
-] as const;
+import { RENDERABLE_SECTION_TYPES } from "@shared/section-types";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",

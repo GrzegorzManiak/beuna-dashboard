@@ -1,19 +1,7 @@
 import type { PdfSection } from "../raw/types";
 
-/**
- * Section types following the revised architecture
- */
-export type SectionType =
-    | "core.property_overview"
-    | "core.address"
-    | "core.building"
-    | "units.unit_block"
-    | "weg.mea_declaration"
-    | "weg.special_rights"
-    | "weg.property_manager"
-    | "weg.accountant"
-    | "mv.owner_entity"
-    | "unknown";
+export type { SectionType } from "@shared/section-types";
+import type { SectionType } from "@shared/section-types";
 
 /**
  * A single item within an array-based section (buildings, units)

@@ -28,6 +28,7 @@
       "@feature/*": ["src/features/*"],
       "@plugin/*": ["src/plugins/*"],
       "@db": ["src/plugins/db"],
+      "@shared/*": ["../shared/*"],
     },
 
     // Some stricter flags (disabled by default)
@@ -35,5 +36,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "prisma/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "prisma/**/*.ts", "../shared/**/*.ts"]
 }

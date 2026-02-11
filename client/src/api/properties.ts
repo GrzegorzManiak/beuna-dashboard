@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "./client";
+import type { SectionType } from "@shared/section-types";
 
 type PropertyManagementType = "UNKNOWN" | "WEG" | "MV";
 
@@ -18,19 +19,7 @@ type PropertyDetail = {
     addressCity: string | null;
 };
 
-type PropertySectionType =
-    | "core.property_overview"
-    | "core.address"
-    | "core.building"
-    | "units.unit_block"
-    | "weg.special_rights"
-    | "weg.mea_declaration"
-    | "weg.property_manager"
-    | "weg.accountant"
-    | "mv.owner_entity"
-    | "unknown";
-
-type BasicDetailsField = {
+type PropertyDetail = {
     key: string;
     value: string | null;
     sourceText: string | null;
@@ -75,17 +64,11 @@ type PropertySection = {
         width: number;
         height: number;
     }>;
-    sectionType: PropertySectionType;
+    sectionType: SectionType;
     confidence: number;
     renderable: boolean;
     reusable: boolean;
     items?: PropertySectionItem[];
-};
-
-type PropertySectionsResponse = {
-    status: "ready" | "pending";
-    sections: PropertySection[];
-    basicDetails?: BasicDetailsExtract | null;
 };
 
 type CreatePropertyResponse = {
@@ -177,15 +160,8 @@ async function fetchPropertyDocument(propertyId: string): Promise<Blob> {
     return response.blob();
 }
 
-async function fetchPropertySections(propertyId: string, waitMs = 25_000): Promise<PropertySectionsResponse> {
-    const response = await apiFetch(`/api/properties/${propertyId}/sections?waitMs=${waitMs}`);
-    if (!response.ok) throw new Error(`Failed to load sections (${response.status})`);
-    const data = (await response.json()) as PropertySectionsResponse;
-    return data;
-}
-
 type ClassifySectionResponse = {
-    sectionType: PropertySectionType;
+    sectionType: SectionType;
     confidence: number;
     error?: string;
 };
@@ -256,14 +232,12 @@ export {
     useUpdatePropertyMutation,
     fetchPropertyDocument,
     usePropertyDocumentQuery,
-    fetchPropertySections,
     classifySection,
     type PropertyDetail,
     type PropertyManagementType,
     type PropertyStatus,
     type PropertySection,
-    type PropertySectionType,
-    type PropertySectionsResponse,
+    type SectionType,
     type BasicDetailsExtract,
     type BasicDetailsField,
     type ClassifySectionResponse,

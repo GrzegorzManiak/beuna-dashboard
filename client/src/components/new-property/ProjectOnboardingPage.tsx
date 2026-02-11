@@ -118,12 +118,10 @@ export function ProjectOnboardingPage() {
 
     useEffect(() => {
         if (!sections.length) return;
-        console.log("Stored sections", sections);
     }, [sections]);
 
     useEffect(() => {
         if (!basicDetails) return;
-        console.log("Basic details extract", basicDetails);
     }, [basicDetails]);
 
     useEffect(() => {
@@ -195,7 +193,6 @@ export function ProjectOnboardingPage() {
 
         socket.onmessage = (event) => {
             if (isClosed) return;
-            console.log('[CLIENT DEBUG] WebSocket message received:', event.data);
             try {
                 const payload = JSON.parse(event.data) as {
                     status?: string;
@@ -203,55 +200,48 @@ export function ProjectOnboardingPage() {
                     basicDetails?: BasicDetailsExtract | null;
                     error?: string;
                 };
-                console.log('[CLIENT DEBUG] Parsed payload:', payload);
                 
                 if (payload.error) {
-                    console.log('[CLIENT DEBUG] Error in payload:', payload.error);
                     setErrorMessage(payload.error);
                     return;
                 }
                 if (payload.status === "ready" && payload.sections) {
-                    console.log('[CLIENT DEBUG] Status: ready, sections:', payload.sections.length);
-                    const visibleSections = payload.sections.filter((section) => section.renderable !== false);
+                    const visibleSections = payload.sections.filter(
+                        (section) => section.renderable !== false || (section.items && section.items.length > 0)
+                    );
                     setSections(visibleSections);
                     setSectionsReady(true);
                     setBasicDetails(payload.basicDetails ?? null);
                     setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
                 }
                 if (payload.status === "processing") {
-                    console.log('[CLIENT DEBUG] Status: processing');
                     setSectionsProcessing(true);
                 }
                 if (payload.status === "update") {
-                    console.log('[CLIENT DEBUG] Status: update, basicDetails:', payload.basicDetails);
-                    console.log('[CLIENT DEBUG] Status: update, sections:', payload.sections?.length);
                     if (payload.basicDetails) {
-                        console.log('[CLIENT DEBUG] Setting basicDetails:', payload.basicDetails);
                         setBasicDetails(payload.basicDetails);
                     }
                     if (!payload.sections) {
-                        console.log('[CLIENT DEBUG] No sections in update, returning');
                         return;
                     }
-                    const visibleSections = payload.sections.filter((section) => section.renderable !== false);
-                    console.log('[CLIENT DEBUG] Visible sections count:', visibleSections.length);
+                    const visibleSections = payload.sections.filter(
+                        (section) => section.renderable !== false || (section.items && section.items.length > 0)
+                    );
                     setSections((prev) => {
                         const merged = mergeSections(prev, visibleSections);
-                        console.log('[CLIENT DEBUG] Merged sections:', merged.length);
                         return merged;
                     });
                 }
                 if (payload.status === "complete") {
-                    console.log('[CLIENT DEBUG] Status: complete');
                     setSectionsProcessing(false);
                     setSectionsReady(true);
                     if (payload.sections) {
-                        const visibleSections = payload.sections.filter((section) => section.renderable !== false);
-                        console.log('[CLIENT DEBUG] Final sections count:', visibleSections.length);
+                        const visibleSections = payload.sections.filter(
+                            (section) => section.renderable !== false || (section.items && section.items.length > 0)
+                        );
                         setSections(visibleSections);
                     }
                     if (payload.basicDetails) {
-                        console.log('[CLIENT DEBUG] Final basicDetails:', payload.basicDetails);
                         setBasicDetails(payload.basicDetails);
                     }
                     setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));

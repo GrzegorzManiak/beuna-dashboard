@@ -13,10 +13,6 @@ type PropertyIdParams = {
     propertyId: string;
 };
 
-type PropertySectionsQuery = {
-    waitMs?: number;
-};
-
 type PropertySectionsStreamQuery = {
     sessionId?: string;
 };
@@ -24,6 +20,5 @@ type PropertySectionsStreamQuery = {
 export {
     type UpdatePropertyBody,
     type PropertyIdParams,
-    type PropertySectionsQuery,
     type PropertySectionsStreamQuery,
 };

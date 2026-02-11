@@ -185,7 +185,6 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
         
         if (isArrayContainer) {
             // For array containers (buildings, units, administration), expand items into individual sections
-            console.log(`[CLIENT] Expanding ${section.sectionType} with ${section.items!.length} items`);
             
             for (let i = 0; i < section.items!.length; i++) {
                 const item = section.items![i];
@@ -231,7 +230,6 @@ function mapPropertySections(sections: PropertySection[]): SectionData[] {
         }
     }
     
-    console.log(`[CLIENT] Mapped ${sections.length} sections to ${result.length} display items`);
     return result;
 }
 

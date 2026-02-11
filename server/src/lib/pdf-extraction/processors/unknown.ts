@@ -21,7 +21,7 @@ export class UnknownProcessor implements SectionProcessor {
             headingText: extractHeadingText(section.rawText),
             sectionType: this.sectionType,
             confidence: 0.1,
-            renderable: true,
+            renderable: false,
             textPosition: linesToPositions(section.lines),
         };
     }

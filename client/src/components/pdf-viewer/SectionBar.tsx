@@ -8,19 +8,7 @@ import {
 } from "./constants";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
 import { SECTION_TYPE_OPTIONS } from "./PdfSplitToolbar";
-
-// Section types that should be rendered as highlights and sidebar items
-const RENDERABLE_SECTION_TYPES = [
-    "core.property_overview",
-    "core.address",
-    "core.building",
-    "units.unit_block",
-    "weg.special_rights",
-    "weg.mea_declaration",
-    "weg.property_manager",
-    "weg.accountant",
-    "mv.owner_entity",
-] as const;
+import { RENDERABLE_SECTION_TYPES } from "@shared/section-types";
 
 type SectionBarProps = {
     sectionData: Array<SectionData>;
@@ -184,7 +172,6 @@ function SectionBar({
                         }}
                     >
                         <span className="text-xs w-full font">
-                            {/* {section.sectionType} */}
                             {SECTION_TYPE_OPTIONS.find((option) => option.value === section.sectionType)?.label || section.sectionType || "Unknown type"}
                         </span>
                     </div>

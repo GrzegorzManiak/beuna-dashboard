@@ -1,3 +1,4 @@
+import type { SectionType } from "@shared/section-types";
 import type { CSSProperties } from "react";
 
 type SectionBox = {
@@ -16,18 +17,6 @@ type SectionPosition = {
     height: number;
     boxes?: SectionBox[];
 };
-
-type SectionType =
-    | "core.property_overview"
-    | "core.address"
-    | "core.building"
-    | "units.unit_block"
-    | "weg.special_rights"
-    | "weg.mea_declaration"
-    | "weg.property_manager"
-    | "weg.accountant"
-    | "mv.owner_entity"
-    | "unknown";
 
 type SectionState =
     | "valid"

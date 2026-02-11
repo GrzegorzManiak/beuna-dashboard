@@ -1,11 +1,10 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { WebSocket } from "ws";
 import { prisma } from "@db";
-import { classifySections } from "../../lib/pdf-extraction/llm/classify-sections";
+import { classifySection } from "../../lib/pdf-extraction/processors/classifier";
 import type {
     UpdatePropertyBody,
     PropertyIdParams,
-    PropertySectionsQuery,
     PropertySectionsStreamQuery,
 } from "./properties";
 import {
@@ -17,13 +16,6 @@ import {
     getBasicDetailsExtract,
     startSectionTask,
 } from "./properties.service";
-const SECTION_POLL_INTERVAL_MS = 1_000;
-const SECTION_POLL_MAX_WAIT_MS = 25_000;
-
-const sleep = (ms: number) => new Promise((resolve) => {
-    setTimeout(resolve, ms);
-});
-
 async function listPropertiesHandler(
     req: FastifyRequest,
     reply: FastifyReply
@@ -163,11 +155,9 @@ const sendSocketPayload = (
     payload: Record<string, unknown>,
 ) => {
     if (socket.readyState !== socket.OPEN) {
-        console.log('[DEBUG] Socket not open, state:', socket.readyState);
         return;
     }
     const jsonStr = JSON.stringify(payload);
-    console.log('[DEBUG] Sending WebSocket payload:', jsonStr.substring(0, 200));
     socket.send(jsonStr);
 };
 
@@ -206,7 +196,6 @@ async function getPropertySectionsStreamHandler(
         return;
     }
 
-    console.log('[DEBUG] WebSocket handler started for propertyId:', propertyId);
     
     // Track accumulated sections for streaming updates
     const accumulatedSections: any[] = [];
@@ -217,7 +206,6 @@ async function getPropertySectionsStreamHandler(
         await startSectionTask(propertyId, {
             awaitBasicDetails: true, // WAIT for basic details to complete
             onBasicDetailsUpdated: (basicDetails) => {
-                console.log('[DEBUG] onBasicDetailsUpdated callback called with:', basicDetails);
                 latestBasicDetails = basicDetails;
                 basicDetailsResolved = true;
                 sendSocketPayload(socket, { 
@@ -227,7 +215,6 @@ async function getPropertySectionsStreamHandler(
                 });
             },
             onSectionProcessed: (section, index, total) => {
-                console.log(`[DEBUG] Sending section ${index + 1}/${total} via WebSocket:`, section.sectionType);
                 
                 const sectionIndex = (section as any)._sectionIndex ?? index;
                 const sectionData = {
@@ -238,8 +225,7 @@ async function getPropertySectionsStreamHandler(
                     textPosition: section.textPosition,
                     sectionType: section.sectionType,
                     confidence: section.confidence,
-                    // Hide the title page (sectionIndex 0), show everything else
-                    renderable: sectionIndex !== 0,
+                    renderable: section.renderable !== false,
                     items: section.items || undefined,
                 };
                 
@@ -254,7 +240,6 @@ async function getPropertySectionsStreamHandler(
             },
         });
     } catch (error) {
-        console.log('[DEBUG] Error in section task:', error);
         const message = error instanceof Error ? error.message : "Section processing failed.";
         sendSocketPayload(socket, { error: message });
         socket.close();
@@ -264,62 +249,10 @@ async function getPropertySectionsStreamHandler(
     // Always send the final "complete" payload from this handler's socket,
     // even if this handler joined an already-running task (e.g. due to React
     // Strict Mode double-mount creating two WebSocket connections).
-    console.log('[DEBUG] Section processing complete, sending final payload');
     const sections = await getStoredSections(propertyId);
     const basicDetails = await getBasicDetailsExtract(propertyId);
-    console.log('[DEBUG] Final sections count:', sections.length);
-    console.log('[DEBUG] Final basicDetails:', basicDetails);
     sendSocketPayload(socket, { status: "complete", sections, basicDetails });
     socket.close();
-}
-
-async function getPropertySectionsHandler(
-    req: FastifyRequest<{ Params: PropertyIdParams; Querystring: PropertySectionsQuery }>,
-    reply: FastifyReply
-) {
-    const { propertyId } = req.params;
-    const waitMsRaw = req.query?.waitMs;
-    const waitMs = Number.isFinite(waitMsRaw)
-        ? Math.min(Math.max(waitMsRaw ?? 0, 0), SECTION_POLL_MAX_WAIT_MS)
-        : 0;
-    const deadline = waitMs ? Date.now() + waitMs : 0;
-
-    const property = await prisma.property.findUnique({
-        where: { id: propertyId },
-        select: { id: true },
-    });
-
-    if (!property) return reply.code(404).send({ error: "Property not found" });
-
-    let started = false;
-    while (true) {
-        const sections = await getStoredSections(propertyId);
-        if (sections.length) {
-            await startSectionTask(propertyId);
-            const refreshedSections = await getStoredSections(propertyId);
-            const refreshedBasicDetails = await getBasicDetailsExtract(propertyId);
-            return reply.send({
-                status: "ready",
-                sections: refreshedSections,
-                basicDetails: refreshedBasicDetails,
-            });
-        }
-
-        if (!started) {
-            started = true;
-            startSectionTask(propertyId).catch(() => null);
-        }
-
-        if (!waitMs || Date.now() >= deadline) {
-            return reply.send({
-                status: "pending",
-                sections: [],
-                basicDetails: null,
-            });
-        }
-
-        await sleep(SECTION_POLL_INTERVAL_MS);
-    }
 }
 
 async function updatePropertyHandler(
@@ -415,7 +348,6 @@ async function classifySectionHandler(
     }
 
     try {
-        // Create a mock PdfSection for classification
         const mockSection = {
             id: `user-selection-${Date.now()}`,
             heading: { text: heading || text.slice(0, 50) } as any,
@@ -424,26 +356,11 @@ async function classifySectionHandler(
             textPosition: [] as any[],
         };
 
-        const result = await classifySections([mockSection], 1);
-
-        if (result.classifications.length === 0) {
-            return reply.send({
-                sectionType: "unknown",
-                confidence: 0,
-            });
-        }
-
-        const classification = result.classifications[0];
-        if (!classification) {
-            return reply.send({
-                sectionType: "unknown",
-                confidence: 0,
-            });
-        }
+        const result = await classifySection(mockSection);
 
         return reply.send({
-            sectionType: classification.sectionType,
-            confidence: classification.confidence,
+            sectionType: result.processor.sectionType,
+            confidence: result.confidence,
         });
     } catch (error) {
         console.error("Error classifying section:", error);
@@ -461,7 +378,6 @@ export {
     getPropertyDocumentHandler,
     getPropertyHandler,
     getPropertySectionsStreamHandler,
-    getPropertySectionsHandler,
     updatePropertyHandler,
     classifySectionHandler,
 };
