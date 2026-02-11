@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
-import { NewPropertyDetailsStep } from "./newPropertyDetailsStep";
+import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
-import { NewPropertyUnitsStep } from "./newPropertyUnitsStep";
-import { NewPropertyProcessingStep } from "./newPropertyProcessingStep";
+import { NewPropertyUnitsStage } from "./newPropertyUnitsStage";
+import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
 import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
@@ -355,7 +355,7 @@ export function NewPropertyProjectOnboardingPage() {
                                 transition={{ duration: 0.3 }}
                                 className="w-full flex justify-center"
                             >
-                                <NewPropertyProcessingStep errorMessage={errorMessage} />
+                                <NewPropertyProcessingStage errorMessage={errorMessage} />
                             </motion.div>
                         )}
 
@@ -388,7 +388,7 @@ export function NewPropertyProjectOnboardingPage() {
                                 transition={{ duration: 0.3 }}
                                 className="w-full flex justify-center"
                             >
-                                <NewPropertyDetailsStep
+                                <NewPropertyDetailsStage
                                     onNext={handleDetailsNext}
                                     onBack={() => setStep(STEP_PROPERTY_TYPE)}
                                     name={propertyName}
@@ -414,7 +414,7 @@ export function NewPropertyProjectOnboardingPage() {
                                 transition={{ duration: 0.3 }}
                                 className="w-full flex justify-center"
                             >
-                                <NewPropertyUnitsStep
+                                <NewPropertyUnitsStage
                                     propertyId={propertyId}
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
