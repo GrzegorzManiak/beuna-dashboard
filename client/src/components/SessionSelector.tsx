@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUsersQuery } from "@/api/users";
-import type { UserSummary } from "@/api/users";
-import { useCreateSessionMutation } from "@/api/sessions";
+import { useUsersQuery } from "@/hooks/useUsersQuery";
+import type { UserSummary } from "@/hooks/useUsersQuery";
+import { useCreateSessionMutation } from "@/hooks/useCreateSessionMutation";
 import { getSessionId, getSessionUserId, setSessionId, setSessionUserId } from "@/lib/session-storage";
 import { cn } from "@/lib/utils";
 

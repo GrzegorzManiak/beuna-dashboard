@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Checklist, PdfViewer, SectionBar, usePdfViewerState } from "@/components/pdf-viewer";
 import type { SectionData } from "@/components/pdf-viewer";
 import type { PropertySection } from "@/api/properties";
-import { usePropertyDocumentQuery } from "@/api/properties";
+import { usePropertyDocumentQuery } from "@/hooks/usePropertyDocumentQuery";
 import { useSectionExtraction } from "@/hooks/useSectionExtraction";
 
 type UnitsStepProps = {

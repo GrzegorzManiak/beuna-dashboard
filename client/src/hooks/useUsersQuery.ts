@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "./client";
+import { apiFetch } from "@/api/client";
 
 type UserRole = "ADMIN" | "MANAGER" | "ACCOUNTANT";
 
@@ -19,8 +19,7 @@ type UsersResponse = {
 async function fetchUsers(): Promise<UsersResponse> {
     const response = await apiFetch("/api/users");
     if (!response.ok) throw new Error(`Failed to load users (${response.status})`);
-    const data = (await response.json()) as UsersResponse;
-    return data;
+    return (await response.json()) as UsersResponse;
 }
 
 function useUsersQuery() {
@@ -31,7 +30,6 @@ function useUsersQuery() {
 }
 
 export {
-    fetchUsers,
     useUsersQuery,
     type UserRole,
     type UserSummary,

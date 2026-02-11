@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ProgressBar } from "./ProgressBar";
 import { UploadDocumentStep } from "./UploadDocumentStep";
-import { useCreatePropertyMutation } from "@/api/properties";
+import { useCreatePropertyMutation } from "@/hooks/useCreatePropertyMutation";
 import { SessionSelector } from "@/components/SessionSelector";
 import { getSessionId } from "@/lib/session-storage";
 

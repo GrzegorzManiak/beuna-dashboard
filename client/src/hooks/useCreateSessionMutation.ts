@@ -1,20 +1,18 @@
 import { useMutation } from "@tanstack/react-query";
-import { apiFetch } from "./client";
-
-type CreateSessionResponse = {
-    sessionId: string;
-};
+import { apiFetch } from "@/api/client";
 
 type CreateSessionBody = {
     userId: string;
 };
 
+type CreateSessionResponse = {
+    sessionId: string;
+};
+
 async function createSession(userId: string): Promise<CreateSessionResponse> {
     const response = await apiFetch("/api/sessions", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId } satisfies CreateSessionBody),
     });
 
@@ -29,8 +27,7 @@ async function createSession(userId: string): Promise<CreateSessionResponse> {
         throw new Error(message);
     }
 
-    const data = (await response.json()) as CreateSessionResponse;
-    return data;
+    return (await response.json()) as CreateSessionResponse;
 }
 
 function useCreateSessionMutation() {
@@ -39,9 +36,4 @@ function useCreateSessionMutation() {
     });
 }
 
-export {
-    createSession,
-    useCreateSessionMutation,
-    type CreateSessionResponse,
-    type CreateSessionBody,
-};
+export { useCreateSessionMutation, type CreateSessionResponse };

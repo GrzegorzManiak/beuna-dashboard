@@ -7,7 +7,8 @@ import { PropertyTypePicker } from "./PropertyTypePicker";
 import { UnitsStep } from "./UnitsStep";
 import { ProcessingStep } from "./ProcessingStep";
 import { SessionSelector } from "@/components/SessionSelector";
-import { usePropertyQuery, useUpdatePropertyMutation } from "@/api/properties";
+import { usePropertyQuery } from "@/hooks/usePropertyQuery";
+import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
 import type { PropertyManagementType, PropertySection, BasicDetailsExtract } from "@/api/properties";
 import { getSessionId } from "@/lib/session-storage";
 
@@ -246,8 +247,8 @@ export function ProjectOnboardingPage() {
                     setStep((current) => (current <= STEP_PROCESSING ? STEP_PROPERTY_TYPE : current));
                     socket.close();
                 }
-            } catch (parseError) {
-                console.error("Failed to parse section payload", parseError);
+            } catch {
+                // parse failure — skip malformed WebSocket message
             }
         };
 

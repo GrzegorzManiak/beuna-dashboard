@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { MousePointerClick } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { classifySection } from "@/api/properties";
+import { useClassifySectionMutation } from "@/hooks/useClassifySectionMutation";
 import { PdfRenderer } from "./PdfRenderer";
 import { handleAutoSplit, normalizeSectionBoxes } from "./utils";
 import type { ActiveSplit, PageMetrics, SectionData } from "./types";
@@ -88,6 +88,8 @@ export function PdfViewer({
     dragMode,
     setDragMode,
 }: PdfViewerProps & PdfViewerState & PdfViewerActions) {
+    const classifyMutation = useClassifySectionMutation();
+
     const handleSectionDelete = (sectionId: string) => {
         if (activeSectionId === sectionId) setActiveSectionId(null);
         onSectionDelete?.(sectionId);
@@ -165,14 +167,17 @@ export function PdfViewer({
                             // Classify the selected text with heading context
                             const headingText = result.heading || result.text.slice(0, 100);
                             try {
-                                const classification = await classifySection(propertyId, result.text, headingText);
+                                const classification = await classifyMutation.mutateAsync({
+                                    propertyId,
+                                    text: result.text,
+                                    heading: headingText,
+                                });
                                 onSectionUpdate?.(normalizedSection.id, {
                                     sectionType: classification.sectionType as any,
                                     rawText: result.text,
                                     state: classification.sectionType === "unknown" ? "unknown" : "processing",
                                 });
-                            } catch (error) {
-                                console.error("Classification failed:", error);
+                            } catch {
                                 onSectionUpdate?.(normalizedSection.id, {
                                     state: "unknown",
                                 });
