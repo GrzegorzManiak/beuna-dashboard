@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { NewPropertyProgressBar } from "./newPropertyProgressBar";
 import { NewPropertyUploadDocumentStage } from "./newPropertyUploadDocumentStage";
 import { useCreatePropertyMutation } from "@/hooks/useCreatePropertyMutation";
-import { SessionSelector } from "@/components/SessionSelector";
 import { getSessionId } from "@/lib/sessionStorage";
 
 function NewPropertyUploadStage( ){
@@ -28,7 +27,6 @@ function NewPropertyUploadStage( ){
 
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
-            <SessionSelector className="absolute left-6 top-6 z-20" />
             <NewPropertyProgressBar currentStep={0} onStepClick={() => undefined} />
             <div className="w-full flex justify-center px-4 relative">
                 <NewPropertyUploadDocumentStage

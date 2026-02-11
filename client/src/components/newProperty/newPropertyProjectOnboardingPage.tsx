@@ -6,7 +6,6 @@ import { NewPropertyDetailsStage } from "./newPropertyDetailsStage";
 import { NewPropertyTypePicker } from "./newPropertyTypePicker";
 import { NewPropertySectionsStage } from "./newPropertySectionsStage";
 import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
-import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
 import type { PropertyManagementType, PropertySection, BasicDetailsExtract } from "@/api/properties";
@@ -337,7 +336,6 @@ return (
 
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center gap-6 bg-gray-50/50 overflow-hidden relative">
-            <SessionSelector className="absolute left-6 top-6 z-20" />
             <NewPropertyProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
 
             <div className="w-full flex justify-center px-4 relative">

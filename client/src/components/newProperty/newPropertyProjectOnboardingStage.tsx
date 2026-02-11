@@ -7,7 +7,6 @@ import { NewPropertyTypePicker } from "./newPropertyTypePicker";
 import { NewPropertySectionsStage } from "./newPropertySectionsStage";
 import { NewPropertyProcessingStage } from "./newPropertyProcessingStage";
 import { NewPropertyReviewPanel } from "./newPropertyReviewPanel";
-import { SessionSelector } from "@/components/SessionSelector";
 import { usePropertyQuery } from "@/hooks/usePropertyQuery";
 import { usePropertySectionsQuery } from "@/hooks/usePropertySectionsQuery";
 import { useUpdatePropertyMutation } from "@/hooks/useUpdatePropertyMutation";
@@ -406,7 +405,6 @@ return (
 
     return (
         <div className={`h-screen w-full flex flex-col items-center gap-6 bg-gray-50/50 relative ${isReviewStep ? "overflow-y-auto py-6" : "justify-center overflow-hidden"}`}>
-            <SessionSelector className="absolute left-6 top-6 z-20" />
             <NewPropertyProgressBar currentStep={toProgressIndex(step)} onStepClick={handleStepClick} />
 
             <div className="w-full flex justify-center px-4 relative">
