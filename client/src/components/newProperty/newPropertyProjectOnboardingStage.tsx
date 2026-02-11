@@ -490,6 +490,7 @@ return (
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
                                     sectionsProcessing={sectionsProcessing}
+                                    onSectionsChange={setSections}
                                     onNext={async () => {
                                         // Re-fetch sections from the server so the review
                                         // panel sees the latest persisted data (field

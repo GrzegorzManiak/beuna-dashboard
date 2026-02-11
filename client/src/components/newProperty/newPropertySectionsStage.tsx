@@ -15,7 +15,10 @@ type NewPropertySectionsStageProps = {
     sections: PropertySection[];
     propertyType: "WEG" | "MV";
     sectionsProcessing: boolean;
+    onSectionsChange?: (sections: PropertySection[]) => void;
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function NewPropertySectionsStage({
     onNext,
@@ -24,27 +27,24 @@ function NewPropertySectionsStage({
     sections: incomingSections,
     propertyType,
     sectionsProcessing,
+    onSectionsChange,
 }: NewPropertySectionsStageProps){
     const [sections, setSections] = useState<SectionData[]>([]);
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
     const { data: documentBlob, isLoading: isDocumentLoading, isError: isDocumentError, error: documentError } = usePropertyDocumentQuery(propertyId);
     const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-
-    // Maps item-expanded IDs (e.g. "unit-10-xxx") to their parent section UUID
-    // so the extraction hook can persist item results back to the parent's items JSON.
     const itemToParentMapRef = useRef<Map<string, string>>(new Map());
-
-    // Maps temporary client-side IDs (e.g. "section-1707...") to their real server UUIDs
-    // so that late-arriving updates (e.g. from classify) can still find the section.
+    const itemToIndexMapRef = useRef<Map<string, number>>(new Map());
     const tempIdToRealIdRef = useRef<Map<string, string>>(new Map());
+    const localSectionsRef = useRef<SectionData[]>([]);
+    const persistedSectionsRef = useRef<PropertySection[]>(incomingSections);
+    const parentItemsCacheRef = useRef<Map<string, PropertySection["items"]>>(new Map());
 
     const createSectionMutation = useCreateSectionMutation();
     const updateSectionMutation = useUpdateSectionMutation();
     const deleteSectionMutation = useDeleteSectionMutation();
 
-    // Automatic LLM field extraction for sections in "processing" state.
-    // Enabled once sections have been mapped and the viewer is loaded.
     useSectionExtraction({
         propertyId,
         sections,
@@ -56,18 +56,30 @@ function NewPropertySectionsStage({
     });
 
     useEffect(() => {
+        localSectionsRef.current = sections;
+    }, [sections]);
+
+    useEffect(() => {
+        persistedSectionsRef.current = incomingSections;
+        parentItemsCacheRef.current.clear();
+        for (const section of incomingSections) {
+            if (!Array.isArray(section.items)) continue;
+            parentItemsCacheRef.current.set(section.id, section.items);
+        }
         if (!incomingSections.length) return;
-        const { sections: mapped, itemToParentMap } = mapPropertySections(incomingSections);
+        const { sections: mapped, itemToParentMap, itemToIndexMap } = mapPropertySections(incomingSections);
         itemToParentMapRef.current = itemToParentMap;
+        itemToIndexMapRef.current = itemToIndexMap;
         setSections((prev) => mergeSectionData(prev, mapped));
     }, [incomingSections]);
 
     useEffect(() => {
         if (!isLoaded || !incomingSections.length) return;
-        const { sections: mapped, itemToParentMap } = mapPropertySections(incomingSections);
+        const { sections: mapped, itemToParentMap, itemToIndexMap } = mapPropertySections(incomingSections);
         itemToParentMapRef.current = itemToParentMap;
+        itemToIndexMapRef.current = itemToIndexMap;
         setSections((prev) => mergeSectionData(prev, mapped));
-    }, [isLoaded]);
+    }, [incomingSections, isLoaded]);
 
     useEffect(() => {
         if (!documentBlob) return;
@@ -83,19 +95,26 @@ function NewPropertySectionsStage({
         return () => clearTimeout(timer);
     }, [viewerState.pageMetrics, isLoaded, documentUrl]);
 
+    function updatePersistedSections(next: PropertySection[] ){
+        const sorted = [...next].sort((a, b) => a.sectionIndex - b.sectionIndex);
+        persistedSectionsRef.current = sorted;
+        onSectionsChange?.(sorted);
+    }
+
+    function syncLocalFromPersisted( ){
+        const { sections: mapped, itemToParentMap, itemToIndexMap } = mapPropertySections(persistedSectionsRef.current);
+        itemToParentMapRef.current = itemToParentMap;
+        itemToIndexMapRef.current = itemToIndexMap;
+        setSections(mapped);
+    }
+
     function handleSectionAdd(newSection: SectionData ){
         setSections((prev) => [...prev, newSection]);
-
-        // Convert client-side SectionPosition ({ page: number[], x, y, w, h, boxes })
-        // into the server-expected Array<{ page, x, y, width, height }> format so that
-        // the stored JSON matches what mapPropertySections expects on reload.
         const tp = newSection.textPosition;
         const serverTextPosition: Array<{ page: number; x: number; y: number; width: number; height: number }> =
             tp.boxes && tp.boxes.length > 0
                 ? tp.boxes.map((b) => ({ page: b.page, x: b.x, y: b.y, width: b.width, height: b.height }))
                 : tp.page.map((p) => ({ page: p, x: tp.x, y: tp.y, width: tp.width, height: tp.height }));
-
-        // Persist the new section to the server and swap the temp id for the real one
         createSectionMutation.mutateAsync({
             propertyId,
             headingText: "",
@@ -104,14 +123,58 @@ function NewPropertySectionsStage({
             sectionType: newSection.sectionType ?? "unknown",
             confidence: 0,
             state: newSection.state ?? "identifying",
-        }).then((response) => {
+        }).then(async (response) => {
+            const tempSnapshot = localSectionsRef.current.find((section) => section.id === newSection.id) ?? null;
             const serverId = response.section.id;
             tempIdToRealIdRef.current.set(newSection.id, serverId);
             setSections((prev) =>
                 prev.map((s) => (s.id === newSection.id ? { ...s, id: serverId } : s)),
             );
+            let createdSection = {
+                ...response.section,
+                sectionType: response.section.sectionType as PropertySection["sectionType"],
+                items: Array.isArray(response.section.items) ? response.section.items as PropertySection["items"] : undefined,
+            } as PropertySection;
+
+            if (tempSnapshot) {
+                const updates = {
+                    ...(tempSnapshot.state ? { state: tempSnapshot.state } : {}),
+                    ...(tempSnapshot.fields && Object.keys(tempSnapshot.fields).length > 0 ? { fields: tempSnapshot.fields } : {}),
+                    ...(tempSnapshot.sectionType ? { sectionType: tempSnapshot.sectionType } : {}),
+                    ...(tempSnapshot.rawText ? { rawText: tempSnapshot.rawText } : {}),
+                };
+                const hasMeaningfulUpdate = updates.state || updates.fields || updates.sectionType || updates.rawText;
+                if (hasMeaningfulUpdate) {
+                    try {
+                        await updateSectionMutation.mutateAsync({
+                            propertyId,
+                            sectionId: serverId,
+                            ...(updates.state ? { state: updates.state } : {}),
+                            ...(updates.fields ? { fields: updates.fields } : {}),
+                            ...(updates.sectionType ? { sectionType: updates.sectionType } : {}),
+                            ...(updates.rawText ? { rawText: updates.rawText } : {}),
+                        });
+                        createdSection = {
+                            ...createdSection,
+                            ...(updates.state ? { state: updates.state } : {}),
+                            ...(updates.fields ? { fields: updates.fields as PropertySection["fields"] } : {}),
+                            ...(updates.sectionType ? { sectionType: updates.sectionType as PropertySection["sectionType"] } : {}),
+                            ...(updates.rawText ? { rawText: updates.rawText } : {}),
+                        };
+                    } catch (err) {
+                        console.error(`[createSection] Failed to sync post-create updates for ${serverId}:`, err);
+                    }
+                }
+            }
+
+            const nextPersisted = [
+                ...persistedSectionsRef.current.filter((section) => section.id !== createdSection.id),
+                createdSection,
+            ];
+            updatePersistedSections(nextPersisted);
         }).catch((err) => {
             console.error("[createSection] Failed to persist new section:", err);
+            syncLocalFromPersisted();
         });
     }
 
@@ -125,7 +188,7 @@ function NewPropertySectionsStage({
         const hasMeaningfulUpdate = updates.state || updates.fields || updates.sectionType || updates.rawText;
         if (!hasMeaningfulUpdate) return;
 
-        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+        const isDbId = UUID_RE.test(resolvedId);
 
         if (isDbId) {
             updateSectionMutation.mutateAsync({
@@ -135,33 +198,66 @@ function NewPropertySectionsStage({
                 ...(updates.fields ? { fields: updates.fields } : {}),
                 ...(updates.sectionType ? { sectionType: updates.sectionType } : {}),
                 ...(updates.rawText ? { rawText: updates.rawText } : {}),
+            }).then(() => {
+                const nextPersisted = persistedSectionsRef.current.map((section) => {
+                    if (section.id !== resolvedId) return section;
+                    return {
+                        ...section,
+                        ...(updates.state ? { state: updates.state } : {}),
+                        ...(updates.fields ? { fields: updates.fields as PropertySection["fields"] } : {}),
+                        ...(updates.sectionType ? { sectionType: updates.sectionType as PropertySection["sectionType"] } : {}),
+                        ...(updates.rawText ? { rawText: updates.rawText } : {}),
+                    };
+                });
+                updatePersistedSections(nextPersisted);
             }).catch((err) => {
                 console.error(`[updateSection] Failed to persist section ${resolvedId}:`, err);
+                syncLocalFromPersisted();
             });
             return;
         }
 
         const parentId = itemToParentMapRef.current.get(resolvedId);
-        if (!parentId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parentId)) return;
+        if (!parentId || !UUID_RE.test(parentId)) return;
 
-        const parentSection = incomingSections.find((s) => s.id === parentId);
-        if (!parentSection?.items) return;
+        const parentSection = persistedSectionsRef.current.find((section) => section.id === parentId);
+        if (!parentSection || !Array.isArray(parentSection.items)) return;
+        const targetIndex = itemToIndexMapRef.current.get(resolvedId) ?? -1;
 
-        const updatedItems = parentSection.items.map((item) => {
-            if (item.id !== resolvedId) return item;
+        const currentItems = parentItemsCacheRef.current.get(parentId) ?? parentSection.items;
+        let hasMatch = false;
+        const updatedItems = currentItems.map((item, index) => {
+            const matchesById = item.id === resolvedId;
+            const matchesByIndex = !matchesById && targetIndex >= 0 && index === targetIndex;
+            if (!matchesById && !matchesByIndex) return item;
+            hasMatch = true;
             return {
                 ...item,
                 ...(updates.state ? { state: updates.state as typeof item.state } : {}),
                 ...(updates.fields ? { fields: updates.fields } : {}),
+                ...(updates.sectionType ? { sectionType: updates.sectionType } : {}),
+                ...(updates.rawText ? { rawText: updates.rawText } : {}),
             };
         });
+        if (!hasMatch) return;
+        parentItemsCacheRef.current.set(parentId, updatedItems);
 
         updateSectionMutation.mutateAsync({
             propertyId,
             sectionId: parentId,
             items: updatedItems,
+        }).then(() => {
+            const nextPersisted = persistedSectionsRef.current.map((section) => {
+                if (section.id !== parentId) return section;
+                return {
+                    ...section,
+                    items: updatedItems,
+                };
+            });
+            updatePersistedSections(nextPersisted);
         }).catch((err) => {
             console.error(`[updateSection] Failed to persist item ${resolvedId} on parent ${parentId}:`, err);
+            syncLocalFromPersisted();
         });
     }
 
@@ -169,13 +265,49 @@ function NewPropertySectionsStage({
         const resolvedId = tempIdToRealIdRef.current.get(sectionId) ?? sectionId;
         setSections((prev) => prev.filter((section) => section.id !== resolvedId));
 
-        // Persist deletion to the server (only for real DB UUIDs)
-        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+        const isDbId = UUID_RE.test(resolvedId);
         if (isDbId) {
-            deleteSectionMutation.mutateAsync({ propertyId, sectionId: resolvedId }).catch((err) => {
+            deleteSectionMutation.mutateAsync({ propertyId, sectionId: resolvedId }).then(() => {
+                const nextPersisted = persistedSectionsRef.current.filter((section) => section.id !== resolvedId);
+                updatePersistedSections(nextPersisted);
+            }).catch((err) => {
                 console.error(`[deleteSection] Failed to delete section ${resolvedId}:`, err);
+                syncLocalFromPersisted();
             });
+            return;
         }
+
+        const parentId = itemToParentMapRef.current.get(resolvedId);
+        if (!parentId || !UUID_RE.test(parentId)) return;
+        const parentSection = persistedSectionsRef.current.find((section) => section.id === parentId);
+        if (!parentSection || !Array.isArray(parentSection.items)) return;
+        const targetIndex = itemToIndexMapRef.current.get(resolvedId) ?? -1;
+        const currentItems = parentItemsCacheRef.current.get(parentId) ?? parentSection.items;
+
+        const nextItems = currentItems.filter((item, index) => {
+            const matchesById = item.id === resolvedId;
+            const matchesByIndex = !matchesById && targetIndex >= 0 && index === targetIndex;
+            return !(matchesById || matchesByIndex);
+        });
+        parentItemsCacheRef.current.set(parentId, nextItems);
+
+        updateSectionMutation.mutateAsync({
+            propertyId,
+            sectionId: parentId,
+            items: nextItems,
+        }).then(() => {
+            const nextPersisted = persistedSectionsRef.current.map((section) => {
+                if (section.id !== parentId) return section;
+                return {
+                    ...section,
+                    items: nextItems,
+                };
+            });
+            updatePersistedSections(nextPersisted);
+        }).catch((err) => {
+            console.error(`[deleteSection] Failed to persist item deletion ${resolvedId}:`, err);
+            syncLocalFromPersisted();
+        });
     }
 
     return (
@@ -290,9 +422,16 @@ function computeBoundingBox(boxes: Array<{ page: number; x: number; y: number; w
     };
 }
 
+function isNonRenderableEntry(fields: unknown ){
+    if (!fields || typeof fields !== "object") return false;
+    const marker = (fields as Record<string, unknown>).__nonRenderable;
+    return marker === true;
+}
+
 function mapPropertySections(sections: PropertySection[] ){
     const result: SectionData[] = [];
     const itemToParent = new Map<string, string>();
+    const itemToIndex = new Map<string, number>();
 
     for (const section of sections) {
         const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
@@ -308,6 +447,7 @@ function mapPropertySections(sections: PropertySection[] ){
             for (let i = 0; i < section.items!.length; i++) {
                 const item = section.items![i];
                 if (!item) continue;
+                if (isNonRenderableEntry(item.fields)) continue;
                 
                 // Prefer item-level sectionType (e.g. weg.administration items carry their
                 // own type: weg.property_manager / weg.accountant).  Fall back to the
@@ -321,6 +461,7 @@ function mapPropertySections(sections: PropertySection[] ){
                 // Track which parent UUID owns this item so we can persist
                 // item extraction results back into the parent's items JSON.
                 itemToParent.set(itemId, section.id);
+                itemToIndex.set(itemId, i);
 
                 // If the item already carries persisted state/fields (saved from
                 // a previous extraction), honour them to avoid re-extraction.
@@ -351,6 +492,7 @@ function mapPropertySections(sections: PropertySection[] ){
             }
         } else {
             // For single-object sections, map as-is
+            if (isNonRenderableEntry(section.fields)) continue;
             const positions = (Array.isArray(section.textPosition) ? section.textPosition : []).sort((a, b) => a.page - b.page);
 
             // If state/fields were persisted from a previous session, honour them.
@@ -382,7 +524,7 @@ function mapPropertySections(sections: PropertySection[] ){
         }
     }
     
-    return { sections: result, itemToParentMap: itemToParent };
+    return { sections: result, itemToParentMap: itemToParent, itemToIndexMap: itemToIndex };
 }
 
 function mergeSectionData(existing: SectionData[], incoming: SectionData[] ){

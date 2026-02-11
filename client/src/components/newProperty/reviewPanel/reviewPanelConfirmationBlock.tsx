@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { AlertCircle, Check } from "lucide-react";
 
 type ReviewPanelConfirmationBlockProps = {
@@ -83,7 +84,7 @@ function ReviewPanelConfirmationBlock({
                         type="button"
                         onClick={onCreate}
                         disabled={!confirmed || isCreating}
-                        className={confirmed ? "bg-emerald-600 w-full p-5 py-6 hover:bg-emerald-700 hover:ring-2 hover:ring-emerald-600/20" : ""}
+                        className={cn(confirmed ? "bg-emerald-600 hover:bg-emerald-700 hover:ring-2 hover:ring-emerald-600/20" : "", " w-full p-5 py-6")}
                     >
                         {isCreating ? "Creating..." : "Create Property"}
                      </Button>

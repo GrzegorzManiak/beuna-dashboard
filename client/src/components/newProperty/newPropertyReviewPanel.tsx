@@ -115,12 +115,6 @@ function collectEntries(sections: PropertySection[], sectionType: string) {
     return result;
 }
 
-function normalizeAddress(street: string, postalCode: string, city: string) {
-    const streetLine = street.trim();
-    const cityLine = [postalCode.trim(), city.trim()].filter(Boolean).join(" ").trim();
-    return [streetLine, cityLine].filter((value) => value.length > 0).join(", ");
-}
-
 function NewPropertyReviewPanel({
     propertyId,
     propertyType,
@@ -224,7 +218,9 @@ function NewPropertyReviewPanel({
         const newItem = {
             id: `new-${Date.now()}`,
             rawText: "",
-            fields: {},
+            fields: {
+                __nonRenderable: true,
+            },
             textPosition: [],
             state: "needs_review",
         } as PropertySectionItem;
@@ -239,7 +235,7 @@ function NewPropertyReviewPanel({
             });
             onSectionsChange(nextSections);
             setErrorMessage(null);
-        } catch (err) {
+        } catch {
             setErrorMessage("Failed to add item to section.");
         }
     }
@@ -274,7 +270,7 @@ function NewPropertyReviewPanel({
                 });
                 onSectionsChange(nextSections);
                 setErrorMessage(null);
-            } catch (err) {
+            } catch {
                 setErrorMessage("Failed to delete item from section.");
             }
 
@@ -287,7 +283,7 @@ function NewPropertyReviewPanel({
             const nextSections = sections.filter((s) => s.id !== parentSection.id);
             onSectionsChange(nextSections);
             setErrorMessage(null);
-        } catch (err) {
+        } catch {
             setErrorMessage("Failed to delete section.");
         }
     }
@@ -517,6 +513,10 @@ function NewPropertyReviewPanel({
                     if (!matchesById && !matchesByIndex) return item;
                     hasMatch = true;
                     const nextFields = { ...(item.fields ?? {}), ...updates };
+                    const hasTextPosition = Array.isArray(item.textPosition) && item.textPosition.length > 0;
+                    if (!hasTextPosition) {
+                        nextFields.__nonRenderable = true;
+                    }
                     return {
                         ...item,
                         fields: nextFields,
@@ -548,6 +548,10 @@ function NewPropertyReviewPanel({
             }
 
             const nextFields = { ...(parentSection.fields ?? {}), ...updates };
+            const hasTextPosition = Array.isArray(parentSection.textPosition) && parentSection.textPosition.length > 0;
+            if (!hasTextPosition) {
+                nextFields.__nonRenderable = true;
+            }
 
             await updateSectionMutation.mutateAsync({
                 propertyId,
@@ -775,19 +779,27 @@ function NewPropertyReviewPanel({
     const handleSaveOwnership = useCallback(async (updates: Record<string, string>) => {
         setIsSavingOwnership(true);
         try {
-            // Find existing MEA declaration section
-            let section = meaEntries[0];
+            const section = meaEntries[0];
 
             // If none exists, we need to find or create the parent section for MEA declarations
             if (!section) {
                 const parentSection = sections.find((s) => s.sectionType === "weg.mea_declaration");
 
                 if (parentSection) {
+                    const nextFields = {
+                        ...parentSection.fields,
+                        totalMea: toNumberValue(updates.totalMea),
+                    } as Record<string, string | number | boolean | null>;
+                    const hasTextPosition = Array.isArray(parentSection.textPosition) && parentSection.textPosition.length > 0;
+                    if (!hasTextPosition) {
+                        nextFields.__nonRenderable = true;
+                    }
+
                     // Update the parent section directly since MEA declarations usually don't have items
                     await updateSectionMutation.mutateAsync({
                         propertyId,
                         sectionId: parentSection.id,
-                        fields: { ...parentSection.fields, totalMea: toNumberValue(updates.totalMea) },
+                        fields: nextFields,
                         state: "needs_review",
                     });
 
@@ -795,7 +807,7 @@ function NewPropertyReviewPanel({
                         if (s.id !== parentSection.id) return s;
                         return {
                             ...s,
-                            fields: { ...s.fields, totalMea: toNumberValue(updates.totalMea) },
+                            fields: nextFields,
                             state: "needs_review",
                         } as PropertySection;
                     });
