@@ -1,6 +1,7 @@
 import type { SectionProcessor } from "./types";
 import { CoreBuildingsProcessor } from "./core-building";
 import { UnitsBlocksProcessor } from "./units-unit-block";
+import { WegAdministrationCombinedProcessor } from "./weg-administration-combined";
 import { WegPropertyManagerProcessor } from "./weg-administration";
 import { WegAccountantProcessor } from "./weg-accountant";
 import { CoreAddressProcessor } from "./core-address";
@@ -22,6 +23,9 @@ const PROCESSORS: SectionProcessor[] = [
     // WEG-specific sections (single objects)
     new WegMeaDeclarationProcessor(),
     new WegSpecialRightsProcessor(),
+    // Combined admin processor must come BEFORE individual ones so a
+    // section with both manager + accountant sub-blocks gets split.
+    new WegAdministrationCombinedProcessor(),
     new WegPropertyManagerProcessor(),
     new WegAccountantProcessor(),
 

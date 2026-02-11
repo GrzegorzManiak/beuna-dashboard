@@ -18,6 +18,7 @@ export class WegPropertyManagerProcessor implements SectionProcessor {
     readonly sectionType = "weg.property_manager" as const;
     readonly description = "Property manager appointment section";
     readonly isArrayBased = false;
+    readonly propertyTypeScope = "WEG" as const;
 
     matches(section: PdfSection): number | null {
         if (section.lines.length < 2) return null;
