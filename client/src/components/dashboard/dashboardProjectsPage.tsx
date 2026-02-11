@@ -61,6 +61,11 @@ function mapRowActionLabel(status: DashboardStatus ){
     return "Continue Onboard";
 }
 
+function mapRowActionClassName(status: DashboardStatus ){
+    if (status === "Onboarded") return "h-8 rounded-full border border-[#b7dfcf] bg-[#edf8f3] px-4 py-5 font-semibold text-[#2f7e62] hover:bg-[#deefe7]";
+    return "h-8 rounded-full border border-[#d9b38f] bg-[#f6eadf] px-4 py-5 font-semibold text-[#7f5a3a] hover:bg-[#efdcc8]";
+}
+
 function computeUnits(propertyNumber: number ){
     return (propertyNumber * 7) % 42 + 8;
 }
@@ -162,19 +167,19 @@ function DashboardProjectsPage( ){
                     </div>
                 </aside>
 
-                <section className="flex-1 p-5 md:p-6 lg:p-8">
-                    <div className="flex flex-col gap-4 border-b border-[#d4ddd8] pb-5 md:flex-row md:items-center md:justify-between">
+                <section className="flex-1 ">
+                    <div className="p-5 md:p-6 lg:p-8 flex flex-col gap-4 border-b border-[#d4ddd8] pb-5 md:flex-row md:items-center md:justify-between bg-muted">
                         <h1 className="text-4xl font-black tracking-tight text-[#1f2f26]">Portfolio</h1>
                         <Button
                             type="button"
                             onClick={handleCreateProjectClick}
-                            className="h-11 rounded-full bg-[#2e9f78] px-6 text-sm font-semibold text-white hover:bg-[#278865]"
+                            className="h-11 rounded-full bg-[#2f7e62] px-6 text-sm font-semibold text-white hover:bg-[#286d55]"
                         >
                             Add Property
                         </Button>
                     </div>
 
-                    <div className="mt-5 rounded-xl border border-[#d4ddd8] bg-white">
+                    <div className="mt-5 rounded-xl border border-[#d4ddd8] bg-white m-5 md:m-6 lg:m-8">
                         <div className="flex flex-col gap-3 border-b border-[#d4ddd8] p-4 md:flex-row md:items-center md:justify-between">
                             <div className="text-sm">
                                 <span className="font-semibold text-[#1f2f26]">Properties</span>
@@ -228,7 +233,7 @@ function DashboardProjectsPage( ){
                                 <Button
                                     type="button"
                                     onClick={handleCreateProjectClick}
-                                    className="mt-3 h-11 rounded-full bg-[#2e9f78] px-6 text-sm font-semibold text-white hover:bg-[#278865]"
+                                    className="mt-3 h-11 rounded-full bg-[#2f7e62] px-6 text-sm font-semibold text-white hover:bg-[#286d55]"
                                 >
                                     Add Property
                                 </Button>
@@ -262,7 +267,7 @@ function DashboardProjectsPage( ){
                                             <Button
                                                 type="button"
                                                 onClick={() => handleOpenProjectClick(property.id)}
-                                                className="h-8 rounded-full border border-emerald-500/50 bg-emerald-100/50  px-4 py-5 font-semibold text-[#2a3b33]  hover:bg-emerald-200/70"
+                                                className={mapRowActionClassName(dashboardStatus)}
                                             >
                                                 {mapRowActionLabel(dashboardStatus)}
                                             </Button>

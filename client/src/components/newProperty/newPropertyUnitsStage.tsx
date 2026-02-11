@@ -8,7 +8,7 @@ import { useCreateSectionMutation } from "@/hooks/useCreateSectionMutation";
 import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
 import { useDeleteSectionMutation } from "@/hooks/useDeleteSectionMutation";
 
-type NewPropertySectionsStageProps = {
+type NewPropertyUnitsStageProps = {
     onNext: () => void;
     onBack: () => void;
     propertyId: string;
@@ -17,14 +17,14 @@ type NewPropertySectionsStageProps = {
     sectionsProcessing: boolean;
 };
 
-function NewPropertySectionsStage({
+function NewPropertyUnitsStage({
     onNext,
     onBack,
     propertyId,
     sections: incomingSections,
     propertyType,
     sectionsProcessing,
-}: NewPropertySectionsStageProps){
+}: NewPropertyUnitsStageProps){
     const [sections, setSections] = useState<SectionData[]>([]);
     const [viewerState, viewerActions] = usePdfViewerState(sections, true);
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
@@ -85,21 +85,12 @@ function NewPropertySectionsStage({
     function handleSectionAdd(newSection: SectionData ){
         setSections((prev) => [...prev, newSection]);
 
-        // Convert client-side SectionPosition ({ page: number[], x, y, w, h, boxes })
-        // into the server-expected Array<{ page, x, y, width, height }> format so that
-        // the stored JSON matches what mapPropertySections expects on reload.
-        const tp = newSection.textPosition;
-        const serverTextPosition: Array<{ page: number; x: number; y: number; width: number; height: number }> =
-            tp.boxes && tp.boxes.length > 0
-                ? tp.boxes.map((b) => ({ page: b.page, x: b.x, y: b.y, width: b.width, height: b.height }))
-                : tp.page.map((p) => ({ page: p, x: tp.x, y: tp.y, width: tp.width, height: tp.height }));
-
         // Persist the new section to the server and swap the temp id for the real one
         createSectionMutation.mutateAsync({
             propertyId,
             headingText: "",
             rawText: newSection.rawText ?? "",
-            textPosition: serverTextPosition,
+            textPosition: newSection.textPosition,
             sectionType: newSection.sectionType ?? "unknown",
             confidence: 0,
             state: newSection.state ?? "identifying",
@@ -115,26 +106,22 @@ function NewPropertySectionsStage({
     }
 
     function handleSectionUpdate(sectionId: string, updates: Partial<SectionData> ){
-        // Resolve temp IDs → real server UUIDs (e.g. classify callback arrives
-        // after the create mutation has already swapped the temp ID).
-        const resolvedId = tempIdToRealIdRef.current.get(sectionId) ?? sectionId;
-
         setSections((prev) =>
-            prev.map((section) => (section.id === resolvedId ? { ...section, ...updates } : section)),
+            prev.map((section) => (section.id === sectionId ? { ...section, ...updates } : section)),
         );
 
         // Persist meaningful state changes to the server (only for real DB UUIDs)
-        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+        const isDbId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sectionId);
         if (isDbId && (updates.state || updates.fields || updates.sectionType || updates.rawText)) {
             updateSectionMutation.mutateAsync({
                 propertyId,
-                sectionId: resolvedId,
+                sectionId,
                 ...(updates.state ? { state: updates.state } : {}),
                 ...(updates.fields ? { fields: updates.fields } : {}),
                 ...(updates.sectionType ? { sectionType: updates.sectionType } : {}),
                 ...(updates.rawText ? { rawText: updates.rawText } : {}),
             }).catch((err) => {
-                console.error(`[updateSection] Failed to persist section ${resolvedId}:`, err);
+                console.error(`[updateSection] Failed to persist section ${sectionId}:`, err);
             });
         }
     }
@@ -288,7 +275,7 @@ function mapPropertySections(sections: PropertySection[] ){
                 // container section type for homogeneous arrays (buildings, units).
                 const itemType = (item.sectionType ?? section.sectionType) as any;
                 
-                const itemPositions = Array.isArray(item.textPosition) ? item.textPosition : [];
+                const itemPositions = item.textPosition || [];
 
                 const itemId = item.id || `${section.id}-item-${i}`;
 
@@ -325,7 +312,7 @@ function mapPropertySections(sections: PropertySection[] ){
             }
         } else {
             // For single-object sections, map as-is
-            const positions = (Array.isArray(section.textPosition) ? section.textPosition : []).sort((a, b) => a.page - b.page);
+            const positions = [...(section.textPosition ?? [])].sort((a, b) => a.page - b.page);
 
             // If state/fields were persisted from a previous session, honour them.
             if (hasPersistedState) {
@@ -339,9 +326,14 @@ function mapPropertySections(sections: PropertySection[] ){
                     fields: (hasPersistedFields ? section.fields : {}) as Record<string, string | number | boolean | null>,
                 });
             } else {
+                // core.address is already collected in the Basic Details step, so
+                // mark it as valid immediately — it should be visible in the viewer
+                // but must not block progression.
                 const state = section.sectionType === "unknown"
                     ? "unknown"
-                    : "processing";
+                    : section.sectionType === "core.address"
+                        ? "valid"
+                        : "processing";
 
                 result.push({
                     id: section.id,
@@ -391,5 +383,5 @@ function mergeSectionData(existing: SectionData[], incoming: SectionData[] ){
 }
 
 export {
-    NewPropertySectionsStage,
+    NewPropertyUnitsStage,
 };

@@ -253,9 +253,12 @@ export function containsMeaDeclaration(text: string): boolean {
 
     if (declarationPattern.test(normalized)) return true;
 
-    // Fallback: look for key MEA indicators together
+    // Fallback: look for key MEA indicators together.
+    // "mea" must appear as a standalone word/acronym (not as a substring of
+    // another word) or as the full form "miteigentumsanteil(e)".  Area
+    // measurements like "2 450 m" / "m²" / "qm" must NOT trigger this.
     const hasEigentum = normalized.includes("eigentum") && normalized.includes("grundst");
-    const hasMea = normalized.includes("miteigentumsanteil") || normalized.includes("mea");
+    const hasMea = normalized.includes("miteigentumsanteil") || /\bmea\b/i.test(normalized);
     const hasZerlegt = normalized.includes("zerlegt") || normalized.includes("geteilt");
     const hasNumber = /\b\d{3,5}\b/.test(text); // MEA count is usually 3-5 digits
 

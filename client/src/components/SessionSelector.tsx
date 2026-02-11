@@ -12,14 +12,16 @@ type SessionSelectorProps = {
     className?: string;
 };
 
+function formatRoleLabel(role: UserSummary["role"]){
+    return `${role.slice(0, 1)}${role.slice(1).toLowerCase()}`;
+}
+
 function SessionSelector({ className }: SessionSelectorProps){
     const { data, isLoading, isError, error } = useUsersQuery();
     const { mutateAsync, isPending } = useCreateSessionMutation();
     const [selectedUserId, setSelectedUserId] = useState<string | null>(getSessionUserId());
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
-    const [statusTone, setStatusTone] = useState<string>("text-gray-500");
-
-    const users = data?.users ?? [];
+    const users = useMemo(() => data?.users ?? [], [data]);
     const selectedUser = useMemo(
         () => users.find((user) => user.id === selectedUserId) ?? null,
         [users, selectedUserId],
@@ -32,12 +34,9 @@ function SessionSelector({ className }: SessionSelectorProps){
         try {
             const session = await mutateAsync(user.id);
             setSessionId(session.sessionId);
-            setStatusMessage(`Session: ${user.name}`);
-            setStatusTone("text-emerald-700");
         } catch (sessionError) {
             const message = sessionError instanceof Error ? sessionError.message : "Failed to create session";
             setStatusMessage(message);
-            setStatusTone("text-red-600");
         }
     }, [mutateAsync]);
 
@@ -69,29 +68,29 @@ function SessionSelector({ className }: SessionSelectorProps){
 
     const selectValue = selectedUser?.id ?? "";
     return (
-        <div className={cn("rounded-lg border border-gray-200 bg-white/90 px-3 py-2 shadow-sm", className)}>
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">Session</div>
+        <div className={cn("rounded-lg border border-gray-200 bg-white/90 px-3 py-2", className)}>
+            <div className="text-[10px] uppercase tracking-wide text-gray-400">Active User</div>
             <div className="mt-1 flex flex-col gap-2">
                 <Select value={selectValue} onValueChange={(value) => {
                     const user = users.find((item) => item.id === value);
                     if (!user) return;
                     void handleSelectUser(user);
                 }}>
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger className="h-9 text-xs">
                         <SelectValue placeholder={isLoading ? "Loading users" : "Select user"} />
                     </SelectTrigger>
                     <SelectContent>
                         {users.map((user) => (
                             <SelectItem key={user.id} value={user.id}>
-                                {user.name} · {user.role.toLowerCase()}
+                                {user.name} ({formatRoleLabel(user.role)})
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 {isLoading && <p className="text-[11px] text-gray-500">Loading users...</p>}
                 {isError && <p className="text-[11px] text-red-600">{error?.message}</p>}
-                {isPending && <p className="text-[11px] text-gray-500">Updating session...</p>}
-                {statusMessage && !isPending && <p className={cn("text-[11px]", statusTone)}>{statusMessage}</p>}
+                {isPending && <p className="text-[11px] text-gray-500">Switching user...</p>}
+                {statusMessage && !isPending && <p className="text-[11px] text-red-600">{statusMessage}</p>}
             </div>
         </div>
     );

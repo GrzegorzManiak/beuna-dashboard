@@ -60,8 +60,8 @@ function PdfViewer({
     return (
         <div className="flex items-start justify-center relative h-full">
             <div className="relative">
-                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-                    <div className="sticky top-0 p-4 z-50 flex justify-end pointer-events-auto">
+                <div className="absolute top-0 right-0 h-full pointer-events-none">
+                    <div className="sticky top-1 p-4 z-50 flex justify-end pointer-events-auto">
                         <Button
                             type="button"
                             onClick={() => setDragMode?.(!dragMode)}
@@ -123,11 +123,17 @@ function PdfViewer({
 
                             const headingText = result.heading || result.text.slice(0, 100);
                             try {
-                                const classification = await classifyMutation.mutateAsync({
-                                    propertyId,
-                                    text: result.text,
-                                    heading: headingText,
-                                });
+                                const timeout = new Promise<never>((_, reject) =>
+                                    setTimeout(() => reject(new Error("Classification timed out")), 10_000),
+                                );
+                                const classification = await Promise.race([
+                                    classifyMutation.mutateAsync({
+                                        propertyId,
+                                        text: result.text,
+                                        heading: headingText,
+                                    }),
+                                    timeout,
+                                ]);
                                 onSectionUpdate?.(normalizedSection.id, {
                                     sectionType: classification.sectionType as any,
                                     rawText: result.text,

@@ -167,8 +167,18 @@ function PdfViewerRenderer({
                         const pageCurrentlySplit = activeSplit?.pageNumber === pageNumber;
                         const metrics = pageMetrics[pageNumber];
                         const pageHeight = metrics ? metrics.height : 0;
+
+                        // Build a key that changes when the active section's
+                        // data changes so the toolbar always reflects the
+                        // latest extraction state.
+                        const activeData = activeSectionId
+                            ? sectionData.find((s) => s.id === activeSectionId)
+                            : undefined;
+                        const toolbarKey = `${activeSectionId}-${activeData?.state}-${activeData?.sectionType}-${Object.keys(activeData?.fields ?? {}).length}`;
+
                         const splitContent = pageCurrentlySplit ? (
                             <PdfViewerSplitToolbar
+                                key={toolbarKey}
                                 closeSplit={closeSplit}
                                 splitToolbarRef={onSplitToolbarRefChange}
                                 sections={sectionData}

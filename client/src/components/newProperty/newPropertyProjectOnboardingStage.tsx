@@ -49,6 +49,7 @@ function NewPropertyProjectOnboardingStage( ){
     const [step, setStep] = useState<number>(initialStep);
     const didSyncUrlStage = useRef(false);
     const pendingStageRef = useRef<number | null>(initialStep > STEP_PROCESSING ? initialStep : null);
+    const prevPropertyIdRef = useRef(propertyId);
     const [selectedType, setSelectedType] = useState<PropertyTypeSelection | null>(null);
     const [propertyName, setPropertyName] = useState<string>("");
     const [street, setStreet] = useState<string>("");
@@ -136,6 +137,12 @@ function NewPropertyProjectOnboardingStage( ){
     }
 
     useEffect(() => {
+        // Skip the reset on initial mount — only reset when switching to
+        // a different property.  Without this guard, the effect fires on
+        // mount and wipes pendingStageRef, breaking deep-link restoration.
+        if (prevPropertyIdRef.current === propertyId) return;
+        prevPropertyIdRef.current = propertyId;
+
         setHasHydrated(false);
         setSections([]);
         setSectionsReady(false);
