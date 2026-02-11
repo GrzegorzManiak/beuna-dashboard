@@ -25,7 +25,7 @@ function normalizeSectionBoxes(
 
     // Single page - return as-is
     if (pages.length <= 1) return section;
-    
+
 
     // Already has boxes - normalize them
     if (textPosition.boxes && textPosition.boxes.length > 0) {
@@ -68,14 +68,15 @@ function normalizeSectionBoxes(
                     height: pageHeight - boxY,
                 });
             } else if (page === lastPage) {
-                // Last page: y=0, use the vacuum-sealed height
+                // Last page: y=0, height extends to the bottom of the text (box.y + box.height)
                 const box = existingBox;
+                const textBottom = box ? (box.y + box.height) : pageHeight;
                 normalizedBoxes.push({
                     page,
                     x: minX,
                     y: 0,
                     width: maxWidth,
-                    height: box?.height ?? pageHeight,
+                    height: textBottom,
                 });
             } else {
                 // Middle pages: full height from top to bottom
