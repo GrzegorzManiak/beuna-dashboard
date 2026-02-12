@@ -6,6 +6,7 @@ type AuthPluginOpts = {
     allowDevFallback?: boolean;
     devFallbackUserEmail?: string;
 };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Main auth plugin that checks for session ID in headers and 
 // validates it against the database.
@@ -13,17 +14,30 @@ async function handleSessionAuth(
     app: FastifyInstance,
     req: FastifyRequest,
     reply: FastifyReply,
-    sessionId: string
+    sessionId: string,
+    strict: boolean
 ): Promise<boolean> {
+    if (!UUID_RE.test(sessionId)) {
+        if (strict) {
+            reply.code(401).send({ error: "Invalid session" });
+            reply.hijack();
+            return true;
+        }
+        return false;
+    }
+
     const session = await app.db.session.findUnique({
         where: { id: sessionId },
         include: { user: true },
     });
 
     if (!session) {
-        reply.code(401).send({ error: "Invalid session" });
-        reply.hijack();
-        return true;
+        if (strict) {
+            reply.code(401).send({ error: "Invalid session" });
+            reply.hijack();
+            return true;
+        }
+        return false;
     }
 
     void app.db.session.update({
@@ -121,7 +135,7 @@ async function authPlugin(app: FastifyInstance, opts: AuthPluginOpts): Promise<v
         const requiresAuth = req.routeOptions.config?.authRequired === true;
 
         if (sessionId) {
-            const handled = await handleSessionAuth(app, req, reply, sessionId);
+            const handled = await handleSessionAuth(app, req, reply, sessionId, requiresAuth);
             if (handled) return;
         }
 

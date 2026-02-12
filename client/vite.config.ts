@@ -15,6 +15,9 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   server: {
+    host: true,
+    cors: true,
+    allowedHosts: true,
     proxy: {
       "/api": {
         target: API_TARGET,
@@ -23,5 +26,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
+  },
+  preview: {
+    host: true,
+    cors: true,
+    allowedHosts: true,
   },
 })

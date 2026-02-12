@@ -61,6 +61,19 @@ describe("users routes", () => {
     expect(Boolean(match)).toBe(true);
   });
 
+  it("GET /users ignores invalid session header", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/users",
+      headers: { "x-session-id": "not-a-real-session-id" },
+    });
+
+    expect(res.statusCode).toBe(200);
+
+    const body = res.json() as UsersListResponse;
+    expect(Array.isArray(body.users)).toBe(true);
+  });
+
   it("GET /users/:userId returns user", async () => {
     const res = await app.inject({
       method: "GET",
