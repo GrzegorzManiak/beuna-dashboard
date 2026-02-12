@@ -5,18 +5,40 @@ import { getResolvedPDFJS } from "unpdf";
 import type { PdfTextItem } from "./types";
 
 const require = createRequire(import.meta.url);
+let loggedMissingPdfjsDist = false;
 
-const getStandardFontDataUrl = () => {
-    const pkgJsonPath = require.resolve("pdfjs-dist/package.json");
-    const pdfjsDir = path.dirname(pkgJsonPath);
-    return path.join(pdfjsDir, "standard_fonts/");
+const getStandardFontDataUrl = (): string | undefined => {
+    const resolutionAttempts = [
+        () => require.resolve("pdfjs-dist/package.json"),
+        () => require.resolve("pdfjs-dist/package.json", { paths: [process.cwd()] }),
+        () => require.resolve("pdfjs-dist/package.json", { paths: [path.resolve(process.cwd(), "client")] }),
+        () => require.resolve("pdfjs-dist/package.json", { paths: [path.resolve(process.cwd(), "server")] }),
+    ];
+
+    for (const attempt of resolutionAttempts) {
+        try {
+            const pkgJsonPath = attempt();
+            const pdfjsDir = path.dirname(pkgJsonPath);
+            return path.join(pdfjsDir, "standard_fonts/");
+        } catch {
+            continue;
+        }
+    }
+
+    if (!loggedMissingPdfjsDist) {
+        loggedMissingPdfjsDist = true;
+        console.warn("[pdf-extraction] pdfjs-dist not found; continuing without standardFontDataUrl.");
+    }
+
+    return undefined;
 };
 
 const extractTextItemsFromData = async (data: Uint8Array): Promise<PdfTextItem[]> => {
     const { getDocument } = await getResolvedPDFJS();
+    const standardFontDataUrl = getStandardFontDataUrl();
     const pdf = await getDocument({
         data,
-        standardFontDataUrl: getStandardFontDataUrl(),
+        ...(standardFontDataUrl ? { standardFontDataUrl } : {}),
     }).promise;
 
     const items: PdfTextItem[] = [];
