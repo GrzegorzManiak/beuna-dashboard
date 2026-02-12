@@ -62,9 +62,7 @@ const isBasicDetailsEmpty = (extract: BasicDetailsExtract | null): boolean => {
     return extract.fields.every((field) => {
         if (!field || typeof field !== "object") return true;
         const value = typeof field.value === "string" ? field.value.trim() : null;
-        const sourceText = typeof field.sourceText === "string" ? field.sourceText.trim() : null;
-        const index = typeof field.sectionIndex === "number" ? field.sectionIndex : null;
-        return !value && !sourceText && index === null;
+        return !value;
     });
 };
 
@@ -354,27 +352,6 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     postalCode && city && `${postalCode} ${city}`,
                 ].filter(Boolean).join('\n');
 
-                // Gather ALL address field positions from basic details
-                const addressPositions = finalBasicDetails.fields
-                    .filter(f => ADDRESS_KEYS.includes(f.key) && f.position)
-                    .map(f => f.position!);
-
-                // If no field-level positions, fall back to the section's
-                // textPosition where the address was extracted from.
-                let textPosition = addressPositions;
-                if (!textPosition.length) {
-                    const addressSectionIndex = finalBasicDetails.fields.find(
-                        f => ADDRESS_KEYS.includes(f.key) && f.sectionIndex !== null
-                    )?.sectionIndex;
-                    if (addressSectionIndex !== null && addressSectionIndex !== undefined) {
-                        const sourceSection = preProcessedSections[addressSectionIndex] ?? sectionsResult.sections[addressSectionIndex];
-                        if (sourceSection?.textPosition?.length) {
-                            textPosition = sourceSection.textPosition;
-                        }
-                    }
-                }
-
-
                 syntheticSections.push({
                     id: crypto.randomUUID(),
                     sectionType: 'core.address',
@@ -382,7 +359,7 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
                     headingText: 'Anschrift',
                     rawText: addressText,
                     renderable: true,
-                    textPosition,
+                    textPosition: [],
                     items: [],
                     _sectionIndex: -2, // Insert after property overview
                 } as ProcessedSection & { _sectionIndex: number });

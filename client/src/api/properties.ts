@@ -35,15 +35,6 @@ type PropertySummary = {
 type BasicDetailsField = {
     key: string;
     value: string | null;
-    sourceText: string | null;
-    sectionIndex: number | null;
-    position: {
-        page: number;
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-    } | null;
 };
 
 type BasicDetailsExtract = {
