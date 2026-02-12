@@ -436,7 +436,9 @@ function mapPropertySections(sections: PropertySection[] ){
     const itemToIndex = new Map<string, number>();
 
     for (const section of sections) {
-        const isArrayContainer = section.items && Array.isArray(section.items) && section.items.length > 0;
+        const hasItems = Array.isArray(section.items) && section.items.length > 0;
+        const isArrayContainer = hasItems;
+        if (section.renderable === false && !hasItems) continue;
         
         // If the section already has a persisted state (from a previous extraction),
         // use it directly to avoid re-running expensive LLM extraction.

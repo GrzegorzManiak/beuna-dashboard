@@ -494,7 +494,13 @@ return (
                                     sections={sections}
                                     propertyType={resolvedPropertyType}
                                     sectionsProcessing={sectionsProcessing}
-                                    onSectionsChange={setSections}
+                                    onSectionsChange={(nextSections) => {
+                                        setSections(
+                                            nextSections.filter(
+                                                (section) => section.renderable !== false || (section.items && section.items.length > 0),
+                                            ),
+                                        );
+                                    }}
                                     onNext={async () => {
                                         // Re-fetch sections from the server so the review
                                         // panel sees the latest persisted data (field
@@ -535,7 +541,13 @@ return (
                                     city={city}
                                     sections={sections}
                                     onBack={() => setStep(STEP_SECTIONS)}
-                                    onSectionsChange={setSections}
+                                    onSectionsChange={(nextSections) => {
+                                        setSections(
+                                            nextSections.filter(
+                                                (section) => section.renderable !== false || (section.items && section.items.length > 0),
+                                            ),
+                                        );
+                                    }}
                                     onPropertyDetailsChange={(next) => {
                                         setPropertyName(next.name);
                                         setStreet(next.street);
