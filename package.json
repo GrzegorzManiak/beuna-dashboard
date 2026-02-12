@@ -6,20 +6,16 @@
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"bun run server:dev\" \"bun run client:dev\"",
     "prod": "concurrently -n server,client -c blue,green \"bun run server:prod\" \"bun run client:preview -- --host 0.0.0.0 --port ${CLIENT_PORT:-4173}\"",
-
     "server:dev": "dotenv -e .env.development -- bun run --cwd ./server dev",
     "server:prod": "dotenv -e .env.production -- bun run --cwd ./server start",
-
     "client:dev": "bun run --cwd ./client dev",
     "client:build": "bun run --cwd ./client build",
     "client:preview": "bun run --cwd ./client preview",
-
     "prisma:dev:init": "dotenv -e .env.development -- bun run --cwd ./server prisma:init",
     "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:seed",
     "prisma:dev:generate": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
     "prisma:dev:migrate": "dotenv -e .env.development -- bun run --cwd ./server prisma:migrate",
     "prisma:dev:reset": "dotenv -e .env.development -- bun run --cwd ./server prisma:reset",
-
     "prisma:prod:generate": "dotenv -e .env.production -- bun run --cwd ./server prisma:generate",
     "prisma:prod:migrate": "dotenv -e .env.production -- bunx prisma migrate deploy --schema ./server/prisma/schema.prisma",
     "prisma:prod:seed": "dotenv -e .env.production -- bun run --cwd ./server prisma:seed",
@@ -40,9 +36,10 @@
     "unpdf": "^1.3.0"
   },
   "devDependencies": {
-    "@types/ws": "^8.18.0",
     "@types/node": "^25.2.1",
+    "@types/ws": "^8.18.0",
     "dotenv-cli": "^11.0.0",
+    "pm2": "^6.0.14",
     "prisma": "^6.14.0",
     "vitest": "^4.0.18"
   }

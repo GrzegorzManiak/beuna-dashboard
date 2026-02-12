@@ -50,12 +50,27 @@ type StartSectionTaskOptions = {
 const PDF_CACHE_TTL_MS = 15 * 60 * 1000;
 const DEFAULT_PROPERTY_NAME = "Unnamed property";
 const DEFAULT_DOCUMENT_NAME = "property.pdf";
+const NUL_CHAR_RE = /\u0000/g;
 
 const documentCache = createExpiringCache<DocumentCacheEntry>(PDF_CACHE_TTL_MS);
 const sectionCache = createExpiringCache<ExtractSectionsResult>(PDF_CACHE_TTL_MS);
 const sectionTasks = new Map<string, Promise<void>>();
 
 const ARRAY_BASED_TYPES = getArrayBasedSectionTypes();
+
+const sanitizeText = (value: string): string => {
+    return value.replace(NUL_CHAR_RE, "");
+};
+
+const sanitizeJsonStrings = (value: unknown): unknown => {
+    if (typeof value === "string") return sanitizeText(value);
+    if (Array.isArray(value)) return value.map(sanitizeJsonStrings);
+    if (!value || typeof value !== "object") return value;
+
+    return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, sanitizeJsonStrings(entry)]),
+    );
+};
 
 const isBasicDetailsEmpty = (extract: BasicDetailsExtract | null): boolean => {
     if (!extract || !Array.isArray(extract.fields)) return true;
@@ -186,228 +201,231 @@ const startSectionTask = (propertyId: string, options: StartSectionTaskOptions =
     }
 
     const task = (async () => {
+        let stage = "initializing";
         const awaitBasicDetails = options.awaitBasicDetails ?? true;
-        
-        // Fetch property document
-        const property = await prisma.property.findUnique({
-            where: { id: propertyId },
-            select: {
-                documentData: true,
-                basicDetailsExtract: true,
-                managementType: true,
-            },
-        });
+        try {
+            stage = "fetch_property";
+            const property = await prisma.property.findUnique({
+                where: { id: propertyId },
+                select: {
+                    documentData: true,
+                    basicDetailsExtract: true,
+                    managementType: true,
+                },
+            });
 
-        if (!property?.documentData) {
-            throw new Error("Property document not found");
-        }
+            if (!property?.documentData) {
+                throw new Error("Property document not found");
+            }
 
-        const documentBuffer = Buffer.from(property.documentData);
+            const documentBuffer = Buffer.from(property.documentData);
 
-        // Extract sections from PDF
-        const sectionsResult = await getCachedSectionsResult(propertyId, documentBuffer);
+            stage = "extract_sections";
+            const sectionsResult = await getCachedSectionsResult(propertyId, documentBuffer);
 
-        // Pre-process sections to split out MEA declarations
-        const preProcessedSections = splitMeaDeclarationsFromSections(sectionsResult.sections);
-        
-        // Check if sections already exist
-        const existingSections = await getStoredSections(propertyId);
-        const needsSections = existingSections.length === 0;
+            const preProcessedSections = splitMeaDeclarationsFromSections(sectionsResult.sections);
 
-        // Classify sections using new processor system (on pre-processed sections)
-        const managementType = (property.managementType ?? "UNKNOWN") as "WEG" | "MV" | "UNKNOWN";
-        const classifications = await classifySections(preProcessedSections, 10, { managementType });
-        
-        // Extract basic details if needed
-        const basicDetailsExtract = property.basicDetailsExtract as BasicDetailsExtract | null;
-        const shouldExtractBasicDetails = isBasicDetailsEmpty(basicDetailsExtract);
+            stage = "load_stored_sections";
+            const existingSections = await getStoredSections(propertyId);
+            const needsSections = existingSections.length === 0;
 
-        const basicDetailsTask = shouldExtractBasicDetails
-            ? (async () => {
-                const basicDetails = await extractBasicDetails(sectionsResult.sections);
+            stage = "classify_sections";
+            const managementType = (property.managementType ?? "UNKNOWN") as "WEG" | "MV" | "UNKNOWN";
+            const classifications = await classifySections(preProcessedSections, 10, { managementType });
 
-                await prisma.property.update({
-                    where: { id: propertyId },
-                    data: {
-                        basicDetailsExtract: basicDetails.extract,
-                        basicDetailsExtractedAt: new Date(),
-                    },
+            const basicDetailsExtract = property.basicDetailsExtract as BasicDetailsExtract | null;
+            const shouldExtractBasicDetails = isBasicDetailsEmpty(basicDetailsExtract);
+
+            const basicDetailsTask = shouldExtractBasicDetails
+                ? (async () => {
+                    stage = "extract_basic_details";
+                    const basicDetails = await extractBasicDetails(sectionsResult.sections);
+
+                    stage = "persist_basic_details";
+                    await prisma.property.update({
+                        where: { id: propertyId },
+                        data: {
+                            basicDetailsExtract: basicDetails.extract,
+                            basicDetailsExtractedAt: new Date(),
+                        },
+                    });
+                    return basicDetails.extract;
+                })()
+                : null;
+
+            if (!needsSections) {
+                if (basicDetailsTask && awaitBasicDetails) {
+                    const extract = await basicDetailsTask;
+                    options.onBasicDetailsUpdated?.(extract ?? null);
+                } else if (basicDetailsTask) {
+                    basicDetailsTask
+                        .then((extract) => options.onBasicDetailsUpdated?.(extract ?? null))
+                        .catch(() => null);
+                }
+                return;
+            }
+
+            let finalBasicDetails: BasicDetailsExtract | null = basicDetailsExtract;
+            if (basicDetailsTask) {
+                finalBasicDetails = await basicDetailsTask;
+                if (finalBasicDetails) {
+                    options.onBasicDetailsUpdated?.(finalBasicDetails);
+                }
+            }
+
+            stage = "process_sections";
+            const processedSections: ProcessedSection[] = [];
+            for (let i = 0; i < classifications.length; i++) {
+                const classification = classifications[i];
+                if (!classification) continue;
+
+                const sectionIndex = preProcessedSections.findIndex(
+                    (s) => s.id === classification.sectionId
+                );
+                const rawSection = preProcessedSections[sectionIndex];
+                if (!rawSection) {
+                    continue;
+                }
+
+                let processed: ProcessedSection;
+                try {
+                    processed = await classification.processor.process(rawSection);
+                } catch (error) {
+                    console.error(
+                        `[section-task] Processor ${classification.processor.sectionType} failed for section ${classification.sectionId}:`,
+                        error,
+                    );
+                    processed = {
+                        rawText: rawSection.rawText.trim(),
+                        headingText: rawSection.heading.text.trim().slice(0, 120) || "Unknown section",
+                        sectionType: "unknown",
+                        confidence: 0.1,
+                        renderable: false,
+                        textPosition: rawSection.textPosition,
+                    };
+                }
+
+                const processedWithIndex = {
+                    ...processed,
+                    id: crypto.randomUUID(),
+                    _sectionIndex: sectionIndex,
+                } as ProcessedSection & { _sectionIndex: number };
+
+                processedSections.push(processedWithIndex);
+
+                if (options.onSectionProcessed) {
+                    options.onSectionProcessed(processedWithIndex, i, classifications.length);
+                }
+            }
+
+            const foundSectionTypes = new Set(processedSections.map(s => s.sectionType));
+            const syntheticSections: ProcessedSection[] = [];
+
+            if (!foundSectionTypes.has('core.property_overview') && finalBasicDetails) {
+                const hasBasicInfo = finalBasicDetails.fields.some(f =>
+                    f.key === 'propertyName' && f.value
+                ) || finalBasicDetails.fields.some(f =>
+                    f.key === 'propertyId' && f.value
+                );
+
+                if (hasBasicInfo) {
+                    const propertyName = finalBasicDetails.fields.find(f => f.key === 'propertyName')?.value;
+                    const propertyIdValue = finalBasicDetails.fields.find(f => f.key === 'propertyId')?.value;
+                    const managementType = finalBasicDetails.fields.find(f => f.key === 'managementTypeHint')?.value;
+
+                    const overviewText = [
+                        propertyName && `Objektname: ${propertyName}`,
+                        propertyIdValue && `Objektnummer: ${propertyIdValue}`,
+                        managementType && `Verwaltungsform: ${managementType}`,
+                    ].filter(Boolean).join('\n');
+
+                    syntheticSections.push({
+                        id: crypto.randomUUID(),
+                        sectionType: 'core.property_overview',
+                        confidence: 0.8,
+                        headingText: 'Eigentumsverhältnisse',
+                        rawText: overviewText,
+                        renderable: true,
+                        textPosition: [],
+                        items: [],
+                        _sectionIndex: -1,
+                    } as ProcessedSection & { _sectionIndex: number });
+                }
+            }
+
+            if (!foundSectionTypes.has('core.address') && finalBasicDetails) {
+                const ADDRESS_KEYS = ['street', 'houseNumber', 'postalCode', 'city'];
+                const hasAddress = finalBasicDetails.fields.some(f =>
+                    ADDRESS_KEYS.includes(f.key) && f.value
+                );
+
+                if (hasAddress) {
+                    const street = finalBasicDetails.fields.find(f => f.key === 'street')?.value;
+                    const houseNumber = finalBasicDetails.fields.find(f => f.key === 'houseNumber')?.value;
+                    const postalCode = finalBasicDetails.fields.find(f => f.key === 'postalCode')?.value;
+                    const city = finalBasicDetails.fields.find(f => f.key === 'city')?.value;
+
+                    const addressText = [
+                        'Anschrift:',
+                        street && houseNumber && `${street} ${houseNumber}`,
+                        postalCode && city && `${postalCode} ${city}`,
+                    ].filter(Boolean).join('\n');
+
+                    syntheticSections.push({
+                        id: crypto.randomUUID(),
+                        sectionType: 'core.address',
+                        confidence: 0.8,
+                        headingText: 'Anschrift',
+                        rawText: addressText,
+                        renderable: true,
+                        textPosition: [],
+                        items: [],
+                        _sectionIndex: -2,
+                    } as ProcessedSection & { _sectionIndex: number });
+                }
+            }
+
+            const allProcessedSections = [...syntheticSections, ...processedSections];
+
+            stage = "persist_sections";
+            const rows = allProcessedSections.map((processed, index) => {
+                const sectionIndex = (processed as any)._sectionIndex ?? index;
+                const items = processed.items || null;
+                return {
+                    id: processed.id ?? crypto.randomUUID(),
+                    propertyId,
+                    sectionIndex,
+                    headingText: sanitizeText(processed.headingText),
+                    rawText: sanitizeText(processed.rawText),
+                    textPosition: sanitizeJsonStrings(processed.textPosition),
+                    sectionType: processed.sectionType,
+                    confidence: processed.confidence,
+                    renderable: processed.renderable !== false,
+                    items: items === null ? null : sanitizeJsonStrings(items),
+                };
+            });
+
+            if (rows.length) {
+                await prisma.propertySection.createMany({
+                    data: rows,
+                    skipDuplicates: true,
                 });
-                return basicDetails.extract;
-            })()
-            : null;
+            }
 
-        if (!needsSections) {
-            // Sections already exist in the DB — nothing to do.
-            // Basic details may still need extracting if they were missed previously.
             if (basicDetailsTask && awaitBasicDetails) {
                 const extract = await basicDetailsTask;
                 options.onBasicDetailsUpdated?.(extract ?? null);
             } else if (basicDetailsTask) {
                 basicDetailsTask
-                    .then((extract) => options.onBasicDetailsUpdated?.(extract ?? null))
+                    .then((extract) => {
+                        options.onBasicDetailsUpdated?.(extract ?? null);
+                    })
                     .catch(() => null);
             }
-            return;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            throw new Error(`[section-task:${stage}] ${message}`);
         }
-
-        // For new extractions, await basic details so we can create synthetic sections
-        let finalBasicDetails: BasicDetailsExtract | null = basicDetailsExtract;
-        if (basicDetailsTask) {
-            finalBasicDetails = await basicDetailsTask;
-            if (finalBasicDetails) {
-                options.onBasicDetailsUpdated?.(finalBasicDetails);
-            }
-        }
-
-        // Process each section through its matched processor
-        // This will segment array-based sections (buildings, units) into items
-        const processedSections: ProcessedSection[] = [];
-        for (let i = 0; i < classifications.length; i++) {
-            const classification = classifications[i];
-            if (!classification) continue;
-
-
-            const sectionIndex = preProcessedSections.findIndex(
-                (s) => s.id === classification.sectionId
-            );
-            const rawSection = preProcessedSections[sectionIndex];
-            if (!rawSection) {
-                continue;
-            }
-
-            // Process the section (this may segment it into items for array-based types)
-            const processed = await classification.processor.process(rawSection);
-
-            const processedWithIndex = {
-                ...processed,
-                id: crypto.randomUUID(),
-                // Preserve the section index for ordering
-                _sectionIndex: sectionIndex,
-            } as ProcessedSection & { _sectionIndex: number };
-
-            processedSections.push(processedWithIndex);
-
-            // Stream this section to client immediately
-            if (options.onSectionProcessed) {
-                options.onSectionProcessed(processedWithIndex, i, classifications.length);
-            }
-        }
-
-        // Create synthetic sections for basic details that weren't found in the document
-        // These will be added before processing completes
-        const foundSectionTypes = new Set(processedSections.map(s => s.sectionType));
-        const syntheticSections: ProcessedSection[] = [];
-
-        // Check if we should create a property overview section
-        if (!foundSectionTypes.has('core.property_overview') && finalBasicDetails) {
-            // Check if we have basic details that would constitute a property overview
-            const hasBasicInfo = finalBasicDetails.fields.some(f =>
-                f.key === 'propertyName' && f.value
-            ) || finalBasicDetails.fields.some(f =>
-                f.key === 'propertyId' && f.value
-            );
-
-            if (hasBasicInfo) {
-                const propertyName = finalBasicDetails.fields.find(f => f.key === 'propertyName')?.value;
-                const propertyIdValue = finalBasicDetails.fields.find(f => f.key === 'propertyId')?.value;
-                const managementType = finalBasicDetails.fields.find(f => f.key === 'managementTypeHint')?.value;
-
-                const overviewText = [
-                    propertyName && `Objektname: ${propertyName}`,
-                    propertyIdValue && `Objektnummer: ${propertyIdValue}`,
-                    managementType && `Verwaltungsform: ${managementType}`,
-                ].filter(Boolean).join('\n');
-
-                syntheticSections.push({
-                    id: crypto.randomUUID(),
-                    sectionType: 'core.property_overview',
-                    confidence: 0.8,
-                    headingText: 'Eigentumsverhältnisse',
-                    rawText: overviewText,
-                    renderable: true,
-                    textPosition: [],
-                    items: [],
-                    _sectionIndex: -1, // Insert at the beginning
-                } as ProcessedSection & { _sectionIndex: number });
-            }
-        }
-
-        // Check if we should create an address section
-        if (!foundSectionTypes.has('core.address') && finalBasicDetails) {
-            const ADDRESS_KEYS = ['street', 'houseNumber', 'postalCode', 'city'];
-            const hasAddress = finalBasicDetails.fields.some(f =>
-                ADDRESS_KEYS.includes(f.key) && f.value
-            );
-
-            if (hasAddress) {
-                const street = finalBasicDetails.fields.find(f => f.key === 'street')?.value;
-                const houseNumber = finalBasicDetails.fields.find(f => f.key === 'houseNumber')?.value;
-                const postalCode = finalBasicDetails.fields.find(f => f.key === 'postalCode')?.value;
-                const city = finalBasicDetails.fields.find(f => f.key === 'city')?.value;
-
-                const addressText = [
-                    'Anschrift:',
-                    street && houseNumber && `${street} ${houseNumber}`,
-                    postalCode && city && `${postalCode} ${city}`,
-                ].filter(Boolean).join('\n');
-
-                syntheticSections.push({
-                    id: crypto.randomUUID(),
-                    sectionType: 'core.address',
-                    confidence: 0.8,
-                    headingText: 'Anschrift',
-                    rawText: addressText,
-                    renderable: true,
-                    textPosition: [],
-                    items: [],
-                    _sectionIndex: -2, // Insert after property overview
-                } as ProcessedSection & { _sectionIndex: number });
-            }
-        }
-
-        // Add synthetic sections to processed sections
-        const allProcessedSections = [...syntheticSections, ...processedSections];
-
-        // Store processed sections in database
-        const rows = allProcessedSections.map((processed, index) => {
-            const sectionIndex = (processed as any)._sectionIndex ?? index;
-            const items = processed.items || null;
-            return {
-                id: processed.id ?? crypto.randomUUID(),
-                propertyId,
-                sectionIndex,
-                headingText: processed.headingText,
-                rawText: processed.rawText,
-                textPosition: processed.textPosition,
-                sectionType: processed.sectionType,
-                confidence: processed.confidence,
-                renderable: processed.renderable !== false,
-                items: items === null ? null : JSON.parse(JSON.stringify(items)),
-            };
-        });
-
-        if (rows.length) {
-            await prisma.propertySection.createMany({
-                data: rows,
-                skipDuplicates: true,
-            });
-        }
-        
-        if (basicDetailsTask && awaitBasicDetails) {
-            const extract = await basicDetailsTask;
-            options.onBasicDetailsUpdated?.(extract ?? null);
-        } else if (basicDetailsTask) {
-            // Even though we don't await, we should still get the result
-            basicDetailsTask
-                .then((extract) => {
-                    options.onBasicDetailsUpdated?.(extract ?? null);
-                })
-                .catch((err) => {
-                });
-        } else {
-        }
-        
     })().finally(() => {
         sectionTasks.delete(propertyId);
     });

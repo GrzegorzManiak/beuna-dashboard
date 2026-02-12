@@ -187,7 +187,11 @@ async function getPropertySectionsStreamHandler(
             },
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : "Section processing failed.";
+        const message = error instanceof Error ? error.message : `Section processing failed: ${String(error)}`;
+        req.log.error(
+            { err: error, propertyId, sessionId, message },
+            "Property section stream task failed",
+        );
         sendSocketPayload(socket, { error: message });
         socket.close();
         return;
