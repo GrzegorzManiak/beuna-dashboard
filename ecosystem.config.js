@@ -1,34 +1,31 @@
-/**
- * PM2 ecosystem configuration to run and auto-restart both
- * server and client in production. PM2 will restart apps on crash
- * and provides a restart delay to avoid rapid crash loops.
- *
- * Usage:
- *  - Install pm2: `bun add -d pm2` (done by the setup script below)
- *  - Start: `pm2 start ecosystem.config.js --env production`
- *  - Stop: `pm2 stop ecosystem.config.js`
- */
-
 module.exports = {
   apps: [
     {
       name: 'beuna-server',
-      // Use bun to start the server via package.json script so env is applied
+      cwd: __dirname,
       script: 'bun',
-      args: 'run --cwd server start',
+      args: 'run server:prod',
       autorestart: true,
+      min_uptime: '10s',
+      max_restarts: 100,
       restart_delay: 5000,
+      exp_backoff_restart_delay: 200,
+      kill_timeout: 5000,
       env: {
         NODE_ENV: 'production',
       },
     },
     {
       name: 'beuna-client',
-      // Serve built client via vite preview (or the static server you prefer)
+      cwd: __dirname,
       script: 'bun',
-      args: 'run --cwd client preview',
+      args: 'run client:preview -- --host 0.0.0.0 --port 80',
       autorestart: true,
+      min_uptime: '10s',
+      max_restarts: 100,
       restart_delay: 5000,
+      exp_backoff_restart_delay: 200,
+      kill_timeout: 5000,
       env: {
         NODE_ENV: 'production',
       },

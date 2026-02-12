@@ -1,10 +1,47 @@
-bun i concurrently unset NODE_ENV bun install --cwd ./client
+# Buena Dashboard
 
-# immediate (until reboot)
-sudo sysctl -w net.ipv4.ip_unprivileged_port_start=0
+Production URL: `https://buena.grzegorz.ie/`
 
-# persist across reboots
-echo "net.ipv4.ip_unprivileged_port_start=0" | sudo tee /etc/sysctl.d/99-unprivileged-ports.conf sudo sysctl --system
+## Prerequisites
 
+- Bun installed
+- PostgreSQL available
+- OpenRouter environment variables configured
 
-buena.grzegorz.ie
+Required env variables:
+
+- `PORT`
+- `DATABASE_URL`
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL`
+
+Optional env variable:
+
+- `OPENROUTER_BASE_URL` (defaults to OpenRouter public API)
+
+## Main scripts
+
+These are the two primary scripts for local and deployed runtime:
+
+- `bun run dev`
+- `bun run prod`
+
+## Crash-resilient runtime
+
+`prod` now auto-restarts crashed processes:
+
+- infinite restart attempts
+- 5 second restart delay
+
+For stronger process supervision, use PM2:
+
+- `bun run prod:pm2:start`
+- `bun run prod:pm2:restart`
+- `bun run prod:pm2:stop`
+- `bun run prod:pm2:logs`
+
+## Useful commands
+
+- Build client: `bun run client:build`
+- Dev DB init: `bun run prisma:dev:init`
+- Prod DB init: `bun run prisma:prod:init`
