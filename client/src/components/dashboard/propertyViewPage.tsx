@@ -79,9 +79,9 @@ const UNIT_TYPE_LABELS: Record<string, string> = {
 
 const RIGHT_TYPE_LABELS: Record<string, string> = {
     terrace: "Terrace",
-    roof_terrace: "Roof terrace",
+    roofTerrace: "Roof terrace",
     garden: "Garden",
-    parking_access: "Parking access",
+    parkingAccess: "Parking access",
     mixed: "Mixed",
     other: "Other",
 };
@@ -96,7 +96,7 @@ function PropertyViewPage() {
     const { data: sectionsData } = usePropertySectionsQuery(propertyId, Boolean(sessionId));
 
     const property = data?.property;
-    const sections = sectionsData?.sections ?? [];
+    const sections = useMemo(() => sectionsData?.sections ?? [], [sectionsData]);
 
     useEffect(() => {
         function handleSessionChange(event: Event) {
@@ -203,7 +203,10 @@ function PropertyViewPage() {
         const groups = new Map<string, typeof unitRows>();
         const unassigned: typeof unitRows = [];
         for (const row of unitRows) {
-            if (!row.buildingRef) { unassigned.push(row); continue; }
+            if (!row.buildingRef) {
+                unassigned.push(row);
+                continue;
+            }
             const list = groups.get(row.buildingRef) ?? [];
             list.push(row);
             groups.set(row.buildingRef, list);
@@ -466,7 +469,7 @@ function PropertyViewPage() {
                                             </div>
                                             <div className="px-2 py-1">
                                                 <p className="text-sm text-gray-700">
-                                                    {RIGHT_TYPE_LABELS[row.rightType] ?? (row.rightType || EM)}
+                                                    {RIGHT_TYPE_LABELS[row.rightType.replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())] ?? (row.rightType || EM)}
                                                 </p>
                                             </div>
                                             <div className="px-2 py-1">

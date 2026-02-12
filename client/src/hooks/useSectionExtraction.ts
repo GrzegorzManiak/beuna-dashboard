@@ -107,7 +107,46 @@ function useSectionExtraction({
         }).catch((err) => {
             console.error(`[persist-item] Failed to save item ${sectionId} on parent ${parentId}:`, err);
         });
-    }, [updateSectionMutation]);
+    }, [itemToParentMapRef, updateSectionMutation]);
+
+    const maybeAutoAssignBuildings = useCallback(() => {
+        if (buildingAssignmentDoneRef.current) return;
+
+        const { sections: secs, onSectionUpdate: update } = latestRef.current;
+        const inflight = inflightRef.current;
+
+        const allBuildings = secs.filter((s) => s.sectionType === "core.building");
+        const pendingBuildings = allBuildings.filter(
+            (s) =>
+                EXTRACTABLE_STATES.includes(s.state as SectionState) ||
+                inflight.has(s.id),
+        );
+
+        if (pendingBuildings.length > 0) return;
+        if (allBuildings.length === 0) return;
+
+        const buildingUuids: string[] = [];
+        for (const b of allBuildings) {
+            const uuid = b.fields?.buildingUuid;
+            if (uuid && typeof uuid === "string") buildingUuids.push(uuid);
+        }
+
+        if (buildingUuids.length === 0) return;
+
+        buildingAssignmentDoneRef.current = true;
+
+        if (buildingUuids.length === 1) {
+            const singleUuid = buildingUuids[0]!;
+            const units = secs.filter(
+                (s) => s.sectionType === "units.unit_block" && !s.fields?.buildingRef,
+            );
+            for (const unit of units) {
+                update(unit.id, {
+                    fields: { ...(unit.fields ?? {}), buildingRef: singleUuid },
+                });
+            }
+        }
+    }, []);
 
     const processNext = useCallback(() => {
         const { sections: secs, onSectionUpdate: update, propertyId: pid, enabled: on } = latestRef.current;
@@ -253,46 +292,7 @@ function useSectionExtraction({
                     setTimeout(processNext, 0);
                 });
         }
-    }, [extractMutation, persistSection, resolveId]);
-
-    const maybeAutoAssignBuildings = useCallback(() => {
-        if (buildingAssignmentDoneRef.current) return;
-
-        const { sections: secs, onSectionUpdate: update } = latestRef.current;
-        const inflight = inflightRef.current;
-
-        const allBuildings = secs.filter((s) => s.sectionType === "core.building");
-        const pendingBuildings = allBuildings.filter(
-            (s) =>
-                EXTRACTABLE_STATES.includes(s.state as SectionState) ||
-                inflight.has(s.id),
-        );
-
-        if (pendingBuildings.length > 0) return;
-        if (allBuildings.length === 0) return;
-
-        const buildingUuids: string[] = [];
-        for (const b of allBuildings) {
-            const uuid = b.fields?.buildingUuid;
-            if (uuid && typeof uuid === "string") buildingUuids.push(uuid);
-        }
-
-        if (buildingUuids.length === 0) return;
-
-        buildingAssignmentDoneRef.current = true;
-
-        if (buildingUuids.length === 1) {
-            const singleUuid = buildingUuids[0]!;
-            const units = secs.filter(
-                (s) => s.sectionType === "units.unit_block" && !s.fields?.buildingRef,
-            );
-            for (const unit of units) {
-                update(unit.id, {
-                    fields: { ...(unit.fields ?? {}), buildingRef: singleUuid },
-                });
-            }
-        }
-    }, []);
+    }, [extractMutation, maybeAutoAssignBuildings, persistSection, resolveId]);
 
     // Seed completedRef with sections that are already extracted / not
     // in a processable state so they are never re-sent for LLM extraction

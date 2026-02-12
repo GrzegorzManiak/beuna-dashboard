@@ -127,7 +127,7 @@ function PdfViewerRenderer({
                 return updated;
             });
         },
-        [pageWidth],
+        [pageWidth, setPageMetrics],
     );
 
     const closeSplit = () => setActiveSplit(null);

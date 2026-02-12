@@ -205,7 +205,10 @@ function SectionBar({
                         {section.state === "error" && onRetrySection && (
                             <button
                                 type="button"
-                                onClick={(e) => { e.stopPropagation(); onRetrySection(section.id); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRetrySection(section.id);
+                                }}
                                 className="mt-0.5 w-32 rounded rounded-r-none border border-r-0 border-red-300 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700 hover:bg-red-100 transition-colors cursor-pointer"
                             >
                                 Retry extraction

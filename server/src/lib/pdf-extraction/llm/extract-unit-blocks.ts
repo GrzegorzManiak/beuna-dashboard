@@ -131,14 +131,16 @@ const collectUnitMarkers = (section: PdfSection): string[] => {
             markers.push(current);
             continue;
         }
-        // Only use the combined check when the current line is NOT itself
-        // a marker. If the combined (current + next) test matches, record
-        // the combined text and skip the next line to avoid double-counting.
+
+        // This helps loads when the llm or any prev step miss counts 
+        // multiple lines as one unit.
+
         const next = lines[i + 1]?.trim();
         if (!next) continue;
+
         if (isUnitMarkerLine(`${current} ${next}`)) {
             markers.push(`${current}\n${next}`);
-            i += 1; // skip next line — it's part of this marker
+            i += 1;
         }
     }
     return markers;
@@ -150,6 +152,9 @@ const getBlockLines = (blockText: string) =>
         .map((line) => line.trim())
         .filter(Boolean);
 
+// this is used to filter out blocks that contain multiple unit markers, 
+// which are likely the result of an incorrect split that merged multiple 
+// units together.
 const countUnitMarkersInBlock = (blockText: string) => {
     const lines = getBlockLines(blockText);
     let count = 0;
@@ -160,7 +165,6 @@ const countUnitMarkersInBlock = (blockText: string) => {
             count += 1;
             continue;
         }
-        // Combined check: if current + next matches, count once and skip next
         const next = lines[i + 1]?.trim();
         if (next && isUnitMarkerLine(`${current} ${next}`)) {
             count += 1;

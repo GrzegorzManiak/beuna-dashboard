@@ -345,7 +345,7 @@ function NewPropertyProjectOnboardingStage( ){
             isClosed = true;
             socket.close();
         };
-    }, [propertyId, sessionId, STEP_PROCESSING, STEP_PROPERTY_TYPE]);
+    }, [propertyId, sessionId, navigate, STEP_PROCESSING, STEP_PROPERTY_TYPE]);
 
     if (!propertyId) {
 return (

@@ -643,8 +643,10 @@ function PdfViewerSelectionLayer({
         [
             dragSelection,
             getSpansForRect,
+            getSelectionSlice,
             getContainerYFromLocal,
             getLocalYForPage,
+            pageContainerRef,
             pageMetrics,
             onSelectionComplete,
         ],

@@ -17,7 +17,6 @@ interface PdfViewerProps {
     onRetrySection?: (sectionId: string) => void;
     propertyType?: "WEG" | "MV";
     propertyId?: string;
-    autoSplitOnSelection?: boolean;
     pageMetrics?: Record<number, PageMetrics>;
     setPageMetrics?: Dispatch<SetStateAction<Record<number, PageMetrics>>>;
     activeSplit?: ActiveSplit;
@@ -40,7 +39,6 @@ function PdfViewer({
     onRetrySection,
     propertyType = "WEG",
     propertyId,
-    autoSplitOnSelection = true,
     pageMetrics,
     setPageMetrics,
     activeSplit,

@@ -5,17 +5,9 @@ import { normalizeForMatch } from "../utils/text";
  * Utility functions for section processors
  */
 
-/**
- * Regex that matches common German / international company-type suffixes.
- * Used to verify that a section references a real legal entity.
- */
 const ENTITY_SUFFIX_RE =
     /\b(gmbh|ag|kg|ug|gbr|ohg|e\.?\s?v\.?|ev|ltd|inc|llc|s\.?a\.?r\.?l\.?|s\.?a\.?|co\.?\s?kg|gmbh\s?&\s?co)\b/i;
 
-/**
- * Returns `true` when `text` contains at least one entity-type reference
- * (e.g. "GmbH", "AG", "KG", "e.V.", etc.).
- */
 export function containsEntityReference(text: string): boolean {
     return ENTITY_SUFFIX_RE.test(text);
 }
@@ -46,15 +38,13 @@ export function linesToPositions(lines: PdfLine[]): Position[] {
             maxBottom = Math.max(maxBottom, line.y + line.height);
         }
 
-        if (Number.isFinite(minX) && Number.isFinite(minY)) {
-            positions.push({
-                page,
-                x: minX,
-                y: minY,
-                width: Math.max(0, maxRight - minX),
-                height: Math.max(0, maxBottom - minY),
-            });
-        }
+        if (Number.isFinite(minX) && Number.isFinite(minY)) positions.push({
+            page,
+            x: minX,
+            y: minY,
+            width: Math.max(0, maxRight - minX),
+            height: Math.max(0, maxBottom - minY),
+        });
     }
 
     return positions.sort((a, b) => a.page - b.page);
@@ -119,38 +109,23 @@ export function calculateKeywordConfidence(
     
     let strongMatches = 0;
     for (const keyword of strongKeywords) {
-        if (normalized.includes(normalizeForMatch(keyword))) {
-            strongMatches++;
-        }
+        if (normalized.includes(normalizeForMatch(keyword))) strongMatches++;
     }
     
     let weakMatches = 0;
     for (const keyword of weakKeywords) {
-        if (normalized.includes(normalizeForMatch(keyword))) {
-            weakMatches++;
-        }
+        if (normalized.includes(normalizeForMatch(keyword))) weakMatches++;
     }
     
     if (strongMatches === 0 && weakMatches === 0) return 0;
     
     // Weight strong keywords more heavily
-    const score = (strongMatches * 0.8 + weakMatches * 0.2) / Math.max(strongKeywords.length + weakKeywords.length * 0.5, 1);
+    const score = (strongMatches * 0.8 + weakMatches * 0.2) / 
+        Math.max(strongKeywords.length + weakKeywords.length * 0.5, 1);
+
     return Math.min(score, 1.0);
 }
 
-/**
- * Given a block's raw text (from an LLM / regex extractor) and the parent
- * section, find the contiguous span of PdfLines that best covers the block.
- *
- * Strategy:
- *   1. Normalize each block line and each section line.
- *   2. Find the first section line that matches the first block line.
- *   3. Walk forward greedily, matching block lines to section lines.
- *   4. Return the matched PdfLine slice.
- *
- * The `searchStart` parameter lets callers advance a cursor so that
- * sequential blocks don't re-match the same lines.
- */
 export function findLinesForBlock(
     section: PdfSection,
     blockText: string,
@@ -162,10 +137,8 @@ export function findLinesForBlock(
         .filter(Boolean);
 
     if (!blockLines.length) return { lines: [], nextCursor: searchStart };
-
     const sectionLines = section.lines;
 
-    // Find the first section line that matches the first block line
     let anchorIndex = -1;
     for (let i = searchStart; i < sectionLines.length; i++) {
         const norm = normalizeForMatch(sectionLines[i]!.text);
@@ -176,12 +149,9 @@ export function findLinesForBlock(
         }
     }
 
-    if (anchorIndex < 0) {
-        // Fallback: try a looser token-overlap search
+    if (anchorIndex < 0) 
         return findLinesForBlockFuzzy(section, blockLines, searchStart);
-    }
 
-    // Walk forward matching remaining block lines
     let endIndex = anchorIndex;
     let blockCursor = 1;
     for (let i = anchorIndex + 1; i < sectionLines.length && blockCursor < blockLines.length; i++) {
@@ -215,7 +185,6 @@ function findLinesForBlockFuzzy(
     let bestEnd = searchStart;
     let bestScore = 0;
 
-    // Sliding window: try spans roughly the length of the block
     const windowSize = Math.max(blockLines.length, 3);
 
     for (let start = searchStart; start < sectionLines.length; start++) {
@@ -223,10 +192,9 @@ function findLinesForBlockFuzzy(
         let score = 0;
         for (let i = start; i < end; i++) {
             const tokens = normalizeForMatch(sectionLines[i]!.text).split(/\s+/);
-            for (const token of tokens) {
-                if (token.length > 2 && blockTokens.has(token)) score++;
-            }
+            for (const token of tokens) if (token.length > 2 && blockTokens.has(token)) score++;
         }
+
         if (score > bestScore) {
             bestScore = score;
             bestStart = start;
@@ -246,8 +214,6 @@ function findLinesForBlockFuzzy(
  */
 export function containsMeaDeclaration(text: string): boolean {
     const normalized = normalizeForMatch(text);
-
-    // Strong pattern: "eigentum am grundstück wird in X miteigentumsanteile zerlegt"
     const declarationPattern =
         /(?:das\s+)?eigentum\s+am\s+grundst(?:ü|ue)ck.*?wird\s+in\s+(\d[\d\s.,]*)\s*miteigentumsanteile?\s*\(?\s*MEA\s*\)?/i;
 
@@ -260,7 +226,7 @@ export function containsMeaDeclaration(text: string): boolean {
     const hasEigentum = normalized.includes("eigentum") && normalized.includes("grundst");
     const hasMea = normalized.includes("miteigentumsanteil") || /\bmea\b/i.test(normalized);
     const hasZerlegt = normalized.includes("zerlegt") || normalized.includes("geteilt");
-    const hasNumber = /\b\d{3,5}\b/.test(text); // MEA count is usually 3-5 digits
+    const hasNumber = /\b\d{3,6}\b/.test(text);
 
     return hasEigentum && hasMea && (hasZerlegt || hasNumber);
 }
@@ -274,12 +240,9 @@ export function findMeaDeclarationRange(section: PdfSection): { start: number; e
     let meaStart = -1;
     let meaEnd = -1;
 
-    // Look for the declaration pattern across consecutive lines
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i]!;
         const lineText = line.text;
-
-        // Check if this line contains MEA indicators
         if (containsMeaDeclaration(lineText)) {
             meaStart = i;
             meaEnd = i;
@@ -289,23 +252,15 @@ export function findMeaDeclarationRange(section: PdfSection): { start: number; e
 
     // If not found in single line, check multi-line patterns
     if (meaStart < 0) {
-        // Check for MEA keywords across a window of lines
         for (let i = 0; i < lines.length - 1; i++) {
             const windowText = lines.slice(i, i + 4).map((l) => l.text).join(" ");
             if (containsMeaDeclaration(windowText)) {
                 meaStart = i;
-                // Find the end of the paragraph (look for unit entry indicators or blank lines)
                 meaEnd = i;
                 for (let j = i + 1; j < lines.length; j++) {
                     const text = lines[j]!.text;
-                    // Stop if we hit a unit entry (Einheit Nr., etc.)
-                    if (/(?:einheit|unit|wohnung)\s*(?:nr\.?|nummer|\d)/i.test(text)) {
-                        break;
-                    }
-                    // Stop if we hit a major heading
-                    if (text.includes("§") || (lines[j]!.bold && text.length < 50)) {
-                        break;
-                    }
+                    if (/(?:einheit|unit|wohnung)\s*(?:nr\.?|nummer|\d)/i.test(text)) break;
+                    if (text.includes("§") || (lines[j]!.bold && text.length < 50)) break;
                     meaEnd = j;
                 }
                 break;
@@ -313,9 +268,8 @@ export function findMeaDeclarationRange(section: PdfSection): { start: number; e
         }
     }
 
-    if (meaStart >= 0 && meaEnd >= meaStart) {
+    if (meaStart >= 0 && meaEnd >= meaStart) 
         return { start: meaStart, end: meaEnd + 1 };
-    }
 
     return null;
 }
@@ -326,18 +280,11 @@ export function findMeaDeclarationRange(section: PdfSection): { start: number; e
  */
 export function splitMeaDeclaration(section: PdfSection): PdfSection[] {
     const range = findMeaDeclarationRange(section);
-
-    if (!range) {
-        return [section];
-    }
-
-    // Check if MEA content is substantial enough to warrant a split
+    if (!range) return [section];
+    
     const meaLines = section.lines.slice(range.start, range.end);
-    if (meaLines.length < 1) {
-        return [section];
-    }
+    if (meaLines.length < 1) return [section];
 
-    // Create MEA declaration section
     const meaSection: PdfSection = {
         ...section,
         id: `${section.id}-mea`,
@@ -347,16 +294,13 @@ export function splitMeaDeclaration(section: PdfSection): PdfSection[] {
         textPosition: linesToPositions(meaLines),
     };
 
-    // Create remaining section (if there are lines left)
     const remainingLines = [
         ...section.lines.slice(0, range.start),
         ...section.lines.slice(range.end),
     ];
 
-    if (remainingLines.length === 0) {
-        return [meaSection];
-    }
-
+    if (remainingLines.length === 0) return [meaSection];
+    
     const remainingSection: PdfSection = {
         ...section,
         heading: remainingLines[0]!,

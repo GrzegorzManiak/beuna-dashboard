@@ -27,13 +27,9 @@ export class CorePropertyOverviewProcessor implements SectionProcessor {
     readonly isArrayBased = false;
 
     matches(section: PdfSection): number | null {
-        // Overview sections are typically at the start and moderately sized
         if (section.lines.length < 2 || section.lines.length > 50) return null;
         
-        const hasPattern = hasStructuralPattern(section, {
-            headingKeywords: OVERVIEW_KEYWORDS,
-        });
-        
+        const hasPattern = hasStructuralPattern(section, { headingKeywords: OVERVIEW_KEYWORDS });    
         if (!hasPattern) return null;
         
         return calculateKeywordConfidence(

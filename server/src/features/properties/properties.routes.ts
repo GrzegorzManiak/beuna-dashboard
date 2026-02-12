@@ -94,23 +94,6 @@ const basicDetailsFieldSchema = {
     additionalProperties: false,
 };
 
-const basicDetailsSchema = {
-    anyOf: [
-        { type: "null" },
-        {
-            type: "object",
-            properties: {
-                fields: {
-                    type: "array",
-                    items: basicDetailsFieldSchema,
-                },
-            },
-            required: ["fields"],
-            additionalProperties: false,
-        },
-    ],
-};
-
 const secureConfig = { authRequired: true };
 
 const propertiesRoutes: FastifyPluginAsync = async (app) => {

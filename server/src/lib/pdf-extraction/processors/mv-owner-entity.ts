@@ -29,10 +29,7 @@ export class MvOwnerEntityProcessor implements SectionProcessor {
     matches(section: PdfSection): number | null {
         if (section.lines.length < 2) return null;
         
-        const hasPattern = hasStructuralPattern(section, {
-            headingKeywords: OWNER_KEYWORDS,
-        });
-        
+        const hasPattern = hasStructuralPattern(section, { headingKeywords: OWNER_KEYWORDS });
         if (!hasPattern) return null;
         
         return calculateKeywordConfidence(

@@ -32,10 +32,6 @@ export class WegPropertyManagerProcessor implements SectionProcessor {
         });
         
         if (!hasPattern) return null;
-
-        // The section must reference a legal entity (GmbH, AG, KG, etc.)
-        // to be treated as a property manager appointment.  Without an
-        // entity the section is just a generic administration heading.
         if (!containsEntityReference(section.rawText)) return null;
         
         const confidence = calculateKeywordConfidence(

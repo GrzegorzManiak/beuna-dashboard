@@ -304,8 +304,12 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                         onChange={(e) => setDraftValue(e.target.value)}
                         onBlur={() => void handleCommitEdit()}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
-                            if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
+                            if (e.key === "Enter") {
+ e.preventDefault(); void handleCommitEdit(); return; 
+}
+                            if (e.key === "Escape") {
+ e.preventDefault(); handleCancelEdit(); 
+}
                         }}
                         className="h-8 bg-white"
                     />
@@ -328,8 +332,12 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                         onBlur={() => void handleCommitEdit()}
                         onChange={(e) => setDraftValue(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
-                            if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
+                            if (e.key === "Enter") {
+ e.preventDefault(); void handleCommitEdit(); return; 
+}
+                            if (e.key === "Escape") {
+ e.preventDefault(); handleCancelEdit(); 
+}
                         }}
                         className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
                     >
@@ -358,8 +366,12 @@ function ReviewPanelUnitsTable({ rows, buildingOptions, propertyType, onCommitCe
                         onBlur={() => void handleCommitEdit()}
                         onChange={(e) => setDraftValue(e.target.value)}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter") { e.preventDefault(); void handleCommitEdit(); return; }
-                            if (e.key === "Escape") { e.preventDefault(); handleCancelEdit(); }
+                            if (e.key === "Enter") {
+ e.preventDefault(); void handleCommitEdit(); return; 
+}
+                            if (e.key === "Escape") {
+ e.preventDefault(); handleCancelEdit(); 
+}
                         }}
                         className="h-8 w-full rounded-md border border-gray-300 bg-white px-2 text-sm"
                     >

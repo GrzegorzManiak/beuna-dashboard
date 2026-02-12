@@ -45,8 +45,7 @@ async function extractSectionsFromPdf(
     const headingCandidates = headingResult.headings.map((entry) => entry.line);
     const headings =
         options.headingLevel === "all"
-            ? headingCandidates
-            : selectPrimaryHeadings(headingCandidates);
+            ? headingCandidates : selectPrimaryHeadings(headingCandidates);
     const sections = buildSections(lines, headings, stats, options.section);
 
     return {

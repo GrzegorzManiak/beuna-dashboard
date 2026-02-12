@@ -47,10 +47,8 @@ export class CoreBuildingProcessor implements SectionProcessor {
     readonly isArrayBased = true;
 
     matches(section: PdfSection): number | null {
-        // Quick reject: too short
         if (section.lines.length < 2) return null;
         
-        // Check for building-related keywords
         const hasPattern = hasStructuralPattern(section, {
             headingKeywords: BUILDING_KEYWORDS,
             contentKeywords: BUILDING_CONTENT_KEYWORDS,
@@ -59,7 +57,6 @@ export class CoreBuildingProcessor implements SectionProcessor {
         
         if (!hasPattern) return null;
         
-        // Calculate confidence based on keyword density
         const headingConfidence = calculateKeywordConfidence(
             section.heading.text,
             BUILDING_KEYWORDS
@@ -71,7 +68,6 @@ export class CoreBuildingProcessor implements SectionProcessor {
             BUILDING_KEYWORDS
         );
         
-        // Weight heading more heavily than content
         return headingConfidence * 0.7 + contentConfidence * 0.3;
     }
 

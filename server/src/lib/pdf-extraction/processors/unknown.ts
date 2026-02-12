@@ -11,7 +11,6 @@ export class UnknownProcessor implements SectionProcessor {
     readonly isArrayBased = false;
 
     matches(_section: PdfSection): number {
-        // Always matches as fallback with low confidence
         return 0.1;
     }
 

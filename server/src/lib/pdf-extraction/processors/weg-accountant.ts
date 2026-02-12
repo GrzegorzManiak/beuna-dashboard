@@ -32,8 +32,6 @@ export class WegAccountantProcessor implements SectionProcessor {
         });
         
         if (!hasPattern) return null;
-
-        // Must reference a legal entity to qualify as an accountant appointment.
         if (!containsEntityReference(section.rawText)) return null;
         
         const confidence = calculateKeywordConfidence(

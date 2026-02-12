@@ -560,7 +560,6 @@ function postProcessFields(
     return Object.entries(map).map(([key, value]) => ({ key, value }));
 }
 
-// ─── LLM extraction ──────────────────────────────────────────────────
 
 function buildTool(schema: FieldSchemaEntry): JsonToolSchema {
     return {
@@ -673,16 +672,11 @@ async function extractSectionFields(
     const messages = buildMessages(rawText, sectionType, schema, buildings);
 
     const result = await runJsonTool<{ fields: ExtractedField[] }>({
-        tool,
-        messages,
-        timeoutMs: 30_000,
-    });
+        tool, messages, timeoutMs: 30_000});
 
-    if (!result.parsed?.fields) {
+    if (!result.parsed?.fields) 
         return { fields: [], elapsedMs: result.elapsedMs };
-    }
 
-    // Normalise: strip unknown keys, coerce types
     const validKeys = new Set(Object.keys(schema.fields));
     const llmFields = result.parsed.fields
         .filter((f) => validKeys.has(f.key))
@@ -691,9 +685,7 @@ async function extractSectionFields(
             value: f.value ?? null,
         }));
 
-    // Apply regex fallback for any fields the LLM left empty
     const fields = postProcessFields(rawText, sectionType, llmFields, buildings);
-
     return { fields, elapsedMs: result.elapsedMs };
 }
 
@@ -703,7 +695,7 @@ export {
     type ExtractedField,
     type ExtractionResult,
     type FieldSchemaEntry,
-    // Exported for unit tests
+
     parseGermanNumber,
     normalizeUnitType,
     inferUnitType,

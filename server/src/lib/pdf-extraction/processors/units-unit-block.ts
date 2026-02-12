@@ -48,7 +48,6 @@ export class UnitsBlockProcessor implements SectionProcessor {
     readonly isArrayBased = true;
 
     matches(section: PdfSection): number | null {
-        // Quick reject: too short
         if (section.lines.length < 2) return null;
         
         const hasPattern = hasStructuralPattern(section, {

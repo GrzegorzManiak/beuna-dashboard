@@ -23,7 +23,6 @@ export class CoreAddressProcessor implements SectionProcessor {
     readonly isArrayBased = false;
 
     matches(section: PdfSection): number | null {
-        // Address sections are typically short
         if (section.lines.length > 10) return null;
         if (section.lines.length < 1) return null;
         

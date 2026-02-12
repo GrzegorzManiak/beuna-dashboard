@@ -64,22 +64,18 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
 
     matches(section: PdfSection): number | null {
         if (section.lines.length < 4) return null;
-
-        // Heading must contain an admin keyword
         if (!containsAnyKeyword(section.heading.text, ADMIN_HEADING_KEYWORDS)) return null;
 
-        // Body must contain both manager AND accountant indicators
         const bodyNorm = normalizeForMatch(section.rawText);
         const hasManager = MANAGER_KEYWORDS.some((keyword) => bodyNorm.includes(keyword));
         const hasAccountant = ACCOUNTANT_KEYWORDS.some((keyword) => bodyNorm.includes(keyword));
 
-        if (!hasManager || !hasAccountant) return null;
+        if (!hasManager && !hasAccountant) return null;
 
         const hasEnum = section.lines.some((l) => ENUM_MARKER_RE.test(l.text));
         const roleBlocks = splitAtRoleHeadings(section.lines);
         if (!hasEnum && roleBlocks.length < 2) return null;
 
-        // Higher confidence than the individual processors so we win the bid
         return 0.75;
     }
 
@@ -95,10 +91,6 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
             const block = subBlocks[i]!;
             const blockText = block.lines.map((l) => l.text).join("\n");
 
-            // Use the first line (the enumeration marker line) for sub-type
-            // classification.  This avoids false matches from incidental
-            // mentions of "Verwalter" inside the accountant block or vice
-            // versa.
             const firstLineNorm = normalizeForMatch(block.lines[0]?.text ?? "");
             const fullBlockNorm = normalizeForMatch(blockText);
 
@@ -110,14 +102,12 @@ export class WegAdministrationCombinedProcessor implements SectionProcessor {
             }
 
             if (!subType) {
-                if (ACCOUNTANT_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword))) {
+                if (ACCOUNTANT_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword)))
                     subType = "weg.accountant";
-                } else if (MANAGER_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword))) {
+                else if (MANAGER_KEYWORDS.some((keyword) => fullBlockNorm.includes(keyword))) 
                     subType = "weg.property_manager";
-                }
             }
 
-            // Skip blocks we can't classify or that lack an entity reference
             if (!subType) continue;
             if (!containsEntityReference(blockText)) continue;
 
