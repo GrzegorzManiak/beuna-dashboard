@@ -30,23 +30,34 @@ export class WegMeaDeclarationProcessor implements SectionProcessor {
     readonly isArrayBased = false;
 
     matches(section: PdfSection): number | null {
+        // MEA sections are typically short (1 paragraph)
         if (section.lines.length > 15) return null;
         if (section.lines.length < 1) return null;
 
         const fullText = section.heading.text + "\n" + section.rawText;
 
+        // Look for the specific pattern: "Das Eigentum am Grundstück wird in X Miteigentumsanteile (MEA) zerlegt"
         const declarationPattern =
-            /(\d[\d\s.,]*)\s*(?:miteigentumsanteile?|MEA)|\b(?:miteigentumsanteile?|MEA)\s*[:(]?\s*(\d[\d\s.,]*)/i;
+            /(?:das )?eigentum am grundst(?:ü|ue)ck.*?wird in\s+(\d[\d\s.,]*)\s*miteigentumsanteile?\s*\(?\s*MEA\s*\)?(?:\s*zerlegt\b|geteilt|in\s+\d+\s*einheiten?)/i;
 
-        if (declarationPattern.test(fullText)) return 0.9;
+        if (declarationPattern.test(fullText)) {
+            // Strong pattern match - high confidence
+            return 0.9;
+        }
 
+        // Check for presence of key MEA indicators
         const hasMeaKeyword = containsAnyKeyword(fullText, [
             "miteigentumsanteile", "MEA", "zerlegt", "anteile", "miteigentumsanteile"
         ]);
 
         if (!hasMeaKeyword) return null;
-        if (TOTAL_MEA_PATTERN.test(fullText)) return 0.7;
-    
+
+        // Look for total MEA number pattern
+        if (TOTAL_MEA_PATTERN.test(fullText)) {
+            return 0.7;
+        }
+
+        // Use structural pattern matching with expanded keywords
         const hasPattern = hasStructuralPattern(section, {
             headingKeywords: MEA_KEYWORDS,
             contentKeywords: MEA_KEYWORDS,
