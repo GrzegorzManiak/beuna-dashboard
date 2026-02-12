@@ -1,0 +1,1 @@
+bun i concurrently unset NODE_ENV bun install --cwd ./client

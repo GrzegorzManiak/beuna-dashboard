@@ -4,7 +4,7 @@ import { useExtractSectionFieldsMutation } from "@/hooks/useExtractSectionFields
 import { useUpdateSectionMutation } from "@/hooks/useUpdateSectionMutation";
 import { REQUIRED_FIELDS } from "@shared/section-types";
 import type { SectionType } from "@shared/section-types";
-import type { SectionData, SectionState } from "@/components/pdfViewer/pdfViewer.types";
+import type { SectionData, SectionFieldValue, SectionState } from "@/components/pdfViewer/pdfViewer.types";
 import type { PropertySection } from "@/api/properties";
 
 const EXTRACTABLE_STATES: SectionState[] = ["processing"];
@@ -54,7 +54,7 @@ function useSectionExtraction({
     const extractMutation = useExtractSectionFieldsMutation();
     const updateSectionMutation = useUpdateSectionMutation();
 
-    const persistSection = useCallback((sectionId: string, updates: { state?: string; fields?: Record<string, unknown> }) => {
+    const persistSection = useCallback((sectionId: string, updates: { state?: string; fields?: Record<string, SectionFieldValue> }) => {
         const pid = latestRef.current.propertyId;
         if (!pid) return;
 

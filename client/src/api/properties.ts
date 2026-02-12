@@ -45,7 +45,7 @@ type PropertySectionItem = {
     id: string;
     rawText: string;
     sectionType?: string;
-    state?: "valid" | "needs_review" | "unknown" | "conflict";
+    state?: "valid" | "needs_review" | "unknown" | "conflict" | "processing" | "identifying" | "error";
     confidence?: number;
     fields?: Record<string, string | number | boolean | null> | null;
     textPosition: Array<{
