@@ -1,6 +1,7 @@
 import { PrismaClient, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
+const MOCK_NAME_SUFFIX = " (MOCK - NO DATA)";
 
 async function main() {
     console.log("Seeding...");
@@ -12,11 +13,11 @@ async function main() {
 
     const createdUsers = await prisma.user.createMany({
         data: [
-            { email: "admin@buena.local", name: "Admin User", role: UserRole.ADMIN },
-            { email: "manager1@buena.local", name: "Anna Manager", role: UserRole.MANAGER },
-            { email: "manager2@buena.local", name: "Mark Manager", role: UserRole.MANAGER },
-            { email: "accountant1@buena.local", name: "Clara Accountant", role: UserRole.ACCOUNTANT },
-            { email: "accountant2@buena.local", name: "Tom Accountant", role: UserRole.ACCOUNTANT },
+            { email: "admin@buena.local", name: `Admin User`, role: UserRole.ADMIN },
+            { email: "manager1@buena.local", name: `Anna Manager`, role: UserRole.MANAGER },
+            { email: "manager2@buena.local", name: `Mark Manager`, role: UserRole.MANAGER },
+            { email: "accountant1@buena.local", name: `Clara Accountant`, role: UserRole.ACCOUNTANT },
+            { email: "accountant2@buena.local", name: `Tom Accountant`, role: UserRole.ACCOUNTANT },
         ],
     });
     console.log(`Users: ${createdUsers.count}`);
@@ -43,7 +44,7 @@ async function main() {
         data: [
             {
                 propertyNumber: 1,
-                name: "Riverside Heights",
+                name: `Riverside ${MOCK_NAME_SUFFIX}`,
                 managementType: "WEG",
                 status: "DRAFT",
                 managerId: manager1.id,
@@ -51,7 +52,7 @@ async function main() {
             },
             {
                 propertyNumber: 2,
-                name: "Parkview Lofts",
+                name: `Parkview ${MOCK_NAME_SUFFIX}`,
                 managementType: "MV",
                 status: "DRAFT",
                 managerId: manager1.id,
@@ -59,7 +60,7 @@ async function main() {
             },
             {
                 propertyNumber: 3,
-                name: "Linden Court",
+                name: `Linden ${MOCK_NAME_SUFFIX}`,
                 managementType: "WEG",
                 status: "ACTIVE",
                 managerId: manager1.id,
@@ -67,7 +68,7 @@ async function main() {
             },
             {
                 propertyNumber: 4,
-                name: "Maple Row",
+                name: `Maple ${MOCK_NAME_SUFFIX}`,
                 managementType: "MV",
                 status: "ACTIVE",
                 managerId: manager1.id,
@@ -75,7 +76,7 @@ async function main() {
             },
             {
                 propertyNumber: 5,
-                name: "Harbor Point",
+                name: `Harbor Point${MOCK_NAME_SUFFIX}`,
                 managementType: "WEG",
                 status: "DRAFT",
                 managerId: manager1.id,

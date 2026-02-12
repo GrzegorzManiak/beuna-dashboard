@@ -34,7 +34,7 @@ async function buildApp(): Promise<FastifyInstance> {
 
     await app.register(AuthPlugin, {
         allowDevFallback: true,
-        devFallbackUserEmail: "admin@buena.local",
+        devFallbackUserEmail: "manager1@buena.local",
     });
 
     await app.register(EnvPlugin);
