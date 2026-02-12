@@ -26,14 +26,9 @@ These are the two primary scripts for local and deployed runtime:
 - `bun run dev`
 - `bun run prod`
 
-## Crash-resilient runtime
+## PM2 (optional)
 
-`prod` now auto-restarts crashed processes:
-
-- infinite restart attempts
-- 5 second restart delay
-
-For stronger process supervision, use PM2:
+Use PM2 for managed restarts in production:
 
 - `bun run prod:pm2:start`
 - `bun run prod:pm2:restart`

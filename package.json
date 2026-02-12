@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"bun run server:dev\" \"bun run client:dev\"",
     "prod": "concurrently --restart-tries -1 --restart-after 5000 -n server,client -c blue,green \"bun run server:prod\" \"bun run client:preview -- --host 0.0.0.0 --port ${CLIENT_PORT:-4173}\"",
-    "prod:pm2:start": "pm2 start ecosystem.config.js --env production",
-    "prod:pm2:restart": "pm2 restart ecosystem.config.js --env production",
-    "prod:pm2:stop": "pm2 stop ecosystem.config.js",
+    "prod:pm2:start": "pm2 start ecosystem.config.cjs --env production",
+    "prod:pm2:restart": "pm2 restart ecosystem.config.cjs --env production",
+    "prod:pm2:stop": "pm2 stop ecosystem.config.cjs",
     "prod:pm2:logs": "pm2 logs beuna-server beuna-client",
     "server:dev": "dotenv -e .env.development -- bun run --cwd ./server dev",
     "server:prod": "dotenv -e .env.production -- bun run --cwd ./server start",
