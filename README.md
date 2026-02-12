@@ -23,6 +23,11 @@ Optional env variable:
 
 - `OPENROUTER_BASE_URL` (defaults to OpenRouter public API)
 
+Openrouter costs:
+<img width="1281" height="385" alt="image" src="https://github.com/user-attachments/assets/865dfdd4-44e5-4784-a920-b633e2d03aaf" />
+
+Its not alot.
+
 ## Main scripts
 
 These are the two primary scripts for local and deployed runtime:
