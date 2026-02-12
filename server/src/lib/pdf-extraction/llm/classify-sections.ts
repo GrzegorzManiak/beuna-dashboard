@@ -1,4 +1,4 @@
-import { runJsonTool, type JsonToolSchema, type LlmMessage } from "./client";
+import { runJsonTool, type JsonToolResult, type JsonToolSchema, type LlmMessage } from "./client";
 import type { PdfSection } from "../raw/types";
 import type { SectionType } from "@shared/section-types";
 
@@ -12,6 +12,13 @@ type SectionClassificationResult = {
     classifications: SectionClassification[];
     warnings: string[];
 };
+
+type RunJsonToolFn = <T>(args: {
+    tool: JsonToolSchema;
+    messages: LlmMessage[];
+    model?: string;
+    timeoutMs?: number;
+}) => Promise<JsonToolResult<T>>;
 
 const SECTION_TYPE_DESCRIPTIONS: Record<SectionType, string> = {
     "core.property_overview": "High-level property identity, name, or overview of the asset.",
@@ -102,15 +109,122 @@ const coerceConfidence = (value: unknown) => {
     return num;
 };
 
+const normalizeForRules = (value: string): string => {
+    return value
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/\p{M}/gu, "")
+        .replace(/ß/g, "ss")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+};
+
+const UNIT_FIELD_SIGNALS = [
+    "nutzungstyp",
+    "gebaudezugehorigkeit",
+    "lage",
+    "grosse",
+    "wohnflache",
+    "zimmer",
+    "baujahr",
+    "beschreibung",
+    "aufteilungsplan",
+    "sondereigentum",
+];
+
+const PROPERTY_OVERVIEW_SIGNALS = [
+    "grundbuchstand",
+    "eigentumsverhaltnisse",
+    "grundbuch",
+    "alleineigentumer",
+    "teilungserklarung",
+    "objektnummer",
+    "objektname",
+    "verwaltungstyp",
+];
+
+type RuleClassification = {
+    sectionType: SectionType;
+    confidence: number;
+};
+
+const countKeywordHits = (text: string, keywords: string[]): number => {
+    return keywords.reduce((count, keyword) => count + (text.includes(keyword) ? 1 : 0), 0);
+};
+
+const looksLikeUnitBlockSnippet = (text: string): boolean => {
+    const normalized = normalizeForRules(text);
+    if (!normalized) return false;
+
+    const hasUnitAnchor = /\beinheit(?:en)?\s*(?:nr|nummer)?\s*\.?\s*\d{1,3}\b/.test(normalized);
+    if (!hasUnitAnchor) return false;
+
+    const signalHits = countKeywordHits(normalized, UNIT_FIELD_SIGNALS);
+    const hasUnitFraction = /\b\d{1,4}(?:[.,]\d+)?\s*\/\s*1[.\s]?000\b/.test(normalized);
+
+    return signalHits >= 1 || hasUnitFraction;
+};
+
+const hasExplicitMeaDeclaration = (text: string): boolean => {
+    const normalized = normalizeForRules(text);
+    if (!normalized) return false;
+    if (!normalized.includes("eigentum am grundstuck")) return false;
+    if (!normalized.includes("zerlegt") && !normalized.includes("geteilt")) return false;
+    if (!normalized.includes("miteigentumsanteil") && !/\bmea\b/.test(normalized)) return false;
+
+    const hasSplitPhrase =
+        /\bwird\s+(?:in|mn)\b/.test(normalized) || normalized.includes("wird zerlegt");
+    if (!hasSplitPhrase) return false;
+
+    if (looksLikeUnitBlockSnippet(normalized)) return false;
+
+    return /\b\d{3,6}\b/.test(normalized);
+};
+
+const looksLikePropertyOverviewSnippet = (text: string): boolean => {
+    const normalized = normalizeForRules(text);
+    if (!normalized) return false;
+
+    const keywordHits = countKeywordHits(normalized, PROPERTY_OVERVIEW_SIGNALS);
+    if (keywordHits < 2) return false;
+
+    const hasOverviewAnchor =
+        normalized.includes("grundbuchstand") ||
+        normalized.includes("eigentumsverhaltnisse") ||
+        normalized.includes("grundbuch");
+
+    return hasOverviewAnchor && !looksLikeUnitBlockSnippet(normalized) && !hasExplicitMeaDeclaration(normalized);
+};
+
+const classifyManualSelectionByRules = (heading: string, text: string): RuleClassification | null => {
+    const textWithHeading = `${heading}\n${text}`.trim();
+    if (!textWithHeading) return null;
+
+    if (looksLikeUnitBlockSnippet(textWithHeading)) {
+        return { sectionType: "units.unit_block", confidence: 0.96 };
+    }
+
+    if (hasExplicitMeaDeclaration(textWithHeading)) {
+        return { sectionType: "weg.mea_declaration", confidence: 0.95 };
+    }
+
+    if (looksLikePropertyOverviewSnippet(textWithHeading)) {
+        return { sectionType: "core.property_overview", confidence: 0.9 };
+    }
+
+    return null;
+};
+
 async function classifySections(
     sections: PdfSection[],
     concurrency = 10,
+    runTool: RunJsonToolFn = runJsonTool,
 ): Promise<SectionClassificationResult> {
     if (!sections.length) return { classifications: [], warnings: [] };
 
     const tasks = sections.map((section) => async () => {
         try {
-            const result = await runJsonTool<{ sectionType?: unknown; confidence?: unknown }>({
+            const result = await runTool<{ sectionType?: unknown; confidence?: unknown }>({
                 tool: CLASSIFY_TOOL,
                 messages: buildMessages(section),
             });
@@ -156,7 +270,13 @@ async function classifySections(
 async function classifySectionWithLlm(
     text: string,
     heading: string,
+    runTool: RunJsonToolFn = runJsonTool,
 ): Promise<{ sectionType: SectionType; confidence: number }> {
+    const ruleBased = classifyManualSelectionByRules(heading, text);
+    if (ruleBased && ruleBased.confidence >= 0.95) {
+        return ruleBased;
+    }
+
     const typeHints = SECTION_TYPES.map((type) => `${type}: ${SECTION_TYPE_DESCRIPTIONS[type]}`).join("\n");
     const messages: LlmMessage[] = [
         {
@@ -178,14 +298,29 @@ async function classifySectionWithLlm(
         },
     ];
 
-    const result = await runJsonTool<{ sectionType?: unknown; confidence?: unknown }>({
+    const result = await runTool<{ sectionType?: unknown; confidence?: unknown }>({
         tool: CLASSIFY_TOOL,
         messages,
     });
 
+    const llmSectionType = coerceSectionType(result.parsed?.sectionType);
+    const llmConfidence = coerceConfidence(result.parsed?.confidence);
+    if (ruleBased) {
+        const llmLikelyNoisy =
+            llmSectionType === "unknown" ||
+            llmSectionType === "weg.mea_declaration" ||
+            llmSectionType === "units.unit_block";
+        if (llmLikelyNoisy) {
+            return {
+                sectionType: ruleBased.sectionType,
+                confidence: Math.max(ruleBased.confidence, llmConfidence),
+            };
+        }
+    }
+
     return {
-        sectionType: coerceSectionType(result.parsed?.sectionType),
-        confidence: coerceConfidence(result.parsed?.confidence),
+        sectionType: llmSectionType,
+        confidence: llmConfidence,
     };
 }
 
