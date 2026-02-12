@@ -4,12 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,green \"bun run --cwd server dev\" \"bun run --cwd client dev\"",
-    "start": "bun run --cwd server start",
-    "prod": "bun run --cwd client build && bun run --cwd server start",
+    "dev": "concurrently -n server,client -c blue,green \"bun run server:dev\" \"bun run client:dev\"",
+    "prod": "concurrently -n server,client -c blue,green \"bun run server:prod\" \"bun run client:prod\"",
 
     "server:dev": "dotenv -e .env.development -- bun run --cwd ./server dev",
-    "server:start": "dotenv -e .env.production -- bun run --cwd ./server start",
     "server:prod": "dotenv -e .env.production -- bun run --cwd ./server start",
 
     "client:dev": "bun run --cwd ./client dev",
