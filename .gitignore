@@ -5,3 +5,6 @@ dist
 *.log
 *.env
 buena_extraction_logic
+.env.development 
+.env.production
+.env.test
