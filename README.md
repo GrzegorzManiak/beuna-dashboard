@@ -1,4 +1,6 @@
-# Video Coming in a few min =)
+# Video
+
+https://youtu.be/CT3Ctv1RICo
 
 # Buena Dashboard
 
