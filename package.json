@@ -4,12 +4,28 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "server:dev": "bun run --watch server/src/server.ts",
+    "dev": "concurrently -n server,client -c blue,green \"bun run --cwd server dev\" \"bun run --cwd client dev\"",
+    "start": "bun run --cwd server start",
+    "prod": "bun run --cwd client build && bun run --cwd server start",
+
+    "server:dev": "dotenv -e .env.development -- bun run --cwd ./server dev",
+    "server:start": "dotenv -e .env.production -- bun run --cwd ./server start",
+    "server:prod": "dotenv -e .env.production -- bun run --cwd ./server start",
+
+    "client:dev": "bun run --cwd ./client dev",
+    "client:build": "bun run --cwd ./client build",
+    "client:preview": "bun run --cwd ./client preview",
+
     "prisma:dev:init": "dotenv -e .env.development -- bun run --cwd ./server prisma:init",
     "prisma:dev:seed": "dotenv -e .env.development -- bun run --cwd ./server prisma:seed",
     "prisma:dev:generate": "dotenv -e .env.development -- bun run --cwd ./server prisma:generate",
     "prisma:dev:migrate": "dotenv -e .env.development -- bun run --cwd ./server prisma:migrate",
-    "prisma:dev:reset": "dotenv -e .env.development -- bun run --cwd ./server prisma:reset"
+    "prisma:dev:reset": "dotenv -e .env.development -- bun run --cwd ./server prisma:reset",
+
+    "prisma:prod:generate": "dotenv -e .env.production -- bun run --cwd ./server prisma:generate",
+    "prisma:prod:migrate": "dotenv -e .env.production -- bunx prisma migrate deploy --schema ./server/prisma/schema.prisma",
+    "prisma:prod:seed": "dotenv -e .env.production -- bun run --cwd ./server prisma:seed",
+    "prisma:prod:init": "bun run prisma:prod:generate && bun run prisma:prod:migrate && bun run prisma:prod:seed"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
