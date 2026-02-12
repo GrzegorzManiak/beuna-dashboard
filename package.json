@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"bun run server:dev\" \"bun run client:dev\"",
-    "prod": "concurrently -n server,client -c blue,green \"bun run server:prod\" \"bun run client:prod\"",
+    "prod": "concurrently -n server,client -c blue,green \"bun run server:prod\" \"bun run client:preview\"",
 
     "server:dev": "dotenv -e .env.development -- bun run --cwd ./server dev",
     "server:prod": "dotenv -e .env.production -- bun run --cwd ./server start",
