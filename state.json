@@ -747,9 +747,117 @@
     },
     "thread_019": {
       "thread_id": "thread_019",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Ana Santos",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Request is for April, so not immediate, but needs to be resolved soon."
+        },
+        "summary": {
+          "value": "Ana Santos is requesting to sublet her apartment for 3 months (April-June) while she is in Lisbon for work. She suggests her colleague Anna as a potential subtenant and asks about the possibility of pausing or reducing rent during her absence.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Apt 12E",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Sublet Request",
+            "description": "Tenant Ana Santos wants to sublet her apartment (Apt 12E) for 3 months (April-June) to her colleague Anna while she is working in Lisbon.",
+            "status": "orange",
+            "category": "lease",
+            "suggested_action": "Review lease agreement regarding subletting and contact tenant to discuss options.",
+            "requires_info": "Confirm if subletting is allowed in the lease and any required procedures."
+          },
+          {
+            "id": "prob_2",
+            "title": "Rent Reduction/Pause Request",
+            "description": "Tenant Ana Santos is inquiring about the possibility of pausing or reducing rent during her temporary absence (April-June).",
+            "status": "orange",
+            "category": "financial",
+            "suggested_action": "Check lease agreement and company policy regarding rent reduction/pause during temporary absences.",
+            "requires_info": "Determine if rent reduction/pause is an option based on lease and company policy."
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_022",
+            "text": "Would it be possible to sublet my apartment for that period?",
+            "field": "prob_1",
+            "label": "Sublet Request Question"
+          },
+          {
+            "email_id": "email_022",
+            "text": "My colleague Anna (also works at my company) would take it.",
+            "field": "prob_1",
+            "label": "Proposed Subtenant"
+          },
+          {
+            "email_id": "email_022",
+            "text": "Alternatively, is there any option to pause or reduce rent during a temporary absence?",
+            "field": "prob_2",
+            "label": "Rent Reduction/Pause Request"
+          },
+          {
+            "email_id": "email_022",
+            "text": "April-June",
+            "field": "prob_1",
+            "label": "Timeframe"
+          },
+          {
+            "email_id": "email_022",
+            "text": "April-June",
+            "field": "prob_2",
+            "label": "Timeframe"
+          },
+          {
+            "email_id": "email_022",
+            "text": "My lease runs until October 2026",
+            "field": "prob_1",
+            "label": "Lease End Date"
+          },
+          {
+            "email_id": "email_022",
+            "text": "I don't want to give up my apartment as I'll be coming back",
+            "field": "prob_1",
+            "label": "Reason for Sublet"
+          },
+          {
+            "email_id": "email_022",
+            "text": "I hope you're well.",
+            "field": "urgency",
+            "label": "Polite opening"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772899316851_reply",
+          "type": "reply",
+          "description": "Auto: combined response addressing 2 issue(s)",
+          "timestamp": "2026-03-07T16:01:56.851Z",
+          "draft_email": "Hi Ana,\n\nThanks for reaching out to us. We understand you're looking to sublet your apartment (12E) from April to June while you're in Lisbon, and we appreciate you suggesting a potential subtenant.\n\nTo properly address your subletting request, we need to review your lease agreement regarding subletting policies. Could you please provide us with a copy of your lease agreement, or at least the relevant section about subletting? This will help us determine the next steps and any required procedures.\n\nRegarding your inquiry about pausing or reducing rent during your absence, we will also need to review your lease agreement and company policy to see if this is a possibility. We will look into this and get back to you as soon as possible.\n\nWe appreciate your patience as we look into these matters.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     },
     "thread_020": {
@@ -1174,9 +1282,114 @@
     },
     "thread_054": {
       "thread_id": "thread_054",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Fiona Redmond",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Internet outage affecting work."
+        },
+        "summary": {
+          "value": "Fiona Redmond reports internet connectivity issues affecting multiple apartments on the 5th floor. Virgin Media has ruled out external outages, suggesting a problem with the building's internal cabling.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Graylings",
+          "status": "orange",
+          "confidence": 0.6
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Internet Outage",
+            "description": "Tenant reports frequent internet drops affecting work. Virgin Media says the issue is not on their end, suggesting internal building cabling problems.",
+            "status": "orange",
+            "category": "maintenance",
+            "suggested_action": "Inspect building cabling and comms room on the 5th floor.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_060",
+            "text": "Apt 5A",
+            "field": "sender_type",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_060",
+            "text": "multiple times a day for the past week",
+            "field": "prob_1",
+            "label": "Problem frequency"
+          },
+          {
+            "email_id": "email_060",
+            "text": "I work from home full-time as a software developer and this is seriously affecting my work.",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Virgin Media and they said their service to the building is fine",
+            "field": "prob_1",
+            "label": "External service check"
+          },
+          {
+            "email_id": "email_060",
+            "text": "internal building cabling or the comms room",
+            "field": "prob_1",
+            "label": "Possible cause"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Two of my neighbours on the 5th floor (the person in 5B and the guy in 5D) are having the same issue",
+            "field": "prob_1",
+            "label": "Multiple tenants affected"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Can you check if there's a known issue with the building's telecoms infrastructure on our floor?",
+            "field": "prob_1",
+            "label": "Request for information"
+          },
+          {
+            "email_id": "email_060",
+            "text": "If cabling work is needed, I'd want to know the timeline as I may need to work from a coffee shop or co-working space and would expect not to be out of pocket for that.",
+            "field": "prob_1",
+            "label": "Tenant expectation"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Apt 5A",
+            "field": "prob_1",
+            "label": "Apartment number"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772897694829_combined",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T15:34:54.829Z",
+          "draft_email": "Hi Fiona,\n\nThanks for your email. We understand the frustration caused by the internet connectivity issues you and your neighbours in 5B and 5D are experiencing.\n\nWe've taken note of your report and the information you received from Virgin Media. We will arrange for a qualified technician to inspect the building's internal cabling and comms room on the 5th floor as soon as possible to identify the source of the problem. We will contact you again within 48 hours to confirm when the inspection will take place.\n\nRegarding potential compensation for alternative workspace costs, we need to investigate the cause of the issue first. Once we have a clearer understanding of the problem and the expected timeframe for resolution, we can assess this further.\n\nWe appreciate your patience as we work to resolve this.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     },
     "thread_055": {
@@ -1887,11 +2100,132 @@
     },
     "thread_092": {
       "thread_id": "thread_092",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Rachel Doyle",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "prospect",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "low",
+          "status": "green",
+          "confidence": 0.7,
+          "note": "Partnership inquiry, no immediate action required."
+        },
+        "summary": {
+          "value": "Rachel Doyle from Airbnb's Corporate Housing division is inquiring about a potential partnership with ManageCo to provide furnished apartments for corporate stays in Dublin. Airbnb would handle bookings and guest vetting, while ManageCo would provide property management and cleaning services.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": null,
+          "status": "red",
+          "confidence": 0.3
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Partnership Inquiry",
+            "description": "Airbnb is looking for property management partners to offer furnished apartments for corporate stays.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Evaluate the potential partnership and respond to Airbnb.",
+            "requires_info": "Information about available properties and management capabilities."
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_099",
+            "text": "Rachel Doyle",
+            "field": "sender_name",
+            "label": "Sender identified"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Airbnb's Corporate Housing division",
+            "field": "prob_1",
+            "label": "Airbnb division"
+          },
+          {
+            "email_id": "email_099",
+            "text": "property management partners",
+            "field": "prob_1",
+            "label": "Partner request"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Professional management and cleaning services",
+            "field": "prob_1",
+            "label": "Service requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Consistent quality across multiple units",
+            "field": "prob_1",
+            "label": "Quality requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Flexible lease structures",
+            "field": "prob_1",
+            "label": "Lease requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Guaranteed occupancy during void periods",
+            "field": "prob_1",
+            "label": "Benefit for ManageCo"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Premium nightly rates",
+            "field": "prob_1",
+            "label": "Benefit for ManageCo"
+          },
+          {
+            "email_id": "email_099",
+            "text": "pilot programme",
+            "field": "prob_1",
+            "label": "Pilot program"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Dublin",
+            "field": "prob_1",
+            "label": "Location"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772898746069_combined",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T15:52:26.069Z",
+          "draft_email": "Hi Rachel,\n\nThanks for reaching out to ManageCo regarding a potential partnership with Airbnb's Corporate Housing division. We appreciate you considering us.\n\nWe are certainly interested in exploring this opportunity further. To determine suitability, could you please provide more detail on the specific requirements for the furnished apartments, such as preferred locations in Dublin and typical apartment sizes? Also, could you elaborate on the \"flexible lease structures\" you mentioned?\n\nWe pride ourselves on our professional management and cleaning services, and consistent quality across our managed units. We look forward to discussing how we can work together to provide excellent accommodation for business travellers and relocating professionals.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        },
+        {
+          "id": "action_1772898787495",
+          "type": "forward_to_human",
+          "description": "Manual support escalation alongside AI reply",
+          "timestamp": "2026-03-07T15:53:07.495Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": false,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T15:27:58.873Z"
+  "last_updated": "2026-03-07T16:01:59.261Z"
 }

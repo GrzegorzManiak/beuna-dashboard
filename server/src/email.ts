@@ -237,7 +237,7 @@ export async function sendForwardToCustomerServiceEmail({
       text,
     });
 
-    const response = result as {
+    const response = result as unknown as {
       id?: string;
       data?: { id?: string };
       error?: { message?: string } | string;

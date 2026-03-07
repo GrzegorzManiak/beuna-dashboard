@@ -1,18 +1,17 @@
 import {
-  Zap,
-  Send,
-  CheckCircle2,
   AlertTriangle,
-  Clock,
   ArrowRight,
   Bot,
-  User,
+  CheckCircle2,
+  Clock,
+  Send,
   Shield,
+  User,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ThreadDetail } from "@shared/types";
 
-// ── Timeline event model ─────────────────────────────────────────────
 interface TimelineEvent {
   id: string;
   timestamp: string;
@@ -26,36 +25,33 @@ interface TimelineEvent {
 
 function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
   const events: TimelineEvent[] = [];
-
-  // Thread received
   const firstEmail = thread.emails[0];
+
   if (firstEmail) {
     events.push({
       id: "received",
       timestamp: firstEmail.timestamp,
       icon: Clock,
-      iconColor: "text-gray-500",
-      dotColor: "bg-gray-400",
+      iconColor: "text-slate-500",
+      dotColor: "bg-slate-400",
       title: "Email received",
       subtitle: `From ${firstEmail.from.name}`,
     });
   }
 
-  // Analysed (if extraction exists)
   if (thread.state.extraction) {
     const analyzeTime = thread.state.actions[0]?.timestamp ?? firstEmail?.timestamp ?? "";
     events.push({
       id: "analyzed",
       timestamp: analyzeTime,
       icon: Zap,
-      iconColor: "text-blue-500",
+      iconColor: "text-blue-600",
       dotColor: "bg-blue-500",
-      title: "Analysed",
+      title: "Thread analyzed",
       subtitle: `${thread.state.extraction.problems.length} problem${thread.state.extraction.problems.length !== 1 ? "s" : ""} found`,
     });
   }
 
-  // Each action — show in timeline
   for (const action of thread.state.actions) {
     const typeLabels: Record<string, string> = {
       acknowledge: "Acknowledgement",
@@ -63,7 +59,7 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
       maintenance_request: "Maintenance request",
       contractor_dispatch: "Contractor dispatch",
       escalate: "Escalation",
-      forward_to_human: "Forwarded to CS agent",
+      forward_to_human: "Support escalation",
       reply: "Reply",
     };
 
@@ -74,10 +70,10 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
         id: `action-draft-${action.id}`,
         timestamp: action.timestamp,
         icon: Bot,
-        iconColor: "text-amber-500",
-        dotColor: "bg-amber-400",
-        title: `Draft: ${label}`,
-        subtitle: "Pending approval",
+        iconColor: "text-amber-600",
+        dotColor: "bg-amber-500",
+        title: `Draft prepared`,
+        subtitle: `${label} awaiting approval`,
         auto: true,
       });
     } else if (action.approved) {
@@ -85,7 +81,7 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
         id: `action-sent-${action.id}`,
         timestamp: action.timestamp,
         icon: action.type === "forward_to_human" ? User : Send,
-        iconColor: "text-emerald-500",
+        iconColor: "text-emerald-600",
         dotColor: "bg-emerald-500",
         title: `${label} sent`,
         subtitle: action.auto_triggered ? "Auto-approved" : "Manually approved",
@@ -96,24 +92,23 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
         id: `action-pending-${action.id}`,
         timestamp: action.timestamp,
         icon: ArrowRight,
-        iconColor: "text-gray-400",
-        dotColor: "bg-gray-300",
+        iconColor: "text-slate-400",
+        dotColor: "bg-slate-300",
         title: label,
         subtitle: "Queued",
       });
     }
   }
 
-  // Status events
   if (thread.state.status === "in_progress") {
     events.push({
       id: "in-progress",
       timestamp: new Date().toISOString(),
       icon: Shield,
-      iconColor: "text-cyan-500",
-      dotColor: "bg-cyan-500",
+      iconColor: "text-violet-600",
+      dotColor: "bg-violet-500",
       title: "In progress",
-      subtitle: "Responses being processed",
+      subtitle: "Responses are being processed",
     });
   }
 
@@ -125,24 +120,26 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
       iconColor: "text-emerald-600",
       dotColor: "bg-emerald-600",
       title: "Resolved",
+      subtitle: "Thread can be closed",
     });
   }
 
-  // Red items warning
-  const redCount = thread.state.extraction?.problems.filter(p => p.status === "red").length ?? 0;
+  const redCount = thread.state.extraction?.problems.filter((problem) => problem.status === "red").length ?? 0;
   if (redCount > 0) {
     events.push({
       id: "blocked",
       timestamp: new Date().toISOString(),
       icon: AlertTriangle,
-      iconColor: "text-red-500",
-      dotColor: "bg-red-500",
+      iconColor: "text-rose-600",
+      dotColor: "bg-rose-500",
       title: `${redCount} blocked item${redCount !== 1 ? "s" : ""}`,
       subtitle: "Needs human judgment",
     });
   }
 
-  return events;
+  return events.sort(
+    (left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime()
+  );
 }
 
 function formatTime(iso: string): string {
@@ -156,56 +153,59 @@ function formatTime(iso: string): string {
   }
 }
 
-// ── HistoryPanel ─────────────────────────────────────────────────────
 export function HistoryPanel({ thread }: { thread: ThreadDetail }) {
   const events = buildTimeline(thread);
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="px-3 py-2.5 border-b border-border">
-        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Activity
-        </h3>
+    <div className="app-surface flex h-full min-h-0 flex-col">
+      <div className="border-b border-border/70 px-4 py-4">
+        <span className="app-kicker">History</span>
+        <p className="mt-3 text-sm font-semibold tracking-[-0.01em]">Thread activity</p>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          The most recent operational events for this thread.
+        </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="app-scroll flex-1 overflow-y-auto px-4 py-4">
         {events.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground text-center py-8">
-            No activity yet
-          </p>
+          <div className="flex h-full items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/40 text-sm text-muted-foreground">
+            No activity yet.
+          </div>
         ) : (
-          <div className="relative">
-            {/* Vertical timeline line */}
-            <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
+          <div className="relative pl-4">
+            <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border/80" />
 
             <div className="space-y-3">
               {events.map((event) => {
                 const Icon = event.icon;
                 return (
-                  <div key={event.id} className="flex items-start gap-2.5 relative">
-                    {/* Dot */}
-                    <div className={cn(
-                      "size-[15px] rounded-full flex items-center justify-center shrink-0 z-10 bg-white ring-2 ring-white",
-                    )}>
-                      <div className={cn("size-[9px] rounded-full", event.dotColor)} />
+                  <div key={event.id} className="relative flex items-start gap-3">
+                    <div className="absolute -left-4 top-3 flex size-4 items-center justify-center rounded-full bg-white ring-4 ring-white">
+                      <span className={cn("block size-2 rounded-full", event.dotColor)} />
                     </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 -mt-0.5">
-                      <div className="flex items-center gap-1">
-                        <Icon className={cn("size-3 shrink-0", event.iconColor)} />
-                        <span className="text-[11px] font-medium truncate">{event.title}</span>
+                    <article className="w-full rounded-[16px] border border-border/70 bg-white/70 px-3.5 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Icon className={cn("size-3.5 shrink-0", event.iconColor)} />
+                            <p className="truncate text-[13px] font-semibold tracking-[-0.01em]">
+                              {event.title}
+                            </p>
+                          </div>
+                          {event.subtitle && (
+                            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {event.auto && <Bot className="size-3 opacity-60" />}
+                              {event.subtitle}
+                            </p>
+                          )}
+                        </div>
+
+                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                          {formatTime(event.timestamp)}
+                        </span>
                       </div>
-                      {event.subtitle && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                          {event.auto && <Bot className="size-2.5 opacity-50" />}
-                          {event.subtitle}
-                        </p>
-                      )}
-                      <span className="text-[9px] text-muted-foreground/60 tabular-nums">
-                        {formatTime(event.timestamp)}
-                      </span>
-                    </div>
+                    </article>
                   </div>
                 );
               })}

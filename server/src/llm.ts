@@ -116,6 +116,34 @@ CURRENT ANALYSIS:
 - Problems: ${extraction.problems.map((p) => `[${p.status.toUpperCase()}] ${p.title}: ${p.description}`).join("\n  ")}`;
   }
 
+  if (actionType === "forward_to_human") {
+    return `You are drafting an INTERNAL escalation email from the AI inbox assistant to a human support specialist at ManageCo Property Management.
+
+FULL EMAIL THREAD FOR CONTEXT:
+${emailText}
+${extractionContext}
+
+${problem ? `FOCUS ISSUE:
+Title: ${problem.title}
+Description: ${problem.description}
+Status: ${problem.status}
+Category: ${problem.category}
+${problem.requires_info ? `Missing info: ${problem.requires_info}` : ""}
+${problem.suggested_action ? `Suggested action: ${problem.suggested_action}` : ""}` : ""}
+
+INSTRUCTIONS:
+- Write a concise internal handoff email to human support, not to the customer.
+- Summarize the sender, property, urgency, and which issue(s) require human judgment or follow-up.
+- Mention any customer-facing reply that can proceed in parallel when relevant.
+- Recommend the next best human step.
+- Use a professional internal tone and keep it under 180 words.
+- Start with "Hi Support Team,".
+- DO NOT include a subject line or email headers.
+- Sign off as "ManageCo AI Desk".
+
+Return ONLY the email body text.`;
+  }
+
   // Template scaffolds for each action type
   const templates: Record<string, string> = {
     acknowledge: `TEMPLATE SCAFFOLD (use as rough structure, adapt to the actual situation):
@@ -160,16 +188,6 @@ Dear ${senderFirst},
 Thank you for your patience regarding [specific issue]. We understand this matter requires urgent attention.
 
 We have escalated your case to our [senior management/legal team/relevant department] for immediate review. You can expect to hear from [appropriate person] within [timeframe].
-
-Best regards,
-ManageCo Property Management`,
-
-    forward_to_human: `TEMPLATE SCAFFOLD (use as rough structure, adapt to the actual situation):
-Dear ${senderFirst},
-
-Thank you for your message regarding [specific issue]. After initial review, we've determined this requires personal attention from a member of our team.
-
-A property manager will review your case and be in touch with you directly within [timeframe]. They will have full context of your correspondence.
 
 Best regards,
 ManageCo Property Management`,
@@ -291,6 +309,109 @@ export async function generateDraftEmail(
 
   const prompt = buildDraftEmailPrompt(emails, extraction, actionType, problem);
   return await callLLM(prompt, 0.4, 500);
+}
+
+// ── Build Combined Draft Email Prompt ────────────────────────────────
+function buildCombinedDraftEmailPrompt(
+  emails: SeedEmail[],
+  extraction: Extraction | null,
+  problems: Problem[]
+): string {
+  const emailText = formatEmails(emails);
+  const firstEmail = emails[0]!;
+  const senderFirst = firstEmail.from.name.split(" ")[0];
+
+  let extractionContext = "";
+  if (extraction) {
+    extractionContext = `\nCURRENT ANALYSIS:
+- Sender: ${extraction.sender_name.value} (${extraction.sender_type.value})
+- Urgency: ${extraction.urgency.value}
+- Property: ${extraction.property.value}
+- Summary: ${extraction.summary.value}`;
+  }
+
+  const problemsList = problems
+    .map(
+      (p, i) =>
+        `${i + 1}. [${p.status.toUpperCase()}] ${p.title}: ${p.description}${p.requires_info ? ` (Missing info: ${p.requires_info})` : ""}${p.suggested_action ? ` (Suggested: ${p.suggested_action})` : ""}`
+    )
+    .join("\n");
+
+  return `You are drafting a SINGLE combined email response for ManageCo Property Management that addresses ALL issues in this thread.
+
+EMAIL THREAD:
+${emailText}
+${extractionContext}
+
+ALL ISSUES TO ADDRESS IN ONE EMAIL:
+${problemsList}
+
+INSTRUCTIONS:
+- Write ONE professional email that addresses ALL of the above issues in a single, coherent response.
+- For orange-status issues that need more info, include clear requests for that information.
+- For green-status issues, acknowledge them and state what action is being taken.
+- For red-status issues, acknowledge them clearly and explain that a human support specialist will follow up.
+- It is valid to both respond now and mention that an internal escalation is underway.
+- Reference specific details from the email thread.
+- Be professional, empathetic, and concise (under 250 words).
+- Address the sender by their first name (${senderFirst}).
+- Structure the email with clear paragraphs — don't use bullet points for every issue unless there are 3+ items.
+- DO NOT include a subject line or email headers.
+- Sign off as "ManageCo Property Management".
+
+Return ONLY the email body text.`;
+}
+
+// ── Generate Combined Draft Email ────────────────────────────────────
+export async function generateCombinedDraftEmail(
+  emails: SeedEmail[],
+  extraction: Extraction | null,
+  problems: Problem[]
+): Promise<string> {
+  const apiKey = getApiKey();
+
+  if (!apiKey) {
+    return createMockCombinedDraftEmail(emails, extraction, problems);
+  }
+
+  const prompt = buildCombinedDraftEmailPrompt(emails, extraction, problems);
+  return await callLLM(prompt, 0.4, 800);
+}
+
+// ── Mock combined draft email ────────────────────────────────────────
+function createMockCombinedDraftEmail(
+  emails: SeedEmail[],
+  extraction: Extraction | null,
+  problems: Problem[]
+): string {
+  const first = emails[0]!;
+  const firstName = first.from.name.split(" ")[0];
+  const propertyName = extraction?.property.value ?? "your property";
+  const urgency = extraction?.urgency.value ?? "medium";
+  const timeframe =
+    urgency === "critical"
+      ? "within the hour"
+      : urgency === "high"
+        ? "within 24 hours"
+        : "within 2-3 business days";
+
+  let body = `Dear ${firstName},\n\nThank you for reaching out regarding the issues at ${propertyName}. We have reviewed your correspondence and would like to address each matter.\n\n`;
+
+  for (const p of problems) {
+    if (p.status === "red") {
+      body += `Regarding ${p.title.toLowerCase()}: this needs direct review by a human support specialist, and we are arranging that follow-up.\n\n`;
+    } else if (p.status === "orange" && p.requires_info) {
+      body += `Regarding ${p.title.toLowerCase()}: to help us resolve this promptly, could you please provide ${p.requires_info}?\n\n`;
+    } else if (p.suggested_action) {
+      body += `Regarding ${p.title.toLowerCase()}: ${p.suggested_action.toLowerCase().startsWith("we") ? p.suggested_action : "we are taking action to " + p.suggested_action.toLowerCase()}.\n\n`;
+    } else {
+      body += `Regarding ${p.title.toLowerCase()}: we have noted this and our team is looking into it.\n\n`;
+    }
+  }
+
+  body += `You can expect a follow-up from us ${timeframe}. Please don't hesitate to reply if anything changes.\n\nBest regards,\nManageCo Property Management`;
+
+  return body;
 }
 
 // ── Mock extraction for dev without API key ──────────────────────────
@@ -551,16 +672,30 @@ ManageCo Property Management`;
   }
 
   if (actionType === "forward_to_human") {
-    return `Dear ${firstName},
+    const escalatedProblems =
+      problem
+        ? [problem]
+        : (extraction?.problems.filter(
+            (item) =>
+              item.status === "red" ||
+              item.category.toLowerCase() === "legal" ||
+              item.category.toLowerCase() === "compliance"
+          ) ?? []);
+    const issueSummary =
+      escalatedProblems.length > 0
+        ? escalatedProblems.map((item) => item.title).join(", ")
+        : subject;
 
-Thank you for your message regarding "${subject}" at ${propertyName}. After our initial review, this matter requires personal attention from a member of our property management team.
+    return `Hi Support Team,
 
-${problem ? `Your concern about ${problem.title.toLowerCase()} has been flagged for direct follow-up.` : "Your case has been flagged for direct follow-up."} A property manager will review the full correspondence and reach out to you ${timeframe}.
+Please review the thread from ${first.from.name} regarding "${subject}" at ${propertyName}. ${problem ? `${problem.title} requires human follow-up.` : `The following issue(s) need human support review: ${issueSummary}.`}
 
-We appreciate your patience.
+Urgency: ${urgency}. ${problem?.requires_info ? `Missing detail noted: ${problem.requires_info}. ` : ""}${problem?.suggested_action ? `Suggested AI next step: ${problem.suggested_action}. ` : ""}A customer-facing reply can proceed in parallel while support reviews the case.
 
-Best regards,
-ManageCo Property Management`;
+Recommended next step: review the thread, confirm ownership, and follow up ${timeframe}.
+
+Regards,
+ManageCo AI Desk`;
   }
 
   return `Dear ${firstName},

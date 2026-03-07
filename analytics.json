@@ -1,6 +1,45 @@
 {
-  "last_updated": "2026-03-07T15:27:58.875Z",
+  "last_updated": "2026-03-07T16:01:59.263Z",
   "sent_items": [
+    {
+      "id": "thread_019:action_1772899316851_reply",
+      "thread_id": "thread_019",
+      "action_id": "action_1772899316851_reply",
+      "action_type": "reply",
+      "description": "Auto: combined response addressing 2 issue(s)",
+      "draft_email": "Hi Ana,\n\nThanks for reaching out to us. We understand you're looking to sublet your apartment (12E) from April to June while you're in Lisbon, and we appreciate you suggesting a potential subtenant.\n\nTo properly address your subletting request, we need to review your lease agreement regarding subletting policies. Could you please provide us with a copy of your lease agreement, or at least the relevant section about subletting? This will help us determine the next steps and any required procedures.\n\nRegarding your inquiry about pausing or reducing rent during your absence, we will also need to review your lease agreement and company policy to see if this is a possibility. We will look into this and get back to you as soon as possible.\n\nWe appreciate your patience as we look into these matters.\n\nManageCo Property Management",
+      "sent_at": "2026-03-07T16:01:56.851Z",
+      "subject": "Request to sublet my apartment for 3 months",
+      "property_name": "Graylings",
+      "recipient_name": "Ana Santos",
+      "recipient_email": "ana.santos@gmail.com"
+    },
+    {
+      "id": "thread_092:action_1772898746069_combined",
+      "thread_id": "thread_092",
+      "action_id": "action_1772898746069_combined",
+      "action_type": "reply",
+      "description": "Auto: combined response addressing 1 issue(s)",
+      "draft_email": "Hi Rachel,\n\nThanks for reaching out to ManageCo regarding a potential partnership with Airbnb's Corporate Housing division. We appreciate you considering us.\n\nWe are certainly interested in exploring this opportunity further. To determine suitability, could you please provide more detail on the specific requirements for the furnished apartments, such as preferred locations in Dublin and typical apartment sizes? Also, could you elaborate on the \"flexible lease structures\" you mentioned?\n\nWe pride ourselves on our professional management and cleaning services, and consistent quality across our managed units. We look forward to discussing how we can work together to provide excellent accommodation for business travellers and relocating professionals.\n\nManageCo Property Management",
+      "sent_at": "2026-03-07T15:52:26.069Z",
+      "subject": "Partnership inquiry - Short-term corporate stays",
+      "property_name": "Unknown",
+      "recipient_name": "Rachel Doyle",
+      "recipient_email": "rachel.doyle@airbnb.com"
+    },
+    {
+      "id": "thread_054:action_1772897694829_combined",
+      "thread_id": "thread_054",
+      "action_id": "action_1772897694829_combined",
+      "action_type": "reply",
+      "description": "Auto: combined response addressing 1 issue(s)",
+      "draft_email": "Hi Fiona,\n\nThanks for your email. We understand the frustration caused by the internet connectivity issues you and your neighbours in 5B and 5D are experiencing.\n\nWe've taken note of your report and the information you received from Virgin Media. We will arrange for a qualified technician to inspect the building's internal cabling and comms room on the 5th floor as soon as possible to identify the source of the problem. We will contact you again within 48 hours to confirm when the inspection will take place.\n\nRegarding potential compensation for alternative workspace costs, we need to investigate the cause of the issue first. Once we have a clearer understanding of the problem and the expected timeframe for resolution, we can assess this further.\n\nWe appreciate your patience as we work to resolve this.\n\nManageCo Property Management",
+      "sent_at": "2026-03-07T15:34:54.829Z",
+      "subject": "Internet keeps dropping - is it a building issue?",
+      "property_name": "Graylings",
+      "recipient_name": "Fiona Redmond",
+      "recipient_email": "fiona.redmond@gmail.com"
+    },
     {
       "id": "thread_070:action_1772897250558_prob_4",
       "thread_id": "thread_070",
@@ -42,6 +81,30 @@
     }
   ],
   "analyzed_threads": [
+    {
+      "thread_id": "thread_019",
+      "subject": "Request to sublet my apartment for 3 months",
+      "property_name": "Graylings",
+      "analyzed_at": "2026-03-07T16:01:56.847Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_092",
+      "subject": "Partnership inquiry - Short-term corporate stays",
+      "property_name": "Unknown",
+      "analyzed_at": "2026-03-07T15:52:24.496Z",
+      "overall_health": "red",
+      "urgency": "low"
+    },
+    {
+      "thread_id": "thread_054",
+      "subject": "Internet keeps dropping - is it a building issue?",
+      "property_name": "Graylings",
+      "analyzed_at": "2026-03-07T15:34:53.200Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
     {
       "thread_id": "thread_070",
       "subject": "Concern about construction next door",
