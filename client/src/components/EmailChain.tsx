@@ -1,7 +1,7 @@
-import { useMemo, useCallback, Fragment } from "react";
+import { useMemo, Fragment } from "react";
 import { Mail, Paperclip, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { SeedEmail, SourceSpan, TrafficLight } from "@shared/types";
+import type { SeedEmail, SourceSpan } from "@shared/types";
 
 // ── Highlight colors per field category ──────────────────────────────
 const fieldColors: Record<string, { bg: string; ring: string; text: string }> = {
