@@ -13,6 +13,7 @@ import {
   resetAnalytics,
 } from "./analytics";
 import { analyzeThread, generateDraftEmail } from "./llm";
+import { sendForwardToCustomerServiceEmail } from "./email";
 import type {
   ActionType,
   AnalyzedThreadEvent,
@@ -513,30 +514,53 @@ export async function handleThreadAction(
   return json(action);
 }
 
-export function handleApproveAction(threadId: string, actionId: string): Response {
+export async function handleApproveAction(
+  threadId: string,
+  actionId: string
+): Promise<Response> {
   const threadMap = getEmailsByThread();
-  if (!threadMap.has(threadId)) return error("Thread not found", 404);
+  const emails = threadMap.get(threadId);
+  if (!emails) return error("Thread not found", 404);
+
+  const threadState = getThreadState(threadId);
+  const action = threadState.actions.find((item) => item.id === actionId);
+  if (!action) return error("Action not found", 404);
+  if (action.approved) return json({ success: true, already_approved: true });
+
+  let csEmailId: string | null = null;
+  if (action.type === "forward_to_human") {
+    const propertyId =
+      emails.find((email) => email.from.property_id)?.from.property_id ?? undefined;
+    const sendResult = await sendForwardToCustomerServiceEmail({
+      threadId,
+      action,
+      emails,
+      extraction: threadState.extraction,
+      propertyName: getPropertyName(propertyId),
+    });
+
+    if (!sendResult.ok) {
+      return error(`CS email send failed: ${sendResult.error}`, 502);
+    }
+    csEmailId = sendResult.id;
+  }
 
   const sentAt = new Date().toISOString();
-  let approvedAction: ThreadAction | null = null;
-
   updateThreadState(threadId, (state) => {
-    const action = state.actions.find((item) => item.id === actionId);
-    if (action && !action.approved) {
-      action.approved = true;
-      approvedAction = action;
-    }
+    const currentAction = state.actions.find((item) => item.id === actionId);
+    if (!currentAction) return;
+    currentAction.approved = true;
 
-    if (approvedAction && (state.status === "reviewing" || state.status === "analyzed")) {
+    if (state.status === "reviewing" || state.status === "analyzed") {
       state.status = "in_progress";
     }
   });
 
-  if (approvedAction) {
-    recordSentItem(buildSentItem(threadId, approvedAction, sentAt));
-  }
+  const approvedAction = getThreadState(threadId).actions.find((item) => item.id === actionId);
+  if (!approvedAction) return error("Failed to persist approved action", 500);
+  recordSentItem(buildSentItem(threadId, approvedAction, sentAt));
 
-  return json({ success: true });
+  return json({ success: true, cs_email_id: csEmailId });
 }
 
 export function handleResolveThread(threadId: string): Response {
