@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
+  AlertTriangle,
   CheckCircle2,
+  Clock,
   Loader2,
   Mail,
   RefreshCcw,
   Search,
+  WifiOff,
   Zap,
 } from "lucide-react";
 import { threadsApi } from "@/api/threads";
@@ -19,23 +22,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAnalyzeAll, useThreadsQuery } from "@/hooks/useThreads";
+import { useAnalyzeAll, useHealthQuery, useThreadsQuery } from "@/hooks/useThreads";
 import { cn } from "@/lib/utils";
 import type { ThreadStatus, ThreadSummary, UrgencyLevel } from "@shared/types";
 
-type FilterStatus = "all" | "pending" | "analyzed" | "reviewing" | "resolved";
+type FilterStatus = "all" | ThreadStatus;
 
-const urgencyStyles: Record<UrgencyLevel, string> = {
-  critical: "bg-red-100 text-red-700",
-  high: "bg-orange-100 text-orange-700",
-  medium: "bg-blue-100 text-blue-700",
-  low: "bg-slate-100 text-slate-700",
+const urgencyConfig: Record<
+  UrgencyLevel,
+  { label: string; color: string; icon: typeof AlertTriangle }
+> = {
+  critical: { label: "Critical", color: "bg-red-100 text-red-700", icon: AlertTriangle },
+  high: { label: "High", color: "bg-orange-100 text-orange-700", icon: Clock },
+  medium: { label: "Medium", color: "bg-blue-100 text-blue-700", icon: Mail },
+  low: { label: "Low", color: "bg-slate-100 text-slate-700", icon: Mail },
 };
 
 const statusStyles: Record<ThreadStatus, string> = {
   pending: "bg-slate-100 text-slate-700",
   analyzed: "bg-cyan-100 text-cyan-700",
   reviewing: "bg-amber-100 text-amber-700",
+  in_progress: "bg-violet-100 text-violet-700",
   resolved: "bg-emerald-100 text-emerald-700",
 };
 
@@ -43,6 +50,7 @@ export function Inbox() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: threads, isLoading } = useThreadsQuery();
+  const { data: health } = useHealthQuery();
   const analyzeAll = useAnalyzeAll();
 
   const [search, setSearch] = useState("");
@@ -63,14 +71,18 @@ export function Inbox() {
 
   const counts = {
     all: threads?.length ?? 0,
-    pending: threads?.filter((t) => t.status === "pending").length ?? 0,
-    analyzed: threads?.filter((t) => t.status === "analyzed").length ?? 0,
-    reviewing: threads?.filter((t) => t.status === "reviewing").length ?? 0,
-    resolved: threads?.filter((t) => t.status === "resolved").length ?? 0,
+    pending: threads?.filter((thread) => thread.status === "pending").length ?? 0,
+    analyzed: threads?.filter((thread) => thread.status === "analyzed").length ?? 0,
+    reviewing: threads?.filter((thread) => thread.status === "reviewing").length ?? 0,
+    in_progress:
+      threads?.filter((thread) => thread.status === "in_progress").length ?? 0,
+    resolved: threads?.filter((thread) => thread.status === "resolved").length ?? 0,
   };
 
-  const blockers = threads?.filter((thread) => thread.overall_health === "red").length ?? 0;
-  const analyzed = threads?.filter((thread) => thread.status !== "pending").length ?? 0;
+  const blockers =
+    threads?.filter((thread) => thread.overall_health === "red").length ?? 0;
+  const analyzed =
+    threads?.filter((thread) => thread.status !== "pending").length ?? 0;
 
   async function handleReset() {
     setResetting(true);
@@ -88,6 +100,15 @@ export function Inbox() {
 
   return (
     <div className="space-y-4">
+      {health && !health.openrouter_connected && (
+        <Card className="border-red-200 bg-red-50/80">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-red-800">
+            <WifiOff className="size-4 shrink-0" />
+            <p>OpenRouter is disconnected. Analysis is running in mock mode.</p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader className="border-b">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -114,7 +135,12 @@ export function Inbox() {
                 )}
                 {analyzeAll.isPending ? "Analyzing..." : "Analyze All"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleReset} disabled={resetting}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                disabled={resetting}
+              >
                 <RefreshCcw className={cn("size-4", resetting && "animate-spin")} />
               </Button>
             </div>
@@ -141,7 +167,16 @@ export function Inbox() {
               />
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(["all", "pending", "analyzed", "reviewing", "resolved"] as const).map((value) => (
+              {(
+                [
+                  "all",
+                  "pending",
+                  "analyzed",
+                  "reviewing",
+                  "in_progress",
+                  "resolved",
+                ] as const
+              ).map((value) => (
                 <button
                   key={value}
                   onClick={() => setFilter(value)}
@@ -152,7 +187,7 @@ export function Inbox() {
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   )}
                 >
-                  {value === "all" ? "All" : capitalize(value)} ({counts[value]})
+                  {formatStatusLabel(value)} ({counts[value]})
                 </button>
               ))}
             </div>
@@ -182,6 +217,19 @@ export function Inbox() {
             </div>
           )}
         </CardContent>
+
+        <CardContent className="border-t pt-3">
+          <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <span>{threads?.length ?? 0} threads</span>
+            <span>{blockers} need attention</span>
+            {analyzeAll.data && (
+              <span className="text-emerald-600">
+                Last batch: {analyzeAll.data.completed} analyzed,{" "}
+                {analyzeAll.data.failed} failed
+              </span>
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
@@ -194,6 +242,8 @@ function ThreadRow({
   thread: ThreadSummary;
   onOpen: () => void;
 }) {
+  const urgency = thread.urgency ? urgencyConfig[thread.urgency] : null;
+
   return (
     <button
       onClick={onOpen}
@@ -206,19 +256,34 @@ function ThreadRow({
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <StatusDot status={thread.overall_health} size="sm" />
         <p className="text-sm font-semibold">{thread.sender_name}</p>
-        <span className="text-xs text-muted-foreground">{thread.property_name}</span>
-        <span className="ml-auto text-xs text-muted-foreground">{formatRelativeTime(thread.last_email_timestamp)}</span>
+        {thread.property_name !== "Unknown" && (
+          <span className="text-xs text-muted-foreground">{thread.property_name}</span>
+        )}
+        <span className="ml-auto text-xs text-muted-foreground">
+          {formatRelativeTime(thread.last_email_timestamp)}
+        </span>
       </div>
 
-      <p className={cn("text-sm", thread.unread_count > 0 ? "font-semibold" : "text-foreground")}>{thread.subject}</p>
+      <p
+        className={cn(
+          "text-sm",
+          thread.unread_count > 0 ? "font-semibold" : "text-foreground"
+        )}
+      >
+        {thread.subject}
+      </p>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
-        <span className={cn("rounded-full px-2 py-0.5 font-medium", statusStyles[thread.status])}>
-          {capitalize(thread.status)}
+        <span
+          className={cn("rounded-full px-2 py-0.5 font-medium", statusStyles[thread.status])}
+        >
+          {formatStatusLabel(thread.status)}
         </span>
-        {thread.urgency && (
-          <span className={cn("rounded-full px-2 py-0.5 font-medium", urgencyStyles[thread.urgency])}>
-            {capitalize(thread.urgency)}
+        {urgency && (
+          <span
+            className={cn("rounded-full px-2 py-0.5 font-medium", urgency.color)}
+          >
+            {urgency.label}
           </span>
         )}
         {thread.problem_count > 0 && (
@@ -264,11 +329,15 @@ function formatRelativeTime(value: string): string {
   const date = new Date(value);
   const diffMs = Date.now() - date.getTime();
   const diffMin = Math.round(diffMs / 60000);
+
   if (diffMin < 60) return `${Math.max(diffMin, 1)}m ago`;
   if (diffMin < 1440) return `${Math.round(diffMin / 60)}h ago`;
+
   return date.toLocaleDateString("en-IE", { month: "short", day: "numeric" });
 }
 
-function capitalize(value: string): string {
+function formatStatusLabel(value: FilterStatus): string {
+  if (value === "all") return "All";
+  if (value === "in_progress") return "In Progress";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }

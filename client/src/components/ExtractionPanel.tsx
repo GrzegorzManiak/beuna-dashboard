@@ -7,10 +7,11 @@ import {
   X,
   Loader2,
   Zap,
-  Send,
   CheckCircle2,
   Info,
   ThumbsUp,
+  ArrowRight,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusDot, StatusBadge } from "@/components/StatusIndicator";
@@ -21,14 +22,11 @@ import type {
   Problem,
   TrafficLight,
   ThreadAction,
-  ActionType,
 } from "@shared/types";
 import {
   useAnalyzeThread,
   useUpdateThread,
-  useTriggerAction,
   useApproveAction,
-  useResolveThread,
 } from "@/hooks/useThreads";
 
 // ── Editable field row ───────────────────────────────────────────────
@@ -134,22 +132,116 @@ function FieldRow<T extends string>({
   );
 }
 
+// ── Inline action badge (shows what auto-action was taken) ───────────
+function ActionBadge({
+  action,
+  threadId,
+}: {
+  action: ThreadAction;
+  threadId: string;
+}) {
+  const approveAction = useApproveAction();
+  const [showDraft, setShowDraft] = useState(false);
+
+  const typeLabels: Record<string, string> = {
+    request_info: "Requesting info",
+    forward_to_human: "Forward to CS agent",
+    contractor_dispatch: "Dispatching contractor",
+    acknowledge: "Acknowledging",
+    maintenance_request: "Maintenance request",
+    escalate: "Escalating",
+    reply: "Replying",
+  };
+
+  const typeColors: Record<string, string> = {
+    request_info: "text-amber-700 bg-amber-50 border-amber-200",
+    forward_to_human: "text-violet-700 bg-violet-50 border-violet-200",
+    contractor_dispatch: "text-blue-700 bg-blue-50 border-blue-200",
+    acknowledge: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    maintenance_request: "text-blue-700 bg-blue-50 border-blue-200",
+    escalate: "text-red-700 bg-red-50 border-red-200",
+    reply: "text-gray-700 bg-gray-50 border-gray-200",
+  };
+
+  if (action.approved) {
+    return (
+      <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mt-1">
+        <CheckCircle2 className="size-3" />
+        <span>{typeLabels[action.type] ?? action.type} — sent</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("mt-1.5 rounded-sm border p-2 space-y-1.5", typeColors[action.type] ?? "text-gray-700 bg-gray-50 border-gray-200")}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1 text-[10px] font-medium">
+          {action.auto_triggered && <Bot className="size-3 opacity-60" />}
+          <span>{typeLabels[action.type] ?? action.type}</span>
+        </div>
+        <span className="text-[9px] opacity-60 font-medium">Pending approval</span>
+      </div>
+
+      {action.draft_email && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowDraft(!showDraft); }}
+            className="text-[10px] font-medium hover:underline flex items-center gap-1 opacity-70"
+          >
+            {showDraft ? "Hide" : "Preview"} draft
+            <ChevronDown className={cn("size-2.5 transition-transform", showDraft && "rotate-180")} />
+          </button>
+
+          <div className={cn(
+            "grid transition-all duration-200",
+            showDraft ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          )}>
+            <div className="overflow-hidden">
+              <div className="text-[11px] opacity-80 whitespace-pre-wrap leading-relaxed border-l-2 border-current/20 pl-2.5 py-1">
+                {action.draft_email}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <Button
+        size="sm"
+        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-7 font-medium shadow-sm"
+        onClick={(e) => {
+          e.stopPropagation();
+          approveAction.mutate({ threadId, actionId: action.id });
+        }}
+        disabled={approveAction.isPending}
+      >
+        {approveAction.isPending ? (
+          <Loader2 className="size-3.5 animate-spin mr-1.5" />
+        ) : (
+          <ThumbsUp className="size-3 mr-1.5" />
+        )}
+        Approve & Send
+      </Button>
+    </div>
+  );
+}
+
 // ── Problem card ─────────────────────────────────────────────────────
 function ProblemCard({
   problem,
   threadId,
   isActive,
+  action,
   onStatusChange,
   onFieldClick,
 }: {
   problem: Problem;
   threadId: string;
   isActive?: boolean;
+  action?: ThreadAction;
   onStatusChange: (id: string, status: TrafficLight) => void;
   onFieldClick?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const triggerAction = useTriggerAction();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,6 +250,13 @@ function ProblemCard({
       setExpanded(true);
     }
   }, [isActive]);
+
+  // Auto-expand if there's a pending action
+  useEffect(() => {
+    if (action && !action.approved) {
+      setExpanded(true);
+    }
+  }, [action]);
 
   const statusBorder: Record<TrafficLight, string> = {
     red: "border-l-red-500",
@@ -191,7 +290,7 @@ function ProblemCard({
         expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
       )}>
         <div className="overflow-hidden">
-          <div className="px-2.5 pb-2.5 space-y-2 border-t border-border/40 pt-2">
+          <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-border/40 pt-2">
             <p className="text-[11px] text-foreground/70 leading-relaxed">{problem.description}</p>
 
             {problem.requires_info && (
@@ -207,108 +306,40 @@ function ProblemCard({
               </p>
             )}
 
-            {/* Status actions */}
-            <div className="flex items-center gap-1 pt-0.5">
-              {problem.status === "red" && (
-                <>
-                  <Button size="xs" variant="outline" className="text-[10px] h-5 px-1.5"
+            {/* Red = needs human judgment */}
+            {problem.status === "red" && (
+              <div className="space-y-1.5 pt-0.5">
+                <div className="flex items-center gap-1 text-[10px] text-red-600 font-medium">
+                  <AlertTriangle className="size-3" />
+                  Needs human judgment
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="text-[11px] h-7 px-2.5 font-medium border-amber-300 text-amber-700 hover:bg-amber-50"
                     onClick={(e) => { e.stopPropagation(); onStatusChange(problem.id, "orange"); }}>
-                    Mark yellow
+                    <ArrowRight className="size-3 mr-1" /> Mark orange
                   </Button>
-                  <Button size="xs" variant="outline" className="text-[10px] h-5 px-1.5"
+                  <Button size="sm" variant="outline" className="text-[11px] h-7 px-2.5 font-medium border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                     onClick={(e) => { e.stopPropagation(); onStatusChange(problem.id, "green"); }}>
-                    Mark green
+                    <Check className="size-3 mr-1" /> Mark green
                   </Button>
-                </>
-              )}
-              {problem.status === "orange" && (
-                <>
-                  <Button size="xs" variant="outline" className="text-[10px] h-5 px-1.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      triggerAction.mutate({ threadId, type: "request_info", problemId: problem.id });
-                    }}
-                    disabled={triggerAction.isPending}>
-                    <Send className="size-2.5 mr-0.5" /> Request info
-                  </Button>
-                  <Button size="xs" variant="outline" className="text-[10px] h-5 px-1.5"
-                    onClick={(e) => { e.stopPropagation(); onStatusChange(problem.id, "green"); }}>
-                    Mark green
-                  </Button>
-                </>
-              )}
-              {problem.status === "green" && (
-                <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium">
-                  <CheckCircle2 className="size-3" /> Resolved
-                </span>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show the auto-triggered action for this problem */}
+            {action && (
+              <ActionBadge action={action} threadId={threadId} />
+            )}
+
+            {/* Green with no action yet — just show complete */}
+            {problem.status === "green" && !action && (
+              <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium pt-0.5">
+                <CheckCircle2 className="size-3" /> Complete
+              </span>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── Action card (pending review) ─────────────────────────────────────
-function ActionCard({
-  action,
-  threadId,
-}: {
-  action: ThreadAction;
-  threadId: string;
-}) {
-  const approveAction = useApproveAction();
-  const [showDraft, setShowDraft] = useState(false);
-
-  // Don't show approved actions here — they appear in the email chain
-  if (action.approved) return null;
-
-  return (
-    <div className="border border-amber-200 bg-amber-50/30 rounded-sm p-2.5 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium capitalize">
-          {action.type.replace(/_/g, " ")}
-        </span>
-        <span className="text-[10px] text-amber-600 font-medium">Pending</span>
-      </div>
-
-      {action.draft_email && (
-        <>
-          <button
-            onClick={() => setShowDraft(!showDraft)}
-            className="text-[10px] text-primary font-medium hover:underline flex items-center gap-1"
-          >
-            {showDraft ? "Hide" : "Show"} draft
-            <ChevronDown className={cn("size-2.5 transition-transform", showDraft && "rotate-180")} />
-          </button>
-
-          <div className={cn(
-            "grid transition-all duration-200",
-            showDraft ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-          )}>
-            <div className="overflow-hidden">
-              <div className="text-[11px] text-foreground/70 whitespace-pre-wrap leading-relaxed border-l-2 border-border pl-2.5 py-1">
-                {action.draft_email}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      <Button
-        size="xs"
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] h-6"
-        onClick={() => approveAction.mutate({ threadId, actionId: action.id })}
-        disabled={approveAction.isPending}
-      >
-        {approveAction.isPending ? (
-          <Loader2 className="size-3 animate-spin mr-1" />
-        ) : (
-          <ThumbsUp className="size-3 mr-1" />
-        )}
-        Approve & Send
-      </Button>
     </div>
   );
 }
@@ -325,13 +356,9 @@ export function ExtractionPanel({
 }) {
   const analyzeThread = useAnalyzeThread();
   const updateThread = useUpdateThread();
-  const triggerAction = useTriggerAction();
-  const resolveThread = useResolveThread();
   const extraction = thread.state.extraction;
 
   const hasRedItems = extraction?.problems.some((p) => p.status === "red") ?? false;
-  const canResolve = extraction && !hasRedItems && thread.state.status !== "resolved";
-  const allGreen = extraction && extraction.problems.every((p) => p.status === "green");
 
   function handleFieldUpdate(field: string, value: string, status: TrafficLight) {
     if (!extraction) return;
@@ -366,11 +393,27 @@ export function ExtractionPanel({
       }
     : null;
 
-  const pendingActions = thread.state.actions.filter((a) => !a.approved);
+  // Map actions to their problems
+  const actionsByProblem = new Map<string, ThreadAction>();
+  for (const action of thread.state.actions) {
+    if (action.problem_id) {
+      actionsByProblem.set(action.problem_id, action);
+    }
+  }
+
+  // Unlinked actions (no problem_id — manual or legacy)
+  const unlinkedPendingActions = thread.state.actions.filter(
+    (a) => !a.approved && !a.problem_id
+  );
+
+  // Stats for bottom bar
+  const totalActions = thread.state.actions.length;
+  const approvedActions = thread.state.actions.filter((a) => a.approved).length;
+  const pendingActions = totalActions - approvedActions;
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Header — tight */}
+      {/* Header */}
       <div className="px-3 py-2.5 border-b border-border">
         <div className="flex items-center justify-between">
           <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -415,7 +458,7 @@ export function ExtractionPanel({
             <Zap className="size-8 text-muted-foreground/40 mb-3" />
             <p className="text-[12px] font-medium text-foreground mb-1">Ready to analyse</p>
             <p className="text-[10px] text-muted-foreground text-center mb-4 leading-relaxed">
-              Extract sender info, urgency, problems and generate source highlights.
+              Extract sender info, urgency, problems and auto-trigger actions.
             </p>
             <Button
               size="sm"
@@ -485,79 +528,81 @@ export function ExtractionPanel({
                   problem={problem}
                   threadId={thread.thread_id}
                   isActive={activeField === problem.id}
+                  action={actionsByProblem.get(problem.id)}
                   onStatusChange={handleProblemStatusChange}
                   onFieldClick={() => onFieldClick(problem.id)}
                 />
               ))}
             </div>
 
-            {/* Quick actions */}
-            <div className="border-t border-border/40 my-1" />
-            <div className="flex items-center gap-1.5 py-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Actions
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1 mb-2">
-              {([
-                { type: "acknowledge", label: "Acknowledge" },
-                { type: "request_info", label: "Request Info" },
-                { type: "maintenance_request", label: "Maintenance" },
-                { type: "escalate", label: "Escalate" },
-              ] as Array<{ type: ActionType; label: string }>).map(({ type, label }) => (
-                <Button key={type} size="xs" variant="outline" className="text-[10px] h-5 px-1.5"
-                  onClick={() => triggerAction.mutate({ threadId: thread.thread_id, type })}
-                  disabled={triggerAction.isPending}>
-                  {label}
-                </Button>
-              ))}
-            </div>
-
-            {/* Pending actions */}
-            {pendingActions.length > 0 && (
-              <div className="space-y-1.5">
-                {pendingActions.map((action) => (
-                  <ActionCard key={action.id} action={action} threadId={thread.thread_id} />
-                ))}
-              </div>
+            {/* Unlinked pending actions (legacy/manual) */}
+            {unlinkedPendingActions.length > 0 && (
+              <>
+                <div className="border-t border-border/40 my-1" />
+                <div className="flex items-center gap-1.5 py-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Other Actions
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {unlinkedPendingActions.map((action) => (
+                    <ActionBadge key={action.id} action={action} threadId={thread.thread_id} />
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar — status + progress */}
       {extraction && (
         <div className="px-3 py-2 border-t border-border">
           {thread.state.status === "resolved" ? (
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 text-[11px] font-medium py-0.5">
               <CheckCircle2 className="size-3.5" />
-              Resolved
+              Resolved — all actions approved
             </div>
-          ) : canResolve ? (
-            <Button
-              size="sm"
-              className={cn(
-                "w-full text-[11px]",
-                allGreen
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-amber-600 hover:bg-amber-700",
+          ) : thread.state.status === "in_progress" ? (
+            <div className="flex items-center justify-center gap-1.5 text-cyan-600 text-[11px] font-medium py-0.5">
+              <Loader2 className="size-3.5 animate-spin" />
+              In progress — responses sent
+            </div>
+          ) : totalActions > 0 ? (
+            <div className="space-y-1.5">
+              {/* Action progress */}
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">
+                  {approvedActions}/{totalActions} actions approved
+                </span>
+                {hasRedItems && (
+                  <span className="text-[10px] text-red-600 font-medium flex items-center gap-1">
+                    <AlertTriangle className="size-3" />
+                    {problemStats?.red} blocked
+                  </span>
+                )}
+              </div>
+              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                  style={{ width: `${totalActions > 0 ? (approvedActions / totalActions) * 100 : 0}%` }}
+                />
+              </div>
+              {pendingActions > 0 && !hasRedItems && (
+                <p className="text-[9px] text-muted-foreground text-center">
+                  Approve remaining actions to auto-resolve
+                </p>
               )}
-              onClick={() => resolveThread.mutate(thread.thread_id)}
-              disabled={resolveThread.isPending}
-            >
-              {resolveThread.isPending && <Loader2 className="size-3 animate-spin mr-1" />}
-              {allGreen ? "Resolve" : "Resolve with warnings"}
-            </Button>
-          ) : (
-            <div className="text-center">
-              <p className="text-[10px] text-red-600 font-medium flex items-center justify-center gap-1 mb-1.5">
-                <AlertTriangle className="size-3" />
-                Red items require human action
-              </p>
-              <Button size="sm" className="w-full text-[11px]" variant="outline" disabled>
-                Resolve
-              </Button>
+              {hasRedItems && (
+                <p className="text-[9px] text-red-600 text-center">
+                  Fix red items to unlock auto-actions
+                </p>
+              )}
             </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground text-center py-0.5">
+              No actions triggered yet
+            </p>
           )}
         </div>
       )}

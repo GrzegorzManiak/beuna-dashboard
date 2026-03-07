@@ -236,6 +236,7 @@ function SentActionCard({ action }: { action: ThreadAction }) {
     maintenance_request: "Maintenance request sent",
     contractor_dispatch: "Contractor dispatched",
     escalate: "Escalated to management",
+    forward_to_human: "Forwarded to customer service agent",
     reply: "Reply sent",
   };
 
@@ -339,23 +340,25 @@ export function EmailChain({
 
       {/* Email list */}
       <div className="flex-1 overflow-y-auto">
-        {emails.map((email, i) => (
-          <EmailMessage
-            key={email.id}
-            email={email}
-            isFirst={i === 0}
-            spans={spans}
-            activeField={activeField}
-            onSpanClick={onSpanClick}
-          />
-        ))}
+        <div className="max-w-[720px]">
+          {emails.map((email, i) => (
+            <EmailMessage
+              key={email.id}
+              email={email}
+              isFirst={i === 0}
+              spans={spans}
+              activeField={activeField}
+              onSpanClick={onSpanClick}
+            />
+          ))}
 
-        {/* Approved/sent actions slide in at the bottom */}
-        {approvedActions.map((action) => (
-          <SentActionCard key={action.id} action={action} />
-        ))}
+          {/* Approved/sent actions slide in at the bottom */}
+          {approvedActions.map((action) => (
+            <SentActionCard key={action.id} action={action} />
+          ))}
 
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
+        </div>
       </div>
     </div>
   );

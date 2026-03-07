@@ -135,7 +135,12 @@ Bun.serve({
       }
       //
       else if (method === "GET" && pathname === "/health") {
-        response = new Response(JSON.stringify({ status: "ok" }), {
+        const hasKey = !!(process.env.OPENROUTER_API_KEY ?? "");
+        response = new Response(JSON.stringify({
+          status: "ok",
+          openrouter_connected: hasKey,
+          mode: hasKey ? "live" : "mock",
+        }), {
           headers: { "Content-Type": "application/json" },
         });
       }

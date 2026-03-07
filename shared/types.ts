@@ -15,7 +15,7 @@ export type SenderType =
 
 export type UrgencyLevel = "critical" | "high" | "medium" | "low";
 
-export type ThreadStatus = "pending" | "analyzed" | "reviewing" | "resolved";
+export type ThreadStatus = "pending" | "analyzed" | "reviewing" | "in_progress" | "resolved";
 
 export type ActionType =
   | "maintenance_request"
@@ -23,7 +23,8 @@ export type ActionType =
   | "request_info"
   | "acknowledge"
   | "reply"
-  | "escalate";
+  | "escalate"
+  | "forward_to_human";
 
 // ── Seed Data (TASK.json shape) ──────────────────────────────────────
 export interface SeedEmail {
@@ -116,6 +117,10 @@ export interface ThreadAction {
   timestamp: string;
   draft_email: string | null;
   approved: boolean;
+  /** Was this action auto-triggered by the system (vs manually by user)? */
+  auto_triggered: boolean;
+  /** Which problem this action addresses (if any) */
+  problem_id: string | null;
 }
 
 // ── Thread State ─────────────────────────────────────────────────────

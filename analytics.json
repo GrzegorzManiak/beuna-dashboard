@@ -1,0 +1,105 @@
+{
+  "last_updated": "2026-03-07T15:17:33.775Z",
+  "sent_items": [
+    {
+      "id": "thread_076:action_1772894378241",
+      "thread_id": "thread_076",
+      "action_id": "action_1772894378241",
+      "action_type": "request_info",
+      "description": "request_info triggered",
+      "draft_email": "Dear Isabelle,\n\nThank you for reaching out regarding \"Smells from neighbouring apartment\". We want to make sure we address this properly for you at prop_003.\n\nTo help us resolve this as quickly as possible, could you please provide us with:\n\n• any additional details that would help us assist you\n\nOnce we have this information, we'll be able to take the appropriate next steps within 2-3 business days.\n\nWe appreciate your patience and cooperation.\n\nBest regards,\nManageCo Property Management",
+      "sent_at": "2026-03-07T14:39:38.241Z",
+      "subject": "Smells from neighbouring apartment",
+      "property_name": "Graylings",
+      "recipient_name": "Isabelle Dempsey",
+      "recipient_email": "isabelle.dempsey@gmail.com"
+    },
+    {
+      "id": "thread_031:action_1772894224116",
+      "thread_id": "thread_031",
+      "action_id": "action_1772894224116",
+      "action_type": "request_info",
+      "description": "request_info triggered",
+      "draft_email": "Dear Amir,\n\nThank you for reaching out regarding \"Washing machine leaked - water damage to apartment below\". We want to make sure we address this properly for you at prop_002.\n\nTo help us resolve this as quickly as possible, could you please provide us with:\n\n• any additional details that would help us assist you\n\nOnce we have this information, we'll be able to take the appropriate next steps within 2-3 business days.\n\nWe appreciate your patience and cooperation.\n\nBest regards,\nManageCo Property Management",
+      "sent_at": "2026-03-07T14:37:04.116Z",
+      "subject": "Washing machine leaked - water damage to apartment below",
+      "property_name": "reds Works",
+      "recipient_name": "Amir Hassan",
+      "recipient_email": "amir.hassan@yahoo.com"
+    }
+  ],
+  "analyzed_threads": [
+    {
+      "thread_id": "thread_001",
+      "subject": "URGENT - Water leaking through ceiling in bedroom",
+      "property_name": "citynorth Quarter",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "critical"
+    },
+    {
+      "thread_id": "thread_004",
+      "subject": "Viewing request - 2 bed apartment",
+      "property_name": "Unknown",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_005",
+      "subject": "Noise complaint - ongoing party in apartment above",
+      "property_name": "Graylings",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "high"
+    },
+    {
+      "thread_id": "thread_006",
+      "subject": "Overdue Invoice #4892 - Graylings emergency lighting",
+      "property_name": "Unknown",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_007",
+      "subject": "Notice to vacate - end of lease",
+      "property_name": "Ilah Residences",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_008",
+      "subject": "Rent payment issue - direct debit failed",
+      "property_name": "Thornbury Village",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "green",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_031",
+      "subject": "Washing machine leaked - water damage to apartment below",
+      "property_name": "reds Works",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_044",
+      "subject": "Re: Formal noise warning",
+      "property_name": "Graylings",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "red",
+      "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_076",
+      "subject": "Smells from neighbouring apartment",
+      "property_name": "Graylings",
+      "analyzed_at": "2026-03-07T14:28:48.710Z",
+      "overall_health": "orange",
+      "urgency": "medium"
+    }
+  ]
+}

@@ -16,6 +16,11 @@ export const threadsApi = {
 
   get: (id: string) => apiFetch<ThreadDetail>(`/threads/${id}`),
 
+  health: () =>
+    apiFetch<{ status: string; openrouter_connected: boolean; mode: string }>(
+      "/health"
+    ),
+
   analyze: (id: string) =>
     apiFetch<{ success: boolean; extraction: Extraction }>(
       `/threads/${id}/analyze`,

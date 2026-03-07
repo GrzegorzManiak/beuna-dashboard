@@ -14,19 +14,20 @@ import {
 } from "./analytics";
 import { analyzeThread, generateDraftEmail } from "./llm";
 import type {
+  ActionType,
   AnalyzedThreadEvent,
   DashboardSummary,
-  ThreadSummary,
+  Extraction,
+  Problem,
+  SeedEmail,
+  SentItem,
+  ThreadAction,
   ThreadDetail,
+  ThreadSummary,
   TrafficLight,
   UrgencyLevel,
-  ThreadAction,
-  ActionType,
-  Extraction,
-  SentItem,
 } from "../../shared/types";
 
-// ── Helpers ──────────────────────────────────────────────────────────
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
@@ -47,7 +48,7 @@ function overallHealth(extraction: Extraction | null): TrafficLight {
     extraction.summary.status,
     extraction.property.status,
   ];
-  const problemStatuses = extraction.problems.map((p) => p.status);
+  const problemStatuses = extraction.problems.map((problem) => problem.status);
   const all = [...fields, ...problemStatuses];
   if (all.includes("red")) return "red";
   if (all.includes("orange")) return "orange";
@@ -101,7 +102,102 @@ function buildSentItem(
   };
 }
 
-// ── GET /threads ─────────────────────────────────────────────────────
+function actionTypeForProblem(problem: Problem): ActionType {
+  if (problem.status === "red") return "forward_to_human";
+
+  if (problem.status === "orange") {
+    if (problem.requires_info) return "request_info";
+    return "forward_to_human";
+  }
+
+  const category = problem.category?.toLowerCase() ?? "";
+  if (category === "maintenance" || category === "safety" || category === "pest") {
+    return "contractor_dispatch";
+  }
+  if (category === "legal" || category === "compliance") {
+    return "forward_to_human";
+  }
+
+  return "acknowledge";
+}
+
+function descriptionForAction(type: ActionType, problem: Problem): string {
+  switch (type) {
+    case "request_info":
+      return `Auto: requesting missing info for "${problem.title}"`;
+    case "forward_to_human":
+      return `Auto: forwarded "${problem.title}" to customer service agent`;
+    case "contractor_dispatch":
+      return `Auto: dispatching contractor for "${problem.title}"`;
+    case "acknowledge":
+      return `Auto: acknowledging "${problem.title}"`;
+    case "maintenance_request":
+      return `Auto: maintenance request for "${problem.title}"`;
+    case "escalate":
+      return `Auto: escalating "${problem.title}"`;
+    default:
+      return `Auto: ${type} for "${problem.title}"`;
+  }
+}
+
+async function autoTriggerActions(
+  threadId: string,
+  emails: SeedEmail[],
+  extraction: Extraction,
+  existingActions: ThreadAction[]
+): Promise<ThreadAction[]> {
+  const newActions: ThreadAction[] = [];
+  const hasRedProblems = extraction.problems.some((problem) => problem.status === "red");
+
+  for (const problem of extraction.problems) {
+    if (problem.status === "red") continue;
+
+    const hasAction = existingActions.some((action) => action.problem_id === problem.id);
+    if (hasAction) continue;
+
+    const type = actionTypeForProblem(problem);
+    let draftEmail: string | null = null;
+
+    if (type !== "forward_to_human") {
+      try {
+        draftEmail = await generateDraftEmail(emails, extraction, type, problem);
+      } catch {
+        draftEmail = null;
+      }
+    }
+
+    const action: ThreadAction = {
+      id: `action_${Date.now()}_${problem.id}`,
+      type,
+      description: descriptionForAction(type, problem),
+      timestamp: new Date().toISOString(),
+      draft_email: draftEmail,
+      approved: !hasRedProblems && problem.status === "green",
+      auto_triggered: true,
+      problem_id: problem.id,
+    };
+
+    newActions.push(action);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  if (newActions.length === 0) return newActions;
+
+  const allAutoApproved = newActions.every((action) => action.approved);
+  updateThreadState(threadId, (state) => {
+    state.actions.push(...newActions);
+    state.status = allAutoApproved && !hasRedProblems ? "in_progress" : "reviewing";
+  });
+
+  for (const action of newActions) {
+    if (action.approved) {
+      recordSentItem(buildSentItem(threadId, action, action.timestamp));
+    }
+  }
+
+  return newActions;
+}
+
 export function handleGetThreads(): Response {
   const threadMap = getEmailsByThread();
   const state = loadState();
@@ -112,10 +208,8 @@ export function handleGetThreads(): Response {
     const firstEmail = emails[0]!;
     const lastEmail = emails[emails.length - 1]!;
     const threadState = state.threads[threadId];
-
-    // Find the property for this thread
     const propertyId =
-      emails.find((e) => e.from.property_id)?.from.property_id ?? undefined;
+      emails.find((email) => email.from.property_id)?.from.property_id ?? undefined;
 
     summaries.push({
       thread_id: threadId,
@@ -129,11 +223,10 @@ export function handleGetThreads(): Response {
       urgency: (threadState?.extraction?.urgency?.value as UrgencyLevel) ?? null,
       overall_health: overallHealth(threadState?.extraction ?? null),
       problem_count: threadState?.extraction?.problems?.length ?? 0,
-      unread_count: emails.filter((e) => !e.read).length,
+      unread_count: emails.filter((email) => !email.read).length,
     });
   }
 
-  // Sort: critical first, then by timestamp (newest first)
   const urgencyOrder: Record<string, number> = {
     critical: 0,
     high: 1,
@@ -141,34 +234,31 @@ export function handleGetThreads(): Response {
     low: 3,
   };
 
-  summaries.sort((a, b) => {
-    // Pending items first
-    if (a.status === "pending" && b.status !== "pending") return -1;
-    if (b.status === "pending" && a.status !== "pending") return 1;
-    // Then by urgency
-    const ua = urgencyOrder[a.urgency ?? "medium"] ?? 2;
-    const ub = urgencyOrder[b.urgency ?? "medium"] ?? 2;
-    if (ua !== ub) return ua - ub;
-    // Then by timestamp
+  summaries.sort((left, right) => {
+    if (left.status === "pending" && right.status !== "pending") return -1;
+    if (right.status === "pending" && left.status !== "pending") return 1;
+
+    const leftUrgency = urgencyOrder[left.urgency ?? "medium"] ?? 2;
+    const rightUrgency = urgencyOrder[right.urgency ?? "medium"] ?? 2;
+    if (leftUrgency !== rightUrgency) return leftUrgency - rightUrgency;
+
     return (
-      new Date(b.last_email_timestamp).getTime() -
-      new Date(a.last_email_timestamp).getTime()
+      new Date(right.last_email_timestamp).getTime() -
+      new Date(left.last_email_timestamp).getTime()
     );
   });
 
   return json(summaries);
 }
 
-// ── GET /sent ────────────────────────────────────────────────────────
 export function handleGetSent(): Response {
   const analytics = getAnalytics();
   const sent = [...analytics.sent_items].sort(
-    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+    (left, right) => new Date(right.sent_at).getTime() - new Date(left.sent_at).getTime()
   );
   return json(sent);
 }
 
-// ── GET /dashboard ───────────────────────────────────────────────────
 export function handleGetDashboard(): Response {
   const threadMap = getEmailsByThread();
   const state = loadState();
@@ -183,6 +273,7 @@ export function handleGetDashboard(): Response {
     pending: 0,
     analyzed: 0,
     reviewing: 0,
+    in_progress: 0,
     resolved: 0,
   };
   const problemStatus: Record<TrafficLight, number> = {
@@ -226,18 +317,20 @@ export function handleGetDashboard(): Response {
     problem_status: problemStatus,
     recent_analyzed: analytics.analyzed_threads
       .slice()
-      .sort((a, b) => new Date(b.analyzed_at).getTime() - new Date(a.analyzed_at).getTime())
+      .sort(
+        (left, right) =>
+          new Date(right.analyzed_at).getTime() - new Date(left.analyzed_at).getTime()
+      )
       .slice(0, 8),
     recent_sent: analytics.sent_items
       .slice()
-      .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+      .sort((left, right) => new Date(right.sent_at).getTime() - new Date(left.sent_at).getTime())
       .slice(0, 8),
   };
 
   return json(summary);
 }
 
-// ── GET /threads/:id ─────────────────────────────────────────────────
 export function handleGetThread(threadId: string): Response {
   const threadMap = getEmailsByThread();
   const emails = threadMap.get(threadId);
@@ -245,7 +338,7 @@ export function handleGetThread(threadId: string): Response {
 
   const threadState = getThreadState(threadId);
   const propertyId =
-    emails.find((e) => e.from.property_id)?.from.property_id ?? undefined;
+    emails.find((email) => email.from.property_id)?.from.property_id ?? undefined;
 
   const detail: ThreadDetail = {
     thread_id: threadId,
@@ -258,7 +351,6 @@ export function handleGetThread(threadId: string): Response {
   return json(detail);
 }
 
-// ── POST /threads/:id/analyze ────────────────────────────────────────
 export async function handleAnalyzeThread(threadId: string): Promise<Response> {
   const threadMap = getEmailsByThread();
   const emails = threadMap.get(threadId);
@@ -268,26 +360,24 @@ export async function handleAnalyzeThread(threadId: string): Promise<Response> {
     const extraction = await analyzeThread(emails);
     const analyzedAt = new Date().toISOString();
 
-    updateThreadState(threadId, (s) => {
-      s.extraction = extraction;
-      s.status = "analyzed";
+    updateThreadState(threadId, (state) => {
+      state.extraction = extraction;
+      state.status = "analyzed";
     });
     recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
 
-    return json({ success: true, extraction });
+    const autoActions = await autoTriggerActions(threadId, emails, extraction, []);
+    return json({ success: true, extraction, auto_actions: autoActions.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return error(`Analysis failed: ${message}`, 500);
   }
 }
 
-// ── POST /threads/analyze-all ────────────────────────────────────────
 export async function handleAnalyzeAll(): Promise<Response> {
   const threadMap = getEmailsByThread();
   const state = loadState();
-  const pending = [...threadMap.keys()].filter(
-    (id) => !state.threads[id]?.extraction
-  );
+  const pending = [...threadMap.keys()].filter((threadId) => !state.threads[threadId]?.extraction);
 
   let completed = 0;
   let failed = 0;
@@ -297,60 +387,78 @@ export async function handleAnalyzeAll(): Promise<Response> {
     try {
       const extraction = await analyzeThread(emails);
       const analyzedAt = new Date().toISOString();
-      updateThreadState(threadId, (s) => {
-        s.extraction = extraction;
-        s.status = "analyzed";
+
+      updateThreadState(threadId, (threadState) => {
+        threadState.extraction = extraction;
+        threadState.status = "analyzed";
       });
       recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
+      await autoTriggerActions(threadId, emails, extraction, []);
       completed++;
     } catch {
       failed++;
     }
-    // Small delay to avoid rate limiting
-    await new Promise((r) => setTimeout(r, 200));
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
 
   return json({ completed, failed, total: pending.length });
 }
 
-// ── PATCH /threads/:id ───────────────────────────────────────────────
 export async function handleUpdateThread(
   threadId: string,
   body: unknown
 ): Promise<Response> {
   const threadMap = getEmailsByThread();
-  if (!threadMap.has(threadId)) return error("Thread not found", 404);
+  const emails = threadMap.get(threadId);
+  if (!emails) return error("Thread not found", 404);
 
   const update = body as Record<string, unknown>;
+  const oldState = getThreadState(threadId);
+  const oldProblemStatuses = new Map<string, TrafficLight>();
 
-  updateThreadState(threadId, (s) => {
-    // Update extraction fields
-    if (update.extraction && s.extraction) {
-      const ext = update.extraction as Record<string, unknown>;
-      for (const [key, value] of Object.entries(ext)) {
+  if (oldState.extraction) {
+    for (const problem of oldState.extraction.problems) {
+      oldProblemStatuses.set(problem.id, problem.status);
+    }
+  }
+
+  updateThreadState(threadId, (state) => {
+    if (update.extraction && state.extraction) {
+      const extractionUpdate = update.extraction as Record<string, unknown>;
+      for (const [key, value] of Object.entries(extractionUpdate)) {
         if (key === "problems" && Array.isArray(value)) {
-          s.extraction.problems = value as Extraction["problems"];
-        } else if (key in s.extraction) {
-          (s.extraction as unknown as Record<string, unknown>)[key] = value;
+          state.extraction.problems = value as Extraction["problems"];
+        } else if (key in state.extraction) {
+          (state.extraction as unknown as Record<string, unknown>)[key] = value;
         }
       }
     }
 
-    // Update status
     if (typeof update.status === "string") {
-      s.status = update.status as ThreadDetail["state"]["status"];
+      state.status = update.status as ThreadDetail["state"]["status"];
     }
 
-    // Update notes
     if (typeof update.human_notes === "string") {
-      s.human_notes = update.human_notes;
+      state.human_notes = update.human_notes;
     }
   });
+
+  const newState = getThreadState(threadId);
+  if (newState.extraction) {
+    const changedProblems = newState.extraction.problems.filter((problem) => {
+      const oldStatus = oldProblemStatuses.get(problem.id);
+      return oldStatus === "red" && (problem.status === "green" || problem.status === "orange");
+    });
+
+    if (changedProblems.length > 0) {
+      await autoTriggerActions(threadId, emails, newState.extraction, newState.actions);
+    }
+  }
 
   return json(getThreadState(threadId));
 }
 
-// ── POST /threads/:id/action ─────────────────────────────────────────
 export async function handleThreadAction(
   threadId: string,
   body: unknown
@@ -364,39 +472,40 @@ export async function handleThreadAction(
     problem_id?: string;
     description?: string;
   };
-
   if (!type) return error("action type is required");
 
   const threadState = getThreadState(threadId);
   const problem =
     problem_id && threadState.extraction
-      ? threadState.extraction.problems.find((p) => p.id === problem_id) ?? null
+      ? threadState.extraction.problems.find((item) => item.id === problem_id) ?? null
       : null;
 
-  // Generate draft email for the action
   let draftEmail: string | null = null;
-  try {
-    draftEmail = await generateDraftEmail(emails, threadState.extraction, type, problem);
-  } catch {
-    draftEmail = null;
+  if (type !== "forward_to_human") {
+    try {
+      draftEmail = await generateDraftEmail(emails, threadState.extraction, type, problem);
+    } catch {
+      draftEmail = null;
+    }
   }
 
   const action: ThreadAction = {
     id: `action_${Date.now()}`,
     type,
-    description: description ?? `${type} triggered`,
+    description: description ?? `${type.replace(/_/g, " ")} triggered`,
     timestamp: new Date().toISOString(),
     draft_email: draftEmail,
     approved: false,
+    auto_triggered: false,
+    problem_id: problem_id ?? null,
   };
 
-  updateThreadState(threadId, (s) => {
-    s.actions.push(action);
-    // If the action is for a specific problem, update its status
-    if (problem_id && s.extraction) {
-      const prob = s.extraction.problems.find((p) => p.id === problem_id);
-      if (prob && prob.status === "red") {
-        prob.status = "orange";
+  updateThreadState(threadId, (state) => {
+    state.actions.push(action);
+    if (problem_id && state.extraction) {
+      const threadProblem = state.extraction.problems.find((item) => item.id === problem_id);
+      if (threadProblem && threadProblem.status === "red") {
+        threadProblem.status = "orange";
       }
     }
   });
@@ -404,22 +513,22 @@ export async function handleThreadAction(
   return json(action);
 }
 
-// ── POST /threads/:id/action/:actionId/approve ──────────────────────
-export function handleApproveAction(
-  threadId: string,
-  actionId: string
-): Response {
+export function handleApproveAction(threadId: string, actionId: string): Response {
   const threadMap = getEmailsByThread();
   if (!threadMap.has(threadId)) return error("Thread not found", 404);
 
   const sentAt = new Date().toISOString();
   let approvedAction: ThreadAction | null = null;
 
-  updateThreadState(threadId, (s) => {
-    const action = s.actions.find((a) => a.id === actionId);
+  updateThreadState(threadId, (state) => {
+    const action = state.actions.find((item) => item.id === actionId);
     if (action && !action.approved) {
       action.approved = true;
       approvedAction = action;
+    }
+
+    if (approvedAction && (state.status === "reviewing" || state.status === "analyzed")) {
+      state.status = "in_progress";
     }
   });
 
@@ -430,27 +539,22 @@ export function handleApproveAction(
   return json({ success: true });
 }
 
-// ── POST /threads/:id/resolve ────────────────────────────────────────
 export function handleResolveThread(threadId: string): Response {
   const threadMap = getEmailsByThread();
   if (!threadMap.has(threadId)) return error("Thread not found", 404);
 
   const threadState = getThreadState(threadId);
-  if (threadState.extraction) {
-    const health = overallHealth(threadState.extraction);
-    if (health === "red") {
-      return error("Cannot resolve: thread has red-status items", 400);
-    }
+  if (threadState.extraction && overallHealth(threadState.extraction) === "red") {
+    return error("Cannot resolve: thread has red-status items", 400);
   }
 
-  updateThreadState(threadId, (s) => {
-    s.status = "resolved";
+  updateThreadState(threadId, (state) => {
+    state.status = "resolved";
   });
 
   return json({ success: true });
 }
 
-// ── POST /reset ──────────────────────────────────────────────────────
 export function handleReset(): Response {
   resetState();
   resetAnalytics();

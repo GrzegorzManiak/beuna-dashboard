@@ -11,7 +11,7 @@ import type {
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 function getApiKey(): string {
-  const key = process.env.OPENROUTER_API_KEY ?? "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";
+  const key = process.env.OPENROUTER_API_KEY ?? "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";
   if (!key) {
     console.warn("⚠ OPENROUTER_API_KEY not set – LLM calls will fail");
   }
@@ -163,6 +163,16 @@ We have escalated your case to our [senior management/legal team/relevant depart
 
 Best regards,
 ManageCo Property Management`,
+
+    forward_to_human: `TEMPLATE SCAFFOLD (use as rough structure, adapt to the actual situation):
+Dear ${senderFirst},
+
+Thank you for your message regarding [specific issue]. After initial review, we've determined this requires personal attention from a member of our team.
+
+A property manager will review your case and be in touch with you directly within [timeframe]. They will have full context of your correspondence.
+
+Best regards,
+ManageCo Property Management`,
   };
 
   const template = templates[actionType] ?? templates.acknowledge!;
@@ -284,7 +294,7 @@ export async function generateDraftEmail(
 }
 
 // ── Mock extraction for dev without API key ──────────────────────────
-function createMockExtraction(emails: SeedEmail[]): Extraction {
+export function createMockExtraction(emails: SeedEmail[]): Extraction {
   const first = emails[0]!;
   const senderType = (first.from.type ?? "unknown") as SenderType;
 
@@ -322,13 +332,15 @@ function createMockExtraction(emails: SeedEmail[]): Extraction {
   // Build source spans from actual email text
   const sourceSpans: SourceSpan[] = [];
 
-  // Find sender name in body or use the From line
-  sourceSpans.push({
-    email_id: first.id,
-    text: first.from.name,
-    field: "sender_name",
-    label: `Sender: ${first.from.name}`,
-  });
+  // Find sender name in body — only add span if it actually appears
+  if (first.body.includes(first.from.name)) {
+    sourceSpans.push({
+      email_id: first.id,
+      text: first.from.name,
+      field: "sender_name",
+      label: `Sender: ${first.from.name}`,
+    });
+  }
 
   // Find urgency keywords
   const urgencyKeywords = [
@@ -359,28 +371,58 @@ function createMockExtraction(emails: SeedEmail[]): Extraction {
     }
   }
 
-  // Extract problem-related phrases
-  const sentences = first.body.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 15);
-  if (sentences[0]) {
-    const problemText = sentences[0]!.trim();
-    if (first.body.includes(problemText)) {
+  // Extract problem-related phrases — grab multi-paragraph chunks, not just single sentences
+  // Split by double newlines (paragraphs) or fall back to large body chunks
+  const paragraphs = first.body.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 10);
+  
+  if (paragraphs.length > 0) {
+    // Use the full first paragraph (often contains the main problem description)
+    const mainParagraph = paragraphs[0]!.trim();
+    if (mainParagraph.length > 5 && first.body.includes(mainParagraph)) {
       sourceSpans.push({
         email_id: first.id,
-        text: problemText,
+        text: mainParagraph,
+        field: "prob_1",
+        label: "Primary issue",
+      });
+    }
+    // Add second paragraph too if available (often has details/context)
+    if (paragraphs[1]) {
+      const detailParagraph = paragraphs[1]!.trim();
+      if (detailParagraph.length > 5 && first.body.includes(detailParagraph) && detailParagraph !== mainParagraph) {
+        sourceSpans.push({
+          email_id: first.id,
+          text: detailParagraph,
+          field: "prob_1",
+          label: "Issue details",
+        });
+      }
+    }
+  } else {
+    // No double-newlines — grab the full body up to 500 chars as one span
+    const fullChunk = first.body.trim().slice(0, 500);
+    if (fullChunk.length > 10 && first.body.includes(fullChunk)) {
+      sourceSpans.push({
+        email_id: first.id,
+        text: fullChunk,
         field: "prob_1",
         label: "Primary issue",
       });
     }
   }
-  // Also try to get a second problem-related sentence
-  if (sentences[1]) {
-    const s2 = sentences[1]!.trim();
-    if (first.body.includes(s2) && s2 !== sentences[0]?.trim()) {
+
+  // Also check other emails in the thread for problem-relevant text
+  for (let i = 1; i < emails.length; i++) {
+    const email = emails[i]!;
+    const isExternal = email.from.type !== "internal" && !email.from.email.endsWith("@manageco.ie");
+    if (!isExternal) continue;
+    const paras = email.body.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 10);
+    if (paras[0] && email.body.includes(paras[0])) {
       sourceSpans.push({
-        email_id: first.id,
-        text: s2,
+        email_id: email.id,
+        text: paras[0],
         field: "prob_1",
-        label: "Issue details",
+        label: "Additional context",
       });
     }
   }
@@ -503,6 +545,19 @@ Thank you for your patience regarding "${subject}" at ${propertyName}. We unders
 We have escalated your case to our senior management team for immediate review. A senior team member will be in touch with you ${urgency === "critical" ? "within the hour" : "within 24 hours"} to discuss next steps.
 
 ${problem ? `We take the matter of ${problem.title.toLowerCase()} very seriously and are committed to reaching a satisfactory resolution.` : "We are committed to reaching a satisfactory resolution."}
+
+Best regards,
+ManageCo Property Management`;
+  }
+
+  if (actionType === "forward_to_human") {
+    return `Dear ${firstName},
+
+Thank you for your message regarding "${subject}" at ${propertyName}. After our initial review, this matter requires personal attention from a member of our property management team.
+
+${problem ? `Your concern about ${problem.title.toLowerCase()} has been flagged for direct follow-up.` : "Your case has been flagged for direct follow-up."} A property manager will review the full correspondence and reach out to you ${timeframe}.
+
+We appreciate your patience.
 
 Best regards,
 ManageCo Property Management`;
