@@ -7,15 +7,9 @@ const colors: Record<TrafficLight, string> = {
   red: "bg-red-500",
 };
 
-const glows: Record<TrafficLight, string> = {
-  green: "shadow-[0_0_6px_rgba(16,185,129,0.5)]",
-  orange: "shadow-[0_0_6px_rgba(245,158,11,0.5)]",
-  red: "shadow-[0_0_6px_rgba(239,68,68,0.6)]",
-};
-
 const labels: Record<TrafficLight, string> = {
-  green: "Complete",
-  orange: "Needs attention",
+  green: "Auto-dispatch",
+  orange: "Auto-email",
   red: "Blocked",
 };
 
@@ -29,17 +23,15 @@ export function StatusDot({
   className?: string;
 }) {
   const sizeClass =
-    size === "xs" ? "size-2" : size === "sm" ? "size-2.5" : "size-3.5";
+    size === "xs" ? "size-1.5" : size === "sm" ? "size-2" : "size-3";
   return (
     <span
       title={labels[status]}
       className={cn(
-        "inline-block shrink-0 rounded-full transition-all duration-300",
+        "inline-block shrink-0 rounded-full",
         colors[status],
-        glows[status],
         sizeClass,
-        status === "red" && "animate-pulse",
-        className
+        className,
       )}
     />
   );
@@ -53,16 +45,16 @@ export function StatusBadge({
   className?: string;
 }) {
   const bg: Record<TrafficLight, string> = {
-    green: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    orange: "bg-amber-100 text-amber-800 border-amber-200",
-    red: "bg-red-100 text-red-800 border-red-200",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    orange: "bg-amber-50 text-amber-700 border-amber-200",
+    red: "bg-red-50 text-red-700 border-red-200",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold tracking-wide",
+        "inline-flex items-center gap-1.5 border rounded px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase",
         bg[status],
-        className
+        className,
       )}
     >
       <StatusDot status={status} size="xs" />

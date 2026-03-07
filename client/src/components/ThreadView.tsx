@@ -11,28 +11,23 @@ export function ThreadView() {
   const navigate = useNavigate();
   const { data: thread, isLoading, isError } = useThreadQuery(threadId);
 
-  // Shared state: which extraction field is "active" (clicked in either panel)
   const [activeField, setActiveField] = useState<string | null>(null);
 
-  // When a highlight in the email chain is clicked → activate that field in the extraction panel
   const handleSpanClick = useCallback((field: string) => {
     setActiveField(field);
-    // Auto-clear after 3s so highlight doesn't stick forever
     setTimeout(() => setActiveField((prev) => (prev === field ? null : prev)), 3000);
   }, []);
 
-  // When a field in the extraction panel is clicked → activate highlights in email chain
   const handleFieldClick = useCallback((field: string) => {
     setActiveField((prev) => (prev === field ? null : field));
-    // Auto-clear after 3s
     setTimeout(() => setActiveField((prev) => (prev === field ? null : prev)), 3000);
   }, []);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen text-muted-foreground gap-2">
-        <Loader2 className="size-5 animate-spin" />
-        <span className="text-sm">Loading thread...</span>
+        <Loader2 className="size-4 animate-spin" />
+        <span className="text-xs">Loading…</span>
       </div>
     );
   }
@@ -40,7 +35,7 @@ export function ThreadView() {
   if (isError || !thread) {
     return (
       <div className="flex items-center justify-center h-screen text-muted-foreground">
-        <span className="text-sm">Thread not found</span>
+        <span className="text-xs">Thread not found</span>
       </div>
     );
   }
@@ -49,20 +44,21 @@ export function ThreadView() {
 
   return (
     <div className="h-screen flex">
-      {/* Left: Email chain (60%) */}
-      <div className="w-[60%] h-full overflow-hidden">
+      {/* Left: Email chain — takes remaining space */}
+      <div className="flex-1 h-full overflow-hidden border-r border-border">
         <EmailChain
           emails={thread.emails}
           subject={thread.subject}
           spans={spans}
           activeField={activeField}
+          actions={thread.state.actions}
           onBack={() => navigate("/")}
           onSpanClick={handleSpanClick}
         />
       </div>
 
-      {/* Right: Extraction panel (40%) */}
-      <div className="w-[40%] h-full overflow-hidden">
+      {/* Right: Extraction panel — fixed 380px */}
+      <div className="w-[380px] h-full overflow-hidden shrink-0">
         <ExtractionPanel
           thread={thread}
           activeField={activeField}
