@@ -1286,9 +1286,389 @@
     },
     "thread_070": {
       "thread_id": "thread_070",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Bernadette Coffey",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.7,
+          "note": "Resident is requesting action by the end of next week."
+        },
+        "summary": {
+          "value": "Bernadette Coffey is concerned about the construction of an 18-storey tower next to her apartment building. She raises concerns about noise, dust, light blockage, property values, and the duration of the construction, and asks if management will make a submission to the planning process and organize a residents' meeting.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "City North",
+          "status": "orange",
+          "confidence": 0.6
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Construction Noise",
+            "description": "Resident is concerned about construction noise as they work from home 3 days a week.",
+            "status": "orange",
+            "category": "noise",
+            "suggested_action": "Push for conditions on working hours.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_2",
+            "title": "Dust and Debris",
+            "description": "Resident is concerned about dust and debris due to having asthma.",
+            "status": "orange",
+            "category": "health",
+            "suggested_action": "Push for dust suppression measures.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_3",
+            "title": "Light Blockage",
+            "description": "Resident is concerned that the new construction will block morning sunlight.",
+            "status": "orange",
+            "category": "other",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_4",
+            "title": "Property Value Impact",
+            "description": "Resident is concerned about the impact on property values and rent levels.",
+            "status": "red",
+            "category": "financial",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_5",
+            "title": "Construction Disruption",
+            "description": "Resident is concerned about the disruption caused by 30 months of construction.",
+            "status": "orange",
+            "category": "other",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_6",
+            "title": "Planning Submission",
+            "description": "Residents want management to make a formal submission to the planning process.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Make a formal submission to the planning process.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_7",
+            "title": "Residents' Meeting",
+            "description": "Residents want management to organize a residents' meeting about the development.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Organize a residents' meeting about the development.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_8",
+            "title": "Planning Consultant",
+            "description": "Residents want management to engage a planning consultant on their behalf.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Engage a planning consultant.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_9",
+            "title": "Construction Timeline Communication",
+            "description": "Residents want regular communication about the construction timeline and mitigation measures.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Communicate regularly about the construction timeline and mitigation measures.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_10",
+            "title": "Site Survey Boundary",
+            "description": "Resident reports that the developer has started doing site surveys and questions if they are allowed on their side of the boundary.",
+            "status": "red",
+            "category": "legal",
+            "suggested_action": null,
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_076",
+            "text": "Construction noise",
+            "field": "prob_1",
+            "label": "Noise concern"
+          },
+          {
+            "email_id": "email_076",
+            "text": "I work from home 3 days a week",
+            "field": "prob_1",
+            "label": "Work from home context"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Dust and debris",
+            "field": "prob_2",
+            "label": "Dust concern"
+          },
+          {
+            "email_id": "email_076",
+            "text": "I have asthma",
+            "field": "prob_2",
+            "label": "Asthma context"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Will it block my light?",
+            "field": "prob_3",
+            "label": "Light blockage concern"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Impact on property values",
+            "field": "prob_4",
+            "label": "Property value concern"
+          },
+          {
+            "email_id": "email_076",
+            "text": "30 months of construction",
+            "field": "prob_5",
+            "label": "Construction duration concern"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Is management going to make a submission to the planning process",
+            "field": "prob_6",
+            "label": "Planning submission request"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Are you organising a residents' meeting about this?",
+            "field": "prob_7",
+            "label": "Residents' meeting request"
+          },
+          {
+            "email_id": "email_100",
+            "text": "I'd appreciate a response by end of next week.",
+            "field": "urgency",
+            "label": "Response timeframe"
+          },
+          {
+            "email_id": "email_100",
+            "text": "Engage a planning consultant on our behalf",
+            "field": "prob_8",
+            "label": "Planning consultant request"
+          },
+          {
+            "email_id": "email_100",
+            "text": "Communicate regularly about the construction timeline and mitigation measures",
+            "field": "prob_9",
+            "label": "Communication request"
+          },
+          {
+            "email_id": "email_100",
+            "text": "Are they allowed on our side of the boundary?",
+            "field": "prob_10",
+            "label": "Boundary concern"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772897250253_prob_1",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Noise\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.253Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_1"
+        },
+        {
+          "id": "action_1772897250353_prob_2",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Dust and Debris\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.353Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_2"
+        },
+        {
+          "id": "action_1772897250457_prob_3",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Light Blockage\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.457Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_3"
+        },
+        {
+          "id": "action_1772897250558_prob_4",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Property Value Impact\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.558Z",
+          "draft_email": null,
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": "prob_4"
+        },
+        {
+          "id": "action_1772897250659_prob_5",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Disruption\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.659Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_5"
+        },
+        {
+          "id": "action_1772897250760_prob_6",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Planning Submission\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.760Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_6"
+        },
+        {
+          "id": "action_1772897250860_prob_7",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Residents' Meeting\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.860Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_7"
+        },
+        {
+          "id": "action_1772897250962_prob_8",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Planning Consultant\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:30.962Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_8"
+        },
+        {
+          "id": "action_1772897251062_prob_9",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Timeline Communication\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:31.062Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_9"
+        },
+        {
+          "id": "action_1772897251162_prob_10",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Site Survey Boundary\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:31.162Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_10"
+        },
+        {
+          "id": "action_1772897257818_prob_1",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Noise\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:37.819Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_1"
+        },
+        {
+          "id": "action_1772897257921_prob_2",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Dust and Debris\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:37.921Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_2"
+        },
+        {
+          "id": "action_1772897258022_prob_3",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Light Blockage\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.022Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_3"
+        },
+        {
+          "id": "action_1772897258122_prob_5",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Disruption\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.123Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_5"
+        },
+        {
+          "id": "action_1772897258223_prob_6",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Planning Submission\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.223Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_6"
+        },
+        {
+          "id": "action_1772897258324_prob_7",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Residents' Meeting\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.324Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_7"
+        },
+        {
+          "id": "action_1772897258426_prob_8",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Planning Consultant\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.426Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_8"
+        },
+        {
+          "id": "action_1772897258526_prob_9",
+          "type": "forward_to_human",
+          "description": "Auto: forwarded \"Construction Timeline Communication\" to customer service agent",
+          "timestamp": "2026-03-07T15:27:38.526Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": true,
+          "problem_id": "prob_9"
+        }
+      ],
       "human_notes": ""
     },
     "thread_071": {
@@ -1513,5 +1893,5 @@
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T15:04:27.295Z"
+  "last_updated": "2026-03-07T15:27:58.873Z"
 }

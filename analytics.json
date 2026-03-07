@@ -1,6 +1,19 @@
 {
-  "last_updated": "2026-03-07T15:17:33.775Z",
+  "last_updated": "2026-03-07T15:27:58.875Z",
   "sent_items": [
+    {
+      "id": "thread_070:action_1772897250558_prob_4",
+      "thread_id": "thread_070",
+      "action_id": "action_1772897250558_prob_4",
+      "action_type": "forward_to_human",
+      "description": "Auto: forwarded \"Property Value Impact\" to customer service agent",
+      "draft_email": null,
+      "sent_at": "2026-03-07T15:27:58.873Z",
+      "subject": "Concern about construction next door",
+      "property_name": "citynorth Quarter",
+      "recipient_name": "Bernadette Coffey",
+      "recipient_email": "bernadette.coffey@outlook.ie"
+    },
     {
       "id": "thread_076:action_1772894378241",
       "thread_id": "thread_076",
@@ -29,6 +42,14 @@
     }
   ],
   "analyzed_threads": [
+    {
+      "thread_id": "thread_070",
+      "subject": "Concern about construction next door",
+      "property_name": "citynorth Quarter",
+      "analyzed_at": "2026-03-07T15:27:37.810Z",
+      "overall_health": "red",
+      "urgency": "medium"
+    },
     {
       "thread_id": "thread_001",
       "subject": "URGENT - Water leaking through ceiling in bedroom",
