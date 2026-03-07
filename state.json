@@ -1,0 +1,687 @@
+{
+  "threads": {
+    "thread_001": {
+      "thread_id": "thread_001",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_002": {
+      "thread_id": "thread_002",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_003": {
+      "thread_id": "thread_003",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_004": {
+      "thread_id": "thread_004",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_005": {
+      "thread_id": "thread_005",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_006": {
+      "thread_id": "thread_006",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_007": {
+      "thread_id": "thread_007",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_008": {
+      "thread_id": "thread_008",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_009": {
+      "thread_id": "thread_009",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_010": {
+      "thread_id": "thread_010",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_011": {
+      "thread_id": "thread_011",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_012": {
+      "thread_id": "thread_012",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_013": {
+      "thread_id": "thread_013",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_014": {
+      "thread_id": "thread_014",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_015": {
+      "thread_id": "thread_015",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_016": {
+      "thread_id": "thread_016",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_017": {
+      "thread_id": "thread_017",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_018": {
+      "thread_id": "thread_018",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_019": {
+      "thread_id": "thread_019",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_020": {
+      "thread_id": "thread_020",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_021": {
+      "thread_id": "thread_021",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_022": {
+      "thread_id": "thread_022",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_023": {
+      "thread_id": "thread_023",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_024": {
+      "thread_id": "thread_024",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_025": {
+      "thread_id": "thread_025",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_026": {
+      "thread_id": "thread_026",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_027": {
+      "thread_id": "thread_027",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_028": {
+      "thread_id": "thread_028",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_029": {
+      "thread_id": "thread_029",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_030": {
+      "thread_id": "thread_030",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_031": {
+      "thread_id": "thread_031",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_032": {
+      "thread_id": "thread_032",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_033": {
+      "thread_id": "thread_033",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_034": {
+      "thread_id": "thread_034",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_035": {
+      "thread_id": "thread_035",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_036": {
+      "thread_id": "thread_036",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_037": {
+      "thread_id": "thread_037",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_038": {
+      "thread_id": "thread_038",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_039": {
+      "thread_id": "thread_039",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_040": {
+      "thread_id": "thread_040",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_041": {
+      "thread_id": "thread_041",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_042": {
+      "thread_id": "thread_042",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_043": {
+      "thread_id": "thread_043",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_044": {
+      "thread_id": "thread_044",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_045": {
+      "thread_id": "thread_045",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_046": {
+      "thread_id": "thread_046",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_047": {
+      "thread_id": "thread_047",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_048": {
+      "thread_id": "thread_048",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_049": {
+      "thread_id": "thread_049",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_050": {
+      "thread_id": "thread_050",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_051": {
+      "thread_id": "thread_051",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_052": {
+      "thread_id": "thread_052",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_053": {
+      "thread_id": "thread_053",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_054": {
+      "thread_id": "thread_054",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_055": {
+      "thread_id": "thread_055",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_056": {
+      "thread_id": "thread_056",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_057": {
+      "thread_id": "thread_057",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_058": {
+      "thread_id": "thread_058",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_059": {
+      "thread_id": "thread_059",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_060": {
+      "thread_id": "thread_060",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_061": {
+      "thread_id": "thread_061",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_062": {
+      "thread_id": "thread_062",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_063": {
+      "thread_id": "thread_063",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_064": {
+      "thread_id": "thread_064",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_065": {
+      "thread_id": "thread_065",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_066": {
+      "thread_id": "thread_066",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_067": {
+      "thread_id": "thread_067",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_068": {
+      "thread_id": "thread_068",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_069": {
+      "thread_id": "thread_069",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_070": {
+      "thread_id": "thread_070",
+      "status": "resolved",
+      "extraction": {
+        "sender_name": {
+          "value": "Bernadette Coffey",
+          "status": "green",
+          "confidence": 0.95
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Auto-classified based on keywords"
+        },
+        "summary": {
+          "value": "Bernadette Coffey sent an email regarding: Concern about construction next door",
+          "status": "orange",
+          "confidence": 0.5
+        },
+        "property": {
+          "value": "prop_001",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Concern about construction next door",
+            "description": "Tara,\n\nI've seen the planning notice for the 18-storey tower being built next to us. I'm in Apt 14A which directly faces the proposed site.\n\nMy concerns:\n1. Construction noise — I work from home 3 day...",
+            "status": "orange",
+            "category": "other",
+            "suggested_action": "Review and respond to the email thread",
+            "requires_info": null
+          }
+        ]
+      },
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_071": {
+      "thread_id": "thread_071",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_072": {
+      "thread_id": "thread_072",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_073": {
+      "thread_id": "thread_073",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_074": {
+      "thread_id": "thread_074",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_075": {
+      "thread_id": "thread_075",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_076": {
+      "thread_id": "thread_076",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_077": {
+      "thread_id": "thread_077",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_078": {
+      "thread_id": "thread_078",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_079": {
+      "thread_id": "thread_079",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_080": {
+      "thread_id": "thread_080",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_081": {
+      "thread_id": "thread_081",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_082": {
+      "thread_id": "thread_082",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_083": {
+      "thread_id": "thread_083",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_084": {
+      "thread_id": "thread_084",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_085": {
+      "thread_id": "thread_085",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_086": {
+      "thread_id": "thread_086",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_087": {
+      "thread_id": "thread_087",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_088": {
+      "thread_id": "thread_088",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_089": {
+      "thread_id": "thread_089",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_090": {
+      "thread_id": "thread_090",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_091": {
+      "thread_id": "thread_091",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    },
+    "thread_092": {
+      "thread_id": "thread_092",
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
+      "human_notes": ""
+    }
+  },
+  "last_updated": "2026-03-07T14:09:45.140Z"
+}

@@ -4,26 +4,13 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest",
-    "dotenv-cli": "^11.0.0"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
-  "prisma": {
-    "seed": "bun run prisma/seed.ts"
-  },
   "scripts": {
-    "dev": "dotenv -e .env.development -- bun run --watch src/server.ts",
-    "start": "dotenv -e .env.production -- bun run src/server.ts",
-
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed",
-    "prisma:reset": "prisma migrate reset --force",
-    "prisma:init": "bun run prisma:generate && bun run prisma:migrate && bun run prisma:seed"
-  },
-  "dependencies": {
-    "unpdf": "^1.4.0"
+    "dev": "bun run --watch src/server.ts",
+    "start": "bun run src/server.ts"
   }
 }

@@ -1,23 +1,18 @@
-import { getSessionId, setSessionId } from "@/lib/sessionStorage";
+async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`/api${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
 
-async function apiFetch(path: string, init?: RequestInit ){
-    const headers = new Headers(init?.headers);
-    const sessionId = getSessionId();
-    if (sessionId) headers.set("x-session-id", sessionId);
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error((error as { error?: string }).error ?? `HTTP ${response.status}`);
+  }
 
-    const response = await fetch(path, {
-        ...init,
-        headers,
-    });
-
-    if (!sessionId) {
-        const nextSessionId = response.headers.get("x-session-id");
-        if (nextSessionId) setSessionId(nextSessionId);
-    }
-
-    return response;
+  return response.json() as Promise<T>;
 }
 
-export {
-    apiFetch,
-};
+export { apiFetch };
