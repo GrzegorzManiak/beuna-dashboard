@@ -2,84 +2,8 @@
   "threads": {
     "thread_001": {
       "thread_id": "thread_001",
-      "status": "analyzed",
-      "extraction": {
-        "sender_name": {
-          "value": "Eoin Byrne",
-          "status": "green",
-          "confidence": 0.95
-        },
-        "sender_type": {
-          "value": "tenant",
-          "status": "green",
-          "confidence": 0.9
-        },
-        "urgency": {
-          "value": "critical",
-          "status": "green",
-          "confidence": 0.6,
-          "note": "Auto-classified based on keywords"
-        },
-        "summary": {
-          "value": "Eoin Byrne sent an email regarding: URGENT - Water leaking through ceiling in bedroom",
-          "status": "orange",
-          "confidence": 0.5
-        },
-        "property": {
-          "value": "prop_001",
-          "status": "green",
-          "confidence": 0.9
-        },
-        "problems": [
-          {
-            "id": "prob_1",
-            "title": "URGENT - Water leaking through ceiling in bedroom",
-            "description": "Hi,\n\nI woke up this morning and there is water actively dripping through the ceiling in my bedroom. It's coming from the light fitting which is really worrying me. I've put a bucket under it but the d...",
-            "status": "orange",
-            "category": "other",
-            "suggested_action": "Review and respond to the email thread",
-            "requires_info": null
-          }
-        ],
-        "source_spans": [
-          {
-            "email_id": "email_001",
-            "text": "Eoin Byrne",
-            "field": "sender_name",
-            "label": "Sender: Eoin Byrne"
-          },
-          {
-            "email_id": "email_001",
-            "text": "someone come out ASAP? I'm worried",
-            "field": "urgency",
-            "label": "Urgency indicator"
-          },
-          {
-            "email_id": "email_002",
-            "text": "worsening.\n\nThis needs emergency attendance",
-            "field": "urgency",
-            "label": "Urgency indicator"
-          },
-          {
-            "email_id": "email_003",
-            "text": "reference our emergency callout is",
-            "field": "urgency",
-            "label": "Urgency indicator"
-          },
-          {
-            "email_id": "email_001",
-            "text": "Hi,\n\nI woke up this morning and there is water actively dripping through the ceiling in my bedroom.",
-            "field": "prob_1",
-            "label": "Primary issue"
-          },
-          {
-            "email_id": "email_001",
-            "text": "It's coming from the light fitting which is really worrying me.",
-            "field": "prob_1",
-            "label": "Issue details"
-          }
-        ]
-      },
+      "status": "pending",
+      "extraction": null,
       "actions": [],
       "human_notes": ""
     },
@@ -561,8 +485,72 @@
     },
     "thread_070": {
       "thread_id": "thread_070",
-      "status": "pending",
-      "extraction": null,
+      "status": "resolved",
+      "extraction": {
+        "sender_name": {
+          "value": "Bernadette Coffey",
+          "status": "green",
+          "confidence": 0.95
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Auto-classified based on keywords"
+        },
+        "summary": {
+          "value": "Bernadette Coffey sent an email regarding: Concern about construction next door",
+          "status": "orange",
+          "confidence": 0.5
+        },
+        "property": {
+          "value": "prop_001",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Concern about construction next door",
+            "description": "Tara,\n\nI've seen the planning notice for the 18-storey tower being built next to us. I'm in Apt 14A which directly faces the proposed site.\n\nMy concerns:\n1. Construction noise — I work from home 3 day...",
+            "status": "green",
+            "category": "other",
+            "suggested_action": "Review and respond to the email thread",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_076",
+            "text": "Bernadette Coffey",
+            "field": "sender_name",
+            "label": "Sender: Bernadette Coffey"
+          },
+          {
+            "email_id": "email_100",
+            "text": "the concierge today. I'd appreciate",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Tara,\n\nI've seen the planning notice for the 18-storey tower being built next to us.",
+            "field": "prob_1",
+            "label": "Primary issue"
+          },
+          {
+            "email_id": "email_076",
+            "text": "I'm in Apt 14A which directly faces the proposed site.",
+            "field": "prob_1",
+            "label": "Issue details"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
@@ -721,5 +709,5 @@
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T14:28:48.710Z"
+  "last_updated": "2026-03-07T14:50:56.184Z"
 }
