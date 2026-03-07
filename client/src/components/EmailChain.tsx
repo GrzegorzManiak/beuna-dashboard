@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   Paperclip,
   Send,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -162,7 +161,7 @@ function EmailMessage({
   return (
     <article
       className={cn(
-        "rounded-[20px] border px-4 py-4 shadow-[0_10px_20px_rgba(15,23,42,0.04)]",
+        "rounded-xl border px-4 py-4 shadow-sm",
         isInternal
           ? "border-sky-100 bg-sky-50/70"
           : "border-border/70 bg-white/80"
@@ -172,7 +171,7 @@ function EmailMessage({
         <div className="min-w-0 flex items-start gap-3">
           <div
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-[14px] text-[11px] font-semibold uppercase tracking-[0.08em]",
+              "flex size-10 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold uppercase tracking-[0.08em]",
               isInternal ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-700"
             )}
           >
@@ -216,7 +215,7 @@ function EmailMessage({
       </div>
 
       {isFirst && (
-        <div className="mt-4 rounded-[16px] border border-border/70 bg-background/60 px-3.5 py-3">
+        <div className="mt-4 rounded-xl border border-border/70 bg-background/60 px-3.5 py-3">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Subject
           </p>
@@ -279,10 +278,10 @@ function SentActionCard({ action }: { action: ThreadAction }) {
     <article
       ref={ref}
       style={{ animation: "slideUp 0.4s ease-out" }}
-      className="rounded-[20px] border border-emerald-200 bg-emerald-50/80 px-4 py-4 shadow-[0_10px_20px_rgba(16,185,129,0.08)]"
+      className="rounded-xl border border-emerald-200 bg-emerald-50/80 px-4 py-4 shadow-sm"
     >
       <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-100 text-emerald-700">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
           {action.approved ? <CheckCircle2 className="size-4" /> : <Send className="size-4" />}
         </div>
 
@@ -306,7 +305,7 @@ function SentActionCard({ action }: { action: ThreadAction }) {
           </div>
 
           {action.draft_email && (
-            <div className="mt-3 rounded-[16px] border border-emerald-200 bg-white/70 px-3.5 py-3 text-[12px] leading-6 text-foreground/80">
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-white/70 px-3.5 py-3 text-[12px] leading-6 text-foreground/80">
               {action.draft_email}
             </div>
           )}
@@ -345,7 +344,7 @@ export function EmailChain({
   }, [approvedActions.length]);
 
   return (
-    <div className="app-surface flex h-full min-h-0 flex-col">
+    <div className="app-surface flex flex-col">
       <div className="border-b border-border/70 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex min-w-0 items-start gap-3">
@@ -369,7 +368,6 @@ export function EmailChain({
             </span>
             {spans.length > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-700">
-                <Sparkles className="size-3.5" />
                 {spans.length} highlights
               </span>
             )}
@@ -382,7 +380,7 @@ export function EmailChain({
         </div>
       </div>
 
-      <div className="app-scroll flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 px-3 py-3">
         <div className="mx-auto max-w-3xl space-y-2.5">
           {emails.map((email, index) => (
             <EmailMessage

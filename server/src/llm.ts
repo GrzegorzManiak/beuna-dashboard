@@ -87,7 +87,8 @@ RULES:
 - Mark a problem "orange" if the system could auto-request missing info (e.g. apartment number, contact details).
 - Mark a problem "red" if human judgment is required (e.g. legal decisions, conflict resolution, ambiguous priority).
 - Be conservative with "green" — only use it when you're truly confident.
-- urgency "critical" = immediate safety/health risk or legal deadline. "high" = same-day response needed. "medium" = this week. "low" = informational.
+- urgency "critical" = immediate safety/health risk or legal deadline. "high" = same-day response needed. "medium" = this week. "low" = informational or general pleasantries (e.g., "I hope you are well").
+- If the entire thread is just a greeting or informational, urgency MUST be "low".
 - For source_spans: extract 5-15 spans. Each "text" MUST be a verbatim substring from an email body. Include spans for the sender name, each problem, urgency indicators, and property references.
 
 Return ONLY the JSON object. No markdown, no explanation.`;
@@ -441,9 +442,16 @@ export function createMockExtraction(emails: SeedEmail[]): Extraction {
   } else if (
     text.includes("request") ||
     text.includes("inquiry") ||
-    text.includes("question")
+    text.includes("question") ||
+    text.includes("hope you") ||
+    text.includes("hope your")
   ) {
     urgency = "low";
+    urgencyStatus = "green";
+  } else if (
+    !text.includes("broken") && !text.includes("leak")
+  ) {
+    urgency = "low"; 
     urgencyStatus = "green";
   }
 

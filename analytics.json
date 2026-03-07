@@ -1,18 +1,44 @@
 {
-  "last_updated": "2026-03-07T16:01:59.263Z",
+  "last_updated": "2026-03-07T16:05:41.400Z",
   "sent_items": [
     {
-      "id": "thread_019:action_1772899316851_reply",
-      "thread_id": "thread_019",
-      "action_id": "action_1772899316851_reply",
-      "action_type": "reply",
-      "description": "Auto: combined response addressing 2 issue(s)",
-      "draft_email": "Hi Ana,\n\nThanks for reaching out to us. We understand you're looking to sublet your apartment (12E) from April to June while you're in Lisbon, and we appreciate you suggesting a potential subtenant.\n\nTo properly address your subletting request, we need to review your lease agreement regarding subletting policies. Could you please provide us with a copy of your lease agreement, or at least the relevant section about subletting? This will help us determine the next steps and any required procedures.\n\nRegarding your inquiry about pausing or reducing rent during your absence, we will also need to review your lease agreement and company policy to see if this is a possibility. We will look into this and get back to you as soon as possible.\n\nWe appreciate your patience as we look into these matters.\n\nManageCo Property Management",
-      "sent_at": "2026-03-07T16:01:56.851Z",
-      "subject": "Request to sublet my apartment for 3 months",
+      "id": "thread_026:action_1772899531513",
+      "thread_id": "thread_026",
+      "action_id": "action_1772899531513",
+      "action_type": "forward_to_human",
+      "description": "Manual support escalation alongside AI reply",
+      "draft_email": "Hi Support Team,\n\nForwarding email_029 from Roisin Moran (Apt 6B, Graylings) regarding repeated unauthorized parking in her allocated space B26. The offending vehicle is a black BMW 3 Series, reg 231-D-14582. This has happened three times this week. Roisin is pregnant and had to park far away today.\n\nUrgency is medium. She requests identifying the vehicle owner, issuing a warning, and potentially clamping/towing. She also wants improved signage.\n\nThis requires human judgment to investigate the vehicle registration and determine ownership. We need to decide on appropriate enforcement action.\n\nIn parallel, we can acknowledge receipt to Roisin and assure her we're looking into it.\n\nRecommended next step: Investigate vehicle registration 231-D-14582 and cross-reference with tenant database or visitor logs.\n\nManageCo AI Desk",
+      "sent_at": "2026-03-07T16:05:41.400Z",
+      "subject": "Car park issue - someone keeps parking in my space",
       "property_name": "Graylings",
-      "recipient_name": "Ana Santos",
-      "recipient_email": "ana.santos@gmail.com"
+      "recipient_name": "Human Support",
+      "recipient_email": "support@manageco.ie"
+    },
+    {
+      "id": "thread_026:action_1772899497718_reply",
+      "thread_id": "thread_026",
+      "action_id": "action_1772899497718_reply",
+      "action_type": "reply",
+      "description": "Auto: combined response addressing 1 issue(s)",
+      "draft_email": "Hi Roisin,\n\nThank you for bringing the parking issue in space B26 to our attention. We understand your frustration, especially given your current circumstances.\n\nWe are taking this matter seriously. We will investigate the ownership of the black BMW 3 Series with registration 231-D-14582 and issue a warning to the owner. We will also review the signage in the car park to ensure allocated spaces are clearly marked.\n\nShould this continue, we will consider further action, including clamping or towing, as per our parking regulations. Please continue to document each instance with photos.\n\nWe appreciate you reporting this and will keep you updated on our progress.\n\nManageCo Property Management",
+      "sent_at": "2026-03-07T16:04:57.718Z",
+      "subject": "Car park issue - someone keeps parking in my space",
+      "property_name": "Graylings",
+      "recipient_name": "Roisin Moran",
+      "recipient_email": "roisin.moran@gmail.com"
+    },
+    {
+      "id": "thread_051:action_1772899422864_reply",
+      "thread_id": "thread_051",
+      "action_id": "action_1772899422864_reply",
+      "action_type": "reply",
+      "description": "Auto: combined response addressing 1 issue(s)",
+      "draft_email": "Sean,\n\nThank you for reaching out and for your willingness to resolve this matter outside of the RTB process. We understand your frustration regarding the damp and mould issue in Apt 31C, and we sincerely apologize for the impact it's having on your and your daughter's health.\n\nWe acknowledge that the previous attempt to address the damp with paint was insufficient. We are committed to resolving this properly.\n\nWe will arrange for a qualified surveyor to inspect the property this week to determine the source of the damp and recommend a permanent solution. We will contact you tomorrow to schedule a convenient time for the inspection. We are also open to discussing reasonable compensation for the inconvenience and distress caused by the ongoing issue.\n\nWe will be in touch very soon to confirm the inspection details.\n\nManageCo Property Management",
+      "sent_at": "2026-03-07T16:03:42.863Z",
+      "subject": "My RTB complaint - want to talk",
+      "property_name": "reds Works",
+      "recipient_name": "Sean Morrissey",
+      "recipient_email": "sean.morrissey@live.ie"
     },
     {
       "id": "thread_092:action_1772898746069_combined",
@@ -82,12 +108,20 @@
   ],
   "analyzed_threads": [
     {
-      "thread_id": "thread_019",
-      "subject": "Request to sublet my apartment for 3 months",
+      "thread_id": "thread_026",
+      "subject": "Car park issue - someone keeps parking in my space",
       "property_name": "Graylings",
-      "analyzed_at": "2026-03-07T16:01:56.847Z",
+      "analyzed_at": "2026-03-07T16:04:57.716Z",
       "overall_health": "orange",
       "urgency": "medium"
+    },
+    {
+      "thread_id": "thread_051",
+      "subject": "My RTB complaint - want to talk",
+      "property_name": "reds Works",
+      "analyzed_at": "2026-03-07T16:03:42.790Z",
+      "overall_health": "green",
+      "urgency": "high"
     },
     {
       "thread_id": "thread_092",

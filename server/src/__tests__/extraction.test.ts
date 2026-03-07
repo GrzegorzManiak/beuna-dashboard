@@ -121,14 +121,14 @@ describe("urgency extraction", () => {
     expect(result.urgency.value).toBe("low");
   });
 
-  test("defaults to medium urgency when no keywords found", () => {
+  test("defaults to low urgency when no major keywords found", () => {
     const email = makeEmail({
       subject: "Hello from apartment 4",
       body: "Just wanted to check on a few things about the building.",
     });
     const result = createMockExtraction([email]);
-    expect(result.urgency.value).toBe("medium");
-    expect(result.urgency.status).toBe("orange");
+    expect(result.urgency.value).toBe("low");
+    expect(result.urgency.status).toBe("green");
   });
 
   test("creates source span for urgency keyword", () => {

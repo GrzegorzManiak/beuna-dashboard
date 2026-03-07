@@ -39,29 +39,16 @@ export function Sent() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="border-b border-border/70">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl">
-              <span className="app-kicker">
-                <MailCheck className="size-3.5" />
-                Approved outbound history
-              </span>
-              <CardTitle className="mt-4 text-2xl tracking-[-0.03em] md:text-[2rem]">
-                Calm audit trail for every approved response.
-              </CardTitle>
-              <CardDescription className="mt-3 max-w-xl text-[15px]">
-                Keep outbound communication visible without turning the log into a cluttered feed.
-              </CardDescription>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
+        <CardHeader className="border-b border-border/70 py-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5 font-medium">
                 <ShieldCheck className="size-3.5" />
-                analytics.json tracked
+                Tracked in analytics
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
+              <span className="flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5 font-medium">
                 <Clock3 className="size-3.5" />
-                {sent[0] ? `Latest ${formatSentAt(sent[0].sent_at)}` : "No recent send"}
+                {sent[0] ? `Latest: ${formatSentAt(sent[0].sent_at)}` : "No recent activity"}
               </span>
             </div>
           </div>
@@ -91,12 +78,12 @@ export function Sent() {
         </CardHeader>
         <CardContent className="pt-5">
           {isLoading ? (
-            <div className="flex h-32 items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
+            <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" />
               Loading sent items...
             </div>
           ) : sent.length === 0 ? (
-            <div className="flex h-32 items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
+            <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
               No approved sends yet.
             </div>
           ) : (
@@ -127,7 +114,7 @@ export function Sent() {
                       </p>
 
                       {item.draft_email && (
-                        <div className="mt-3 rounded-[16px] border border-border/70 bg-white/70 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+                        <div className="mt-3 rounded-xl border border-border/70 bg-white/70 px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
                           {item.draft_email}
                         </div>
                       )}
@@ -168,7 +155,7 @@ function Metric({
           <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
           {note && <p className="mt-2 text-xs text-muted-foreground">{note}</p>}
         </div>
-        <div className="rounded-[14px] bg-slate-100 p-2.5 text-slate-700">
+        <div className="rounded-lg bg-slate-100 p-2.5 text-slate-700">
           <Icon className="size-4" />
         </div>
       </div>

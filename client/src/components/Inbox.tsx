@@ -9,7 +9,6 @@ import {
   Mail,
   RefreshCcw,
   Search,
-  ShieldAlert,
   WifiOff,
   Zap,
 } from "lucide-react";
@@ -19,9 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { useAnalyzeAll, useHealthQuery, useThreadsQuery } from "@/hooks/useThreads";
 import { cn } from "@/lib/utils";
@@ -108,7 +105,7 @@ export function Inbox() {
     <div className="space-y-4">
       {health && !health.openrouter_connected && (
         <div className="app-surface flex items-center gap-3 px-4 py-3 text-sm text-amber-900">
-          <div className="flex size-9 items-center justify-center rounded-[14px] bg-amber-100 text-amber-700">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
             <WifiOff className="size-4" />
           </div>
           <div>
@@ -121,60 +118,44 @@ export function Inbox() {
       )}
 
       <Card>
-        <CardHeader className="border-b border-border/70">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl">
-              <span className="app-kicker">
-                <ShieldAlert className="size-3.5" />
-                Thread operations
+        <CardHeader className="border-b border-border/70 py-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span className="flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5 font-medium">
+                <span className="size-2 rounded-full bg-primary" />
+                {unreadCount} unread
               </span>
-              <CardTitle className="mt-4 text-2xl tracking-[-0.03em] md:text-[2rem]">
-                Dense, readable triage for every incoming thread.
-              </CardTitle>
-              <CardDescription className="mt-3 max-w-xl text-[15px]">
-                Keep the inbox tight: scan the sender, health state, property, and urgency in
-                one pass before opening detail.
-              </CardDescription>
+              {analyzeAll.data && (
+                <span className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-medium text-emerald-700">
+                  <CheckCircle2 className="size-3.5" />
+                  Last batch: {analyzeAll.data.completed} analyzed, {analyzeAll.data.failed} failed
+                </span>
+              )}
             </div>
 
-            <div className="flex flex-col items-start gap-3 md:items-end">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => analyzeAll.mutate()}
-                  disabled={analyzeAll.isPending}
-                >
-                  {analyzeAll.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Zap className="size-4" />
-                  )}
-                  {analyzeAll.isPending ? "Analyzing threads" : "Analyze all"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReset}
-                  disabled={resetting}
-                >
-                  <RefreshCcw className={cn("size-4", resetting && "animate-spin")} />
-                  Reset state
-                </Button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
-                  <span className="size-2 rounded-full bg-primary" />
-                  {unreadCount} unread messages
-                </span>
-                {analyzeAll.data && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">
-                    <CheckCircle2 className="size-3.5" />
-                    Last batch: {analyzeAll.data.completed} analyzed, {analyzeAll.data.failed} failed
-                  </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => analyzeAll.mutate()}
+                disabled={analyzeAll.isPending}
+              >
+                {analyzeAll.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Zap className="size-4" />
                 )}
-              </div>
+                {analyzeAll.isPending ? "Analyzing..." : "Analyze all"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                disabled={resetting}
+              >
+                <RefreshCcw className={cn("size-4", resetting && "animate-spin")} />
+                Reset state
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -218,7 +199,7 @@ export function Inbox() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search sender, subject, or property"
-                className="h-10 w-full rounded-[16px] border border-border/70 bg-white/80 pl-9 pr-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
+                  className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm shadow-sm outline-none transition focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/10"
               />
             </div>
 
@@ -237,10 +218,10 @@ export function Inbox() {
                   key={value}
                   onClick={() => setFilter(value)}
                   className={cn(
-                    "rounded-[14px] border px-3 py-2 text-xs font-semibold tracking-[-0.01em] transition-all",
+                    "rounded-md border px-3 py-2 text-xs font-semibold tracking-[-0.01em] transition-all",
                     filter === value
-                      ? "border-primary/30 bg-primary text-primary-foreground shadow-[0_12px_20px_rgba(62,89,176,0.15)]"
-                      : "border-border/70 bg-white/70 text-muted-foreground hover:border-border hover:bg-white hover:text-foreground"
+                      ? "border-primary/30 bg-primary text-primary-foreground shadow-sm"
+                        : "border-border/70 bg-background text-muted-foreground hover:border-border hover:bg-background hover:text-foreground"
                   )}
                 >
                   {formatStatusLabel(value)}
@@ -289,8 +270,8 @@ function ThreadRow({
     <button
       onClick={onOpen}
       className={cn(
-        "w-full rounded-[18px] border px-4 py-4 text-left transition-all duration-200",
-        "bg-white/70 hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_16px_26px_rgba(15,23,42,0.05)]",
+        "w-full rounded-lg border px-4 py-4 text-left transition-all duration-200",
+        "bg-white/70 hover:-translate-y-0.5 hover:bg-white hover:shadow-md",
         healthStyles[thread.overall_health],
         thread.unread_count > 0 && "ring-1 ring-primary/10"
       )}
@@ -402,7 +383,7 @@ function MetricCard({
           <p className="mt-2 text-xs text-muted-foreground">{note}</p>
         </div>
 
-        <div className={cn("rounded-[14px] p-2.5", toneStyles)}>
+        <div className={cn("rounded-lg p-2.5", toneStyles)}>
           <Icon className="size-4" />
         </div>
       </div>
@@ -420,7 +401,7 @@ function ListState({
   loading?: boolean;
 }) {
   return (
-    <div className="flex h-40 flex-col items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
+    <div className="flex h-40 flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
       <Icon className={cn("mb-3 size-5", loading && "animate-spin")} />
       <p>{text}</p>
     </div>

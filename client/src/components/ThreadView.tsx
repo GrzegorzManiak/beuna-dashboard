@@ -86,7 +86,7 @@ export function ThreadView() {
     <div className="space-y-3">
       {showBanner && (
         <div className="app-surface flex items-center gap-3 px-4 py-2.5 text-sm text-amber-900">
-          <div className="flex size-9 items-center justify-center rounded-[14px] bg-amber-100 text-amber-700">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
             <WifiOff className="size-4" />
           </div>
           <div>
@@ -101,8 +101,7 @@ export function ThreadView() {
       <div className="app-surface px-4 py-3.5 md:px-5">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0 max-w-3xl">
-            <span className="app-kicker">Thread workspace</span>
-            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em] md:text-[1.5rem]">
+            <h2 className="text-xl font-semibold tracking-[-0.03em] md:text-[1.5rem]">
               {thread.subject}
             </h2>
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -130,12 +129,12 @@ export function ThreadView() {
         </div>
       </div>
 
-      <div className="grid min-h-0 gap-3 xl:grid-cols-[236px_minmax(0,1fr)_360px]">
-        <div className="order-3 min-h-[16rem] xl:order-1 xl:h-[calc(100vh-13.75rem)] xl:min-h-0">
+      <div className="grid gap-3 xl:grid-cols-[236px_minmax(0,1fr)_360px] xl:items-start">
+        <div className="order-3 min-h-[16rem] xl:order-1 xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)]">
           <HistoryPanel thread={thread} />
         </div>
 
-        <div className="order-1 min-h-[26rem] xl:order-2 xl:h-[calc(100vh-13.75rem)] xl:min-h-0">
+        <div className="order-1 min-h-[26rem] xl:order-2">
           <EmailChain
             emails={thread.emails}
             subject={thread.subject}
@@ -148,7 +147,7 @@ export function ThreadView() {
           />
         </div>
 
-        <div className="order-2 min-h-[22rem] xl:order-3 xl:h-[calc(100vh-13.75rem)] xl:min-h-0">
+        <div className="order-2 min-h-[22rem] xl:order-3 xl:sticky xl:top-24 xl:h-[calc(100vh-7rem)]">
           <ExtractionPanel
             thread={thread}
             activeField={activeField}

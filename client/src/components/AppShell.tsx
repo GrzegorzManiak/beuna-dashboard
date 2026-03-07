@@ -76,13 +76,13 @@ export function AppShell() {
       >
         <div
           className={cn(
-            "flex w-full flex-col overflow-hidden rounded-[22px] border border-white/10 bg-sidebar shadow-[0_18px_42px_rgba(15,23,42,0.24)] transition-[width]",
+            "flex w-full flex-col overflow-hidden rounded-xl border border-sidebar-border bg-sidebar shadow-md transition-[width]",
             collapsed ? "items-center" : ""
           )}
         >
-          <div className="border-b border-white/10 px-4 py-4">
+          <div className="border-b border-sidebar-border px-4 py-4">
             <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
-              <div className="flex size-10 items-center justify-center rounded-[14px] bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_8px_18px_rgba(255,255,255,0.15)]">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
                 <Mail className="size-4" />
               </div>
               <div className={cn("min-w-0", collapsed && "hidden")}>
@@ -109,9 +109,9 @@ export function AppShell() {
                   {({ isActive }) => (
                     <span
                       className={cn(
-                        "flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm transition-all",
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
                         isActive
-                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_10px_24px_rgba(255,255,255,0.14)]"
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                           : "text-sidebar-foreground/80 hover:bg-white/5 hover:text-sidebar-foreground"
                       )}
                       title={item.label}
@@ -125,15 +125,15 @@ export function AppShell() {
             </nav>
           </div>
 
-          <div className="border-t border-white/10 p-3">
+          <div className="border-t border-sidebar-border p-3">
             {!collapsed && (
-              <div className="mb-3 rounded-[14px] border border-white/10 bg-white/5 px-3 py-2.5">
+              <div className="mb-3 rounded-lg border border-sidebar-border bg-white/5 px-3 py-2.5">
                 <div className="flex items-center gap-2 text-sidebar-foreground">
                   <Activity className="size-4 text-sidebar-primary" />
                   <span className="text-sm font-semibold">Operator surface</span>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-sidebar-foreground/60">
-                  Dense enough for triage, restrained enough for long review sessions.
+                  Ready for review and operational processing.
                 </p>
               </div>
             )}
@@ -143,7 +143,7 @@ export function AppShell() {
               size="sm"
               onClick={() => setCollapsed((value) => !value)}
               className={cn(
-                "w-full border-white/10 bg-white/5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground",
+                "w-full border-sidebar-border bg-white/5 text-sidebar-foreground hover:bg-white/10 hover:text-sidebar-foreground",
                 collapsed && "justify-center px-0"
               )}
             >
@@ -172,8 +172,8 @@ export function AppShell() {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-full flex-col rounded-[22px] border border-white/10 bg-sidebar shadow-[0_18px_42px_rgba(15,23,42,0.24)]">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3.5">
+        <div className="flex h-full flex-col rounded-xl border border-sidebar-border bg-sidebar shadow-md">
+          <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-3.5">
             <div>
               <p className="text-sm font-semibold text-sidebar-foreground">GiveAGo Operations</p>
               <p className="mt-0.5 text-xs text-sidebar-foreground/60">
@@ -196,9 +196,9 @@ export function AppShell() {
                 {({ isActive }) => (
                   <span
                     className={cn(
-                      "flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-sm transition-all",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all",
                       isActive
-                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_10px_24px_rgba(255,255,255,0.14)]"
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                         : "text-sidebar-foreground/80 hover:bg-white/5 hover:text-sidebar-foreground"
                     )}
                   >
@@ -243,14 +243,6 @@ export function AppShell() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background px-2.5 py-1">
-                  <span className="size-2 rounded-full bg-emerald-500" />
-                  Cohesive workspace
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-background px-2.5 py-1">
-                  <span className="size-2 rounded-full bg-primary" />
-                  Readable clinical UI
-                </span>
               </div>
             </div>
           </header>

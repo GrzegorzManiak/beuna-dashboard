@@ -747,117 +747,9 @@
     },
     "thread_019": {
       "thread_id": "thread_019",
-      "status": "in_progress",
-      "extraction": {
-        "sender_name": {
-          "value": "Ana Santos",
-          "status": "green",
-          "confidence": 1
-        },
-        "sender_type": {
-          "value": "tenant",
-          "status": "green",
-          "confidence": 1
-        },
-        "urgency": {
-          "value": "medium",
-          "status": "green",
-          "confidence": 0.8,
-          "note": "Request is for April, so not immediate, but needs to be resolved soon."
-        },
-        "summary": {
-          "value": "Ana Santos is requesting to sublet her apartment for 3 months (April-June) while she is in Lisbon for work. She suggests her colleague Anna as a potential subtenant and asks about the possibility of pausing or reducing rent during her absence.",
-          "status": "green",
-          "confidence": 0.9
-        },
-        "property": {
-          "value": "Apt 12E",
-          "status": "green",
-          "confidence": 1
-        },
-        "problems": [
-          {
-            "id": "prob_1",
-            "title": "Sublet Request",
-            "description": "Tenant Ana Santos wants to sublet her apartment (Apt 12E) for 3 months (April-June) to her colleague Anna while she is working in Lisbon.",
-            "status": "orange",
-            "category": "lease",
-            "suggested_action": "Review lease agreement regarding subletting and contact tenant to discuss options.",
-            "requires_info": "Confirm if subletting is allowed in the lease and any required procedures."
-          },
-          {
-            "id": "prob_2",
-            "title": "Rent Reduction/Pause Request",
-            "description": "Tenant Ana Santos is inquiring about the possibility of pausing or reducing rent during her temporary absence (April-June).",
-            "status": "orange",
-            "category": "financial",
-            "suggested_action": "Check lease agreement and company policy regarding rent reduction/pause during temporary absences.",
-            "requires_info": "Determine if rent reduction/pause is an option based on lease and company policy."
-          }
-        ],
-        "source_spans": [
-          {
-            "email_id": "email_022",
-            "text": "Would it be possible to sublet my apartment for that period?",
-            "field": "prob_1",
-            "label": "Sublet Request Question"
-          },
-          {
-            "email_id": "email_022",
-            "text": "My colleague Anna (also works at my company) would take it.",
-            "field": "prob_1",
-            "label": "Proposed Subtenant"
-          },
-          {
-            "email_id": "email_022",
-            "text": "Alternatively, is there any option to pause or reduce rent during a temporary absence?",
-            "field": "prob_2",
-            "label": "Rent Reduction/Pause Request"
-          },
-          {
-            "email_id": "email_022",
-            "text": "April-June",
-            "field": "prob_1",
-            "label": "Timeframe"
-          },
-          {
-            "email_id": "email_022",
-            "text": "April-June",
-            "field": "prob_2",
-            "label": "Timeframe"
-          },
-          {
-            "email_id": "email_022",
-            "text": "My lease runs until October 2026",
-            "field": "prob_1",
-            "label": "Lease End Date"
-          },
-          {
-            "email_id": "email_022",
-            "text": "I don't want to give up my apartment as I'll be coming back",
-            "field": "prob_1",
-            "label": "Reason for Sublet"
-          },
-          {
-            "email_id": "email_022",
-            "text": "I hope you're well.",
-            "field": "urgency",
-            "label": "Polite opening"
-          }
-        ]
-      },
-      "actions": [
-        {
-          "id": "action_1772899316851_reply",
-          "type": "reply",
-          "description": "Auto: combined response addressing 2 issue(s)",
-          "timestamp": "2026-03-07T16:01:56.851Z",
-          "draft_email": "Hi Ana,\n\nThanks for reaching out to us. We understand you're looking to sublet your apartment (12E) from April to June while you're in Lisbon, and we appreciate you suggesting a potential subtenant.\n\nTo properly address your subletting request, we need to review your lease agreement regarding subletting policies. Could you please provide us with a copy of your lease agreement, or at least the relevant section about subletting? This will help us determine the next steps and any required procedures.\n\nRegarding your inquiry about pausing or reducing rent during your absence, we will also need to review your lease agreement and company policy to see if this is a possibility. We will look into this and get back to you as soon as possible.\n\nWe appreciate your patience as we look into these matters.\n\nManageCo Property Management",
-          "approved": true,
-          "auto_triggered": true,
-          "problem_id": null
-        }
-      ],
+      "status": "pending",
+      "extraction": null,
+      "actions": [],
       "human_notes": ""
     },
     "thread_020": {
@@ -904,9 +796,130 @@
     },
     "thread_026": {
       "thread_id": "thread_026",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Roisin Moran",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.7,
+          "note": "Parking issue is recurring and causing inconvenience, but not an immediate safety risk."
+        },
+        "summary": {
+          "value": "Roisin Moran is reporting that someone is repeatedly parking in her allocated parking space (B26). She requests management to identify the vehicle owner, issue a warning, and consider clamping or towing if the issue persists.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Graylings",
+          "status": "orange",
+          "confidence": 0.4
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Unauthorized Parking",
+            "description": "Someone is repeatedly parking in the tenant's allocated parking space (B26). The vehicle is a black BMW 3 Series, reg 231-D-14582.",
+            "status": "green",
+            "category": "security",
+            "suggested_action": "Identify the vehicle owner, issue a warning, and consider clamping or towing if the issue persists. Improve signage.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_029",
+            "text": "For the third time this week",
+            "field": "urgency",
+            "label": "Recurring issue"
+          },
+          {
+            "email_id": "email_029",
+            "text": "someone has parked in my allocated space (B26)",
+            "field": "prob_1",
+            "label": "Parking issue reported"
+          },
+          {
+            "email_id": "email_029",
+            "text": "I'm paying €150/month for this space and I can't use it.",
+            "field": "prob_1",
+            "label": "Financial impact"
+          },
+          {
+            "email_id": "email_029",
+            "text": "black BMW 3 Series, reg 231-D-14582",
+            "field": "prob_1",
+            "label": "Vehicle description"
+          },
+          {
+            "email_id": "email_029",
+            "text": "Identify whose car this is",
+            "field": "prob_1",
+            "label": "Suggested action"
+          },
+          {
+            "email_id": "email_029",
+            "text": "Issue a warning",
+            "field": "prob_1",
+            "label": "Suggested action"
+          },
+          {
+            "email_id": "email_029",
+            "text": "clamping or towing",
+            "field": "prob_1",
+            "label": "Suggested action"
+          },
+          {
+            "email_id": "email_029",
+            "text": "Improve signage",
+            "field": "prob_1",
+            "label": "Suggested action"
+          },
+          {
+            "email_id": "email_029",
+            "text": "Apt 6B, Space B26",
+            "field": "prob_1",
+            "label": "Apartment and space number"
+          },
+          {
+            "email_id": "email_029",
+            "text": "I'm 7 months pregnant",
+            "field": "urgency",
+            "label": "Additional context for urgency"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772899497718_reply",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T16:04:57.718Z",
+          "draft_email": "Hi Roisin,\n\nThank you for bringing the parking issue in space B26 to our attention. We understand your frustration, especially given your current circumstances.\n\nWe are taking this matter seriously. We will investigate the ownership of the black BMW 3 Series with registration 231-D-14582 and issue a warning to the owner. We will also review the signage in the car park to ensure allocated spaces are clearly marked.\n\nShould this continue, we will consider further action, including clamping or towing, as per our parking regulations. Please continue to document each instance with photos.\n\nWe appreciate you reporting this and will keep you updated on our progress.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        },
+        {
+          "id": "action_1772899531513",
+          "type": "forward_to_human",
+          "description": "Manual support escalation alongside AI reply",
+          "timestamp": "2026-03-07T16:05:31.513Z",
+          "draft_email": "Hi Support Team,\n\nForwarding email_029 from Roisin Moran (Apt 6B, Graylings) regarding repeated unauthorized parking in her allocated space B26. The offending vehicle is a black BMW 3 Series, reg 231-D-14582. This has happened three times this week. Roisin is pregnant and had to park far away today.\n\nUrgency is medium. She requests identifying the vehicle owner, issuing a warning, and potentially clamping/towing. She also wants improved signage.\n\nThis requires human judgment to investigate the vehicle registration and determine ownership. We need to decide on appropriate enforcement action.\n\nIn parallel, we can acknowledge receipt to Roisin and assure her we're looking into it.\n\nRecommended next step: Investigate vehicle registration 231-D-14582 and cross-reference with tenant database or visitor logs.\n\nManageCo AI Desk",
+          "approved": true,
+          "auto_triggered": false,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     },
     "thread_027": {
@@ -1261,9 +1274,114 @@
     },
     "thread_051": {
       "thread_id": "thread_051",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Sean Morrissey",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "high",
+          "status": "green",
+          "confidence": 0.9,
+          "note": "Mould impacting health, affecting a child, and RTB complaint filed."
+        },
+        "summary": {
+          "value": "Sean Morrissey is complaining about unresolved damp and mould issues in his apartment, which he says are impacting his family's health and has led to an RTB complaint. He is willing to withdraw the complaint if the issue is properly addressed and he receives compensation.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Apt 31C",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Damp and Mould",
+            "description": "Recurring damp and mould issue in the apartment, previously 'fixed' with paint, now causing respiratory issues for the tenant and his daughter.",
+            "status": "green",
+            "category": "maintenance",
+            "suggested_action": "Surveyor inspection, proper fix, and compensation.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_057",
+            "text": "Apt 31C",
+            "field": "property",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_057",
+            "text": "damp in October",
+            "field": "prob_1",
+            "label": "Damp reported"
+          },
+          {
+            "email_id": "email_057",
+            "text": "painted over it",
+            "field": "prob_1",
+            "label": "Painted over"
+          },
+          {
+            "email_id": "email_057",
+            "text": "mould is contributing to my respiratory issues",
+            "field": "prob_1",
+            "label": "Mould causing health issues"
+          },
+          {
+            "email_id": "email_057",
+            "text": "3-year-old daughter sleeping in that room",
+            "field": "prob_1",
+            "label": "Child affected"
+          },
+          {
+            "email_id": "email_057",
+            "text": "surveyor inspection",
+            "field": "prob_1",
+            "label": "Suggested action"
+          },
+          {
+            "email_id": "email_057",
+            "text": "reasonable compensation",
+            "field": "prob_1",
+            "label": "Compensation request"
+          },
+          {
+            "email_id": "email_057",
+            "text": "action this week",
+            "field": "urgency",
+            "label": "Urgency"
+          },
+          {
+            "email_id": "email_057",
+            "text": "I'd be willing to withdraw the complaint",
+            "field": "prob_1",
+            "label": "Willing to withdraw complaint"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772899422864_reply",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T16:03:42.863Z",
+          "draft_email": "Sean,\n\nThank you for reaching out and for your willingness to resolve this matter outside of the RTB process. We understand your frustration regarding the damp and mould issue in Apt 31C, and we sincerely apologize for the impact it's having on your and your daughter's health.\n\nWe acknowledge that the previous attempt to address the damp with paint was insufficient. We are committed to resolving this properly.\n\nWe will arrange for a qualified surveyor to inspect the property this week to determine the source of the damp and recommend a permanent solution. We will contact you tomorrow to schedule a convenient time for the inspection. We are also open to discussing reasonable compensation for the inconvenience and distress caused by the ongoing issue.\n\nWe will be in touch very soon to confirm the inspection details.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     },
     "thread_052": {
@@ -2227,5 +2345,5 @@
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T16:01:59.261Z"
+  "last_updated": "2026-03-07T16:05:41.400Z"
 }

@@ -107,9 +107,9 @@ function FieldRow<T extends string>({
       data-field={fieldKey}
       onClick={onClick}
       className={cn(
-        "rounded-[16px] border px-3 py-3 transition-all",
+        "rounded-xl border px-3 py-3 transition-all",
         isActive
-          ? "border-primary/30 bg-primary/5 shadow-[0_12px_22px_rgba(62,89,176,0.08)]"
+          ? "border-primary/30 bg-primary/5 shadow-sm"
           : "border-border/70 bg-white/70 hover:bg-white"
       )}
     >
@@ -133,7 +133,7 @@ function FieldRow<T extends string>({
                 value={editValue}
                 onClick={(event) => event.stopPropagation()}
                 onChange={(event) => setEditValue(event.target.value as T)}
-                className="h-9 flex-1 rounded-[12px] border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
+                className="h-9 flex-1 rounded-md border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
               >
                 {options.map((option) => (
                   <option key={option} value={option}>
@@ -152,7 +152,7 @@ function FieldRow<T extends string>({
                   if (event.key === "Enter") save();
                   if (event.key === "Escape") cancel();
                 }}
-                className="h-9 flex-1 rounded-[12px] border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
+                className="h-9 flex-1 rounded-md border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
               />
             )}
 
@@ -241,7 +241,7 @@ function ActionBadge({
   return (
     <div
       className={cn(
-        "mt-3 rounded-[16px] border px-3 py-3 shadow-[0_8px_16px_rgba(15,23,42,0.04)]",
+        "mt-3 rounded-xl border px-3 py-3 shadow-sm",
         toneClasses[action.type] ?? "border-slate-200 bg-slate-50/80 text-slate-800"
       )}
     >
@@ -277,7 +277,7 @@ function ActionBadge({
             )}
           >
             <div className="overflow-hidden">
-              <div className="mt-3 rounded-[14px] border border-current/10 bg-white/50 px-3 py-3 text-[12px] leading-6">
+              <div className="mt-3 rounded-lg border border-current/10 bg-white/50 px-3 py-3 text-[12px] leading-6">
                 {action.draft_email}
               </div>
             </div>
@@ -346,9 +346,9 @@ function ProblemCard({
       data-field={problem.id}
       onClick={onFieldClick}
       className={cn(
-        "rounded-[18px] border px-3 py-3 transition-all",
+        "rounded-xl border px-3 py-3 transition-all",
         tone,
-        isActive && "shadow-[0_14px_24px_rgba(62,89,176,0.08)] ring-1 ring-primary/10"
+        isActive && "shadow-md ring-1 ring-primary/10"
       )}
     >
       <button
@@ -390,7 +390,7 @@ function ProblemCard({
             <p className="text-[13px] leading-6 text-foreground/80">{problem.description}</p>
 
             {problem.requires_info && (
-              <div className="mt-3 flex items-start gap-2 rounded-[14px] border border-amber-200 bg-amber-50/80 px-3 py-3 text-[12px] leading-6 text-amber-900">
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-3 text-[12px] leading-6 text-amber-900">
                 <Info className="mt-0.5 size-3.5 shrink-0" />
                 <span>
                   <strong>Missing info:</strong> {problem.requires_info}
@@ -558,8 +558,8 @@ export function ExtractionPanel({
 
       <div className="app-scroll flex-1 overflow-y-auto px-4 py-4">
         {!extraction ? (
-          <div className="flex h-full flex-col items-center justify-center rounded-[20px] border border-dashed border-border/80 bg-background/50 px-6 text-center">
-            <div className="flex size-12 items-center justify-center rounded-[16px] bg-slate-100 text-slate-700">
+          <div className="flex h-full flex-col items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/50 px-6 text-center">
+            <div className="flex size-12 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
               <Zap className="size-5" />
             </div>
             <p className="mt-4 text-[15px] font-semibold tracking-[-0.01em]">Ready to analyze</p>
@@ -691,9 +691,9 @@ export function ExtractionPanel({
                   ) : undefined
                 }
               />
-              <div className="rounded-[18px] border border-border/70 bg-background/55 px-3 py-3">
+              <div className="rounded-xl border border-border/70 bg-background/55 px-3 py-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-[14px] bg-violet-50 text-violet-700">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-700">
                     <AlertTriangle className="size-4" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -701,8 +701,8 @@ export function ExtractionPanel({
                       Optional internal escalation
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Send a separate internal handoff to human support without blocking the AI
-                      reply to the customer.
+                      High-confidence cases can auto-send a human-support handoff. You can still
+                      queue one manually without blocking the AI reply to the customer.
                     </p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button
@@ -793,7 +793,7 @@ export function ExtractionPanel({
               <p className="text-center text-[11px] text-muted-foreground">
                 {hasRedItems
                   ? pendingActions > 0
-                    ? "AI replies can continue while support escalations stay optional."
+                    ? "High-confidence support escalations can auto-send; borderline cases stay optional."
                     : "Some items still need human judgment, but the rest of the workflow can continue."
                   : pendingActions > 0
                     ? "Approve remaining actions to move this thread forward."
@@ -853,9 +853,9 @@ function BottomState({
       : "border-violet-200 bg-violet-50 text-violet-700";
 
   return (
-    <div className={cn("rounded-[16px] border px-3.5 py-3", classes)}>
+    <div className={cn("rounded-xl border px-3.5 py-3", classes)}>
       <div className="flex items-start gap-3">
-        <div className="flex size-9 items-center justify-center rounded-[12px] bg-white/60">
+        <div className="flex size-9 items-center justify-center rounded-md bg-white/60">
           <Icon className={cn("size-4", spinning && "animate-spin")} />
         </div>
         <div>

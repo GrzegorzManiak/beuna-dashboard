@@ -100,10 +100,21 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
     }
   }
 
+  let maxTimestamp = thread.emails.length > 0 
+    ? new Date(thread.emails[thread.emails.length - 1].timestamp).getTime() 
+    : Date.now();
+    
+  for (const a of thread.state.actions) {
+    const t = new Date(a.timestamp).getTime();
+    if (t > maxTimestamp) maxTimestamp = t;
+  }
+  
+  const statusTime = new Date(maxTimestamp + 1000).toISOString();
+
   if (thread.state.status === "in_progress") {
     events.push({
       id: "in-progress",
-      timestamp: new Date().toISOString(),
+      timestamp: statusTime,
       icon: Shield,
       iconColor: "text-violet-600",
       dotColor: "bg-violet-500",
@@ -115,7 +126,7 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
   if (thread.state.status === "resolved") {
     events.push({
       id: "resolved",
-      timestamp: new Date().toISOString(),
+      timestamp: statusTime,
       icon: CheckCircle2,
       iconColor: "text-emerald-600",
       dotColor: "bg-emerald-600",
@@ -128,7 +139,7 @@ function buildTimeline(thread: ThreadDetail): TimelineEvent[] {
   if (redCount > 0) {
     events.push({
       id: "blocked",
-      timestamp: new Date().toISOString(),
+      timestamp: statusTime,
       icon: AlertTriangle,
       iconColor: "text-rose-600",
       dotColor: "bg-rose-500",
@@ -168,7 +179,7 @@ export function HistoryPanel({ thread }: { thread: ThreadDetail }) {
 
       <div className="app-scroll flex-1 overflow-y-auto px-4 py-4">
         {events.length === 0 ? (
-          <div className="flex h-full items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/40 text-sm text-muted-foreground">
+          <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border/80 bg-background/40 text-sm text-muted-foreground">
             No activity yet.
           </div>
         ) : (
@@ -184,7 +195,7 @@ export function HistoryPanel({ thread }: { thread: ThreadDetail }) {
                       <span className={cn("block size-2 rounded-full", event.dotColor)} />
                     </div>
 
-                    <article className="w-full rounded-[16px] border border-border/70 bg-white/70 px-3.5 py-3">
+                    <article className="w-full rounded-xl border border-border/70 bg-white/70 px-3.5 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">

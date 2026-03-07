@@ -45,6 +45,13 @@ const INTERNAL_SUPPORT_RECIPIENT = {
   email: "support@manageco.ie",
 };
 
+const SUPPORT_ESCALATION_CREATE_THRESHOLD = 0.68;
+const SUPPORT_ESCALATION_AUTO_APPROVE_THRESHOLD = 0.86;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 function getPrimaryExternalSender(emails: SeedEmail[] | undefined): {
   name: string;
   email: string;
@@ -141,6 +148,94 @@ function shouldEscalateToHumanSupport(problem: Problem): boolean {
   return problem.status === "red" || category === "legal" || category === "compliance";
 }
 
+function getExtractionReadiness(extraction: Extraction): number {
+  const values = [
+    extraction.sender_name.confidence,
+    extraction.sender_type.confidence,
+    extraction.urgency.confidence,
+    extraction.summary.confidence,
+    extraction.property.confidence,
+  ];
+
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function getSupportEscalationConfidence(
+  problem: Problem,
+  extraction: Extraction
+): number {
+  if (!shouldEscalateToHumanSupport(problem)) return 0;
+
+  const category = problem.category?.toLowerCase() ?? "";
+  let confidence = getExtractionReadiness(extraction) * 0.4;
+
+  confidence += problem.status === "red" ? 0.22 : 0.08;
+  confidence +=
+    category === "legal"
+      ? 0.24
+      : category === "compliance"
+        ? 0.22
+        : 0;
+
+  confidence +=
+    extraction.urgency.value === "critical"
+      ? 0.12
+      : extraction.urgency.value === "high"
+        ? 0.08
+        : 0;
+
+  if (problem.suggested_action) confidence += 0.04;
+  if (problem.description.trim().length >= 120) confidence += 0.04;
+  if (problem.requires_info) confidence -= 0.16;
+
+  return clamp(confidence, 0, 0.99);
+}
+
+export function planHumanSupportEscalation(extraction: Extraction): {
+  confidence: number;
+  problems: Problem[];
+  shouldCreate: boolean;
+  shouldAutoApprove: boolean;
+} {
+  const rankedProblems = extraction.problems
+    .map((problem) => ({
+      problem,
+      confidence: getSupportEscalationConfidence(problem, extraction),
+    }))
+    .sort((left, right) => right.confidence - left.confidence);
+
+  const problems = rankedProblems
+    .filter((entry) => entry.confidence >= SUPPORT_ESCALATION_CREATE_THRESHOLD)
+    .map((entry) => entry.problem);
+
+  const confidence = rankedProblems[0]?.confidence ?? 0;
+
+  return {
+    confidence,
+    problems,
+    shouldCreate: problems.length > 0,
+    shouldAutoApprove: confidence >= SUPPORT_ESCALATION_AUTO_APPROVE_THRESHOLD,
+  };
+}
+
+async function sendSupportEscalation(
+  threadId: string,
+  action: ThreadAction,
+  emails: SeedEmail[],
+  extraction: Extraction | null
+): Promise<{ ok: true; id: string | null } | { ok: false; error: string }> {
+  const propertyId =
+    emails.find((email) => email.from.property_id)?.from.property_id ?? undefined;
+
+  return sendForwardToCustomerServiceEmail({
+    threadId,
+    action,
+    emails,
+    extraction,
+    propertyName: getPropertyName(propertyId),
+  });
+}
+
 async function autoTriggerActions(
   threadId: string,
   emails: SeedEmail[],
@@ -174,11 +269,11 @@ async function autoTriggerActions(
     });
   }
 
-  const escalationProblems = extraction.problems.filter(shouldEscalateToHumanSupport);
+  const supportPlan = planHumanSupportEscalation(extraction);
   const hasSupportEscalation = existingActions.some(
     (action) => action.type === "forward_to_human" && !action.problem_id
   );
-  if (escalationProblems.length > 0 && !hasSupportEscalation) {
+  if (supportPlan.shouldCreate && !hasSupportEscalation) {
     let draftEmail: string | null = null;
     try {
       draftEmail = await generateDraftEmail(
@@ -191,16 +286,33 @@ async function autoTriggerActions(
       draftEmail = null;
     }
 
-    createdActions.push({
+    const supportConfidence = Math.round(supportPlan.confidence * 100);
+    const supportAction: ThreadAction = {
       id: `action_${actionIdBase}_support`,
       type: "forward_to_human",
-      description: `Auto: prepared human-support escalation for ${escalationProblems.length} issue(s)`,
+      description: `Auto: prepared human-support escalation for ${supportPlan.problems.length} issue(s) (${supportConfidence}% confidence)`,
       timestamp: createdAt,
       draft_email: draftEmail,
       approved: false,
       auto_triggered: true,
       problem_id: null,
-    });
+    };
+
+    if (supportPlan.shouldAutoApprove) {
+      const sendResult = await sendSupportEscalation(
+        threadId,
+        supportAction,
+        emails,
+        extraction
+      );
+
+      if (sendResult.ok) {
+        supportAction.approved = true;
+        supportAction.description = `Auto: sent human-support escalation for ${supportPlan.problems.length} issue(s) (${supportConfidence}% confidence)`;
+      }
+    }
+
+    createdActions.push(supportAction);
   }
 
   if (createdActions.length === 0) return [];
@@ -557,15 +669,12 @@ export async function handleApproveAction(
 
   let csEmailId: string | null = null;
   if (action.type === "forward_to_human") {
-    const propertyId =
-      emails.find((email) => email.from.property_id)?.from.property_id ?? undefined;
-    const sendResult = await sendForwardToCustomerServiceEmail({
+    const sendResult = await sendSupportEscalation(
       threadId,
       action,
       emails,
-      extraction: threadState.extraction,
-      propertyName: getPropertyName(propertyId),
-    });
+      threadState.extraction
+    );
 
     if (!sendResult.ok) {
       return error(`CS email send failed: ${sendResult.error}`, 502);
