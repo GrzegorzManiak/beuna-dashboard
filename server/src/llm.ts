@@ -11,7 +11,7 @@ import type {
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 function getApiKey(): string {
-  const key = process.env.OPENROUTER_API_KEY ?? "";
+  const key = process.env.OPENROUTER_API_KEY ?? "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";
   if (!key) {
     console.warn("⚠ OPENROUTER_API_KEY not set – LLM calls will fail");
   }

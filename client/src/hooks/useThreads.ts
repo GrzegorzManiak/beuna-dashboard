@@ -9,6 +9,22 @@ export function useThreadsQuery() {
   });
 }
 
+export function useSentQuery() {
+  return useQuery({
+    queryKey: ["sent"],
+    queryFn: threadsApi.getSent,
+    refetchInterval: 10_000,
+  });
+}
+
+export function useDashboardQuery() {
+  return useQuery({
+    queryKey: ["dashboard"],
+    queryFn: threadsApi.getDashboard,
+    refetchInterval: 10_000,
+  });
+}
+
 export function useThreadQuery(id: string | undefined) {
   return useQuery({
     queryKey: ["thread", id],
@@ -24,6 +40,7 @@ export function useAnalyzeThread() {
     onSuccess: (_data, threadId) => {
       void qc.invalidateQueries({ queryKey: ["thread", threadId] });
       void qc.invalidateQueries({ queryKey: ["threads"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -34,6 +51,7 @@ export function useAnalyzeAll() {
     mutationFn: () => threadsApi.analyzeAll(),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["threads"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -46,6 +64,7 @@ export function useUpdateThread() {
     onSuccess: (_data, { id }) => {
       void qc.invalidateQueries({ queryKey: ["thread", id] });
       void qc.invalidateQueries({ queryKey: ["threads"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -66,6 +85,8 @@ export function useTriggerAction() {
     }) => threadsApi.triggerAction(threadId, type, problemId, description),
     onSuccess: (_data, { threadId }) => {
       void qc.invalidateQueries({ queryKey: ["thread", threadId] });
+      void qc.invalidateQueries({ queryKey: ["sent"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -82,6 +103,7 @@ export function useApproveAction() {
     }) => threadsApi.approveAction(threadId, actionId),
     onSuccess: (_data, { threadId }) => {
       void qc.invalidateQueries({ queryKey: ["thread", threadId] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -93,6 +115,7 @@ export function useResolveThread() {
     onSuccess: (_data, threadId) => {
       void qc.invalidateQueries({ queryKey: ["thread", threadId] });
       void qc.invalidateQueries({ queryKey: ["threads"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

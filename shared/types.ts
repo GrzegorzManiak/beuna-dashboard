@@ -133,6 +133,51 @@ export interface AppState {
   last_updated: string;
 }
 
+// ── Analytics Runtime State (persisted to analytics.json) ───────────
+export interface SentItem {
+  id: string;
+  thread_id: string;
+  action_id: string;
+  action_type: ActionType;
+  description: string;
+  draft_email: string | null;
+  sent_at: string;
+  subject: string;
+  property_name: string;
+  recipient_name: string;
+  recipient_email: string;
+}
+
+export interface AnalyzedThreadEvent {
+  thread_id: string;
+  subject: string;
+  property_name: string;
+  analyzed_at: string;
+  overall_health: TrafficLight;
+  urgency: UrgencyLevel | null;
+}
+
+export interface AnalyticsState {
+  last_updated: string;
+  sent_items: SentItem[];
+  analyzed_threads: AnalyzedThreadEvent[];
+}
+
+export interface DashboardSummary {
+  generated_at: string;
+  totals: {
+    threads: number;
+    analyzed: number;
+    resolved: number;
+    sent_actions: number;
+  };
+  thread_health: Record<TrafficLight, number>;
+  thread_status: Record<ThreadStatus, number>;
+  problem_status: Record<TrafficLight, number>;
+  recent_analyzed: AnalyzedThreadEvent[];
+  recent_sent: SentItem[];
+}
+
 // ── API Response: Thread Summary (for inbox list) ────────────────────
 export interface ThreadSummary {
   thread_id: string;

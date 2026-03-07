@@ -85,50 +85,842 @@
     },
     "thread_002": {
       "thread_id": "thread_002",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Laura Phelan",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "external",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Assuming external since it's from graystone.ie"
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Due date is March 12th for a meeting on March 18th"
+        },
+        "summary": {
+          "value": "Laura Phelan from Graystone is requesting a quarterly report for the Citynorth Quarter property. The report should include occupancy rates, rent arrears, void turnaround times, payment plan statuses, and maintenance spend.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "citynorth Quarter",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Occupancy Rate Report Needed",
+            "description": "Request for current occupancy rate and breakdown by unit type (studio, 1-bed, 2-bed) for the Citynorth Quarter property.",
+            "status": "green",
+            "category": "admin",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_2",
+            "title": "Rent Arrears Summary Needed",
+            "description": "Request for rent arrears summary including total outstanding, number of tenants in arrears, and aging breakdown (30/60/90 days) for the Citynorth Quarter property.",
+            "status": "green",
+            "category": "financial",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_3",
+            "title": "Void Turnaround Times Needed",
+            "description": "Request for void turnaround times for Q1, specifically the average days from move-out to new tenancy start for the Citynorth Quarter property.",
+            "status": "green",
+            "category": "admin",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_4",
+            "title": "Payment Plan Status Needed",
+            "description": "Request for information on any tenants on payment plans and the status of those plans for the Citynorth Quarter property.",
+            "status": "green",
+            "category": "financial",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_5",
+            "title": "Maintenance Spend vs Budget Needed",
+            "description": "Request for maintenance spend versus budget for Q1 for the Citynorth Quarter property.",
+            "status": "green",
+            "category": "financial",
+            "suggested_action": null,
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_004",
+            "text": "March 12th",
+            "field": "urgency",
+            "label": "Due date"
+          },
+          {
+            "email_id": "email_004",
+            "text": "March 18th",
+            "field": "urgency",
+            "label": "Meeting date"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Current occupancy rate and breakdown by unit type (studio, 1-bed, 2-bed)",
+            "field": "prob_1",
+            "label": "Occupancy rate request"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Rent arrears summary — total outstanding, number of tenants in arrears, and aging breakdown (30/60/90 days)",
+            "field": "prob_2",
+            "label": "Rent arrears request"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Void turnaround times for Q1 — average days from move-out to new tenancy start",
+            "field": "prob_3",
+            "label": "Void turnaround request"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Any tenants on payment plans and status of those plans",
+            "field": "prob_4",
+            "label": "Payment plan request"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Maintenance spend vs budget for Q1",
+            "field": "prob_5",
+            "label": "Maintenance spend request"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Could you have this over by March 12th?",
+            "field": "urgency",
+            "label": "Explicit deadline"
+          },
+          {
+            "email_id": "email_004",
+            "text": "quarterly board meeting on March 18th",
+            "field": "urgency",
+            "label": "Meeting context"
+          },
+          {
+            "email_id": "email_004",
+            "text": "Hi Tara,",
+            "field": "sender_name",
+            "label": "Salutation"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_003": {
       "thread_id": "thread_003",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Emer Crowley",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "critical",
+          "status": "green",
+          "confidence": 1,
+          "note": "Lack of heating with a baby present is a health and safety issue."
+        },
+        "summary": {
+          "value": "Emer Crowley is reporting that her heating has been out for three days and she has not received a response from the property management company. She has a 6-month-old baby and the apartment is very cold, creating a health and safety issue. She threatens legal action if the issue is not resolved immediately.",
+          "status": "green",
+          "confidence": 1
+        },
+        "property": {
+          "value": "reds Works",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "No Heating",
+            "description": "The tenant's heating has stopped working for three days, causing the apartment to become very cold.",
+            "status": "green",
+            "category": "maintenance",
+            "suggested_action": "Arrange for immediate repair of the heating system.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_005",
+            "text": "Emer Crowley",
+            "field": "sender_name",
+            "label": "Sender identified"
+          },
+          {
+            "email_id": "email_005",
+            "text": "Apt 22A",
+            "field": "property",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_005",
+            "text": "reds Works",
+            "field": "property",
+            "label": "Property name"
+          },
+          {
+            "email_id": "email_005",
+            "text": "heating has completely stopped working",
+            "field": "prob_1",
+            "label": "Heating issue"
+          },
+          {
+            "email_id": "email_005",
+            "text": "I have a 6-month-old baby",
+            "field": "urgency",
+            "label": "Baby present"
+          },
+          {
+            "email_id": "email_005",
+            "text": "health and safety issue",
+            "field": "urgency",
+            "label": "Health and safety concern"
+          },
+          {
+            "email_id": "email_005",
+            "text": "I need this fixed TODAY",
+            "field": "urgency",
+            "label": "Urgent request"
+          },
+          {
+            "email_id": "email_005",
+            "text": "I will be contacting the RTB",
+            "field": "urgency",
+            "label": "Threat of legal action"
+          },
+          {
+            "email_id": "email_031",
+            "text": "emailed the RTB",
+            "field": "urgency",
+            "label": "Contacted RTB"
+          },
+          {
+            "email_id": "email_031",
+            "text": "instructing my solicitor",
+            "field": "urgency",
+            "label": "Threat of legal action"
+          },
+          {
+            "email_id": "email_031",
+            "text": "13.2°C at 6am",
+            "field": "prob_1",
+            "label": "Temperature reading"
+          },
+          {
+            "email_id": "email_005",
+            "text": "since Monday",
+            "field": "prob_1",
+            "label": "Duration of problem"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_004": {
       "thread_id": "thread_004",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Ciaran Foley",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "prospect",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Request for viewing this week."
+        },
+        "summary": {
+          "value": "Ciaran Foley and partner are relocating from Cork and are interested in viewing a 2-bed apartment at reds Works. They have questions about parking, lease term, pet policy, and BER rating.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "reds Works",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Parking Inquiry",
+            "description": "The sender is asking if parking is included or extra.",
+            "status": "orange",
+            "category": "lease",
+            "suggested_action": null,
+            "requires_info": "Parking availability and cost."
+          },
+          {
+            "id": "prob_2",
+            "title": "Lease Term Inquiry",
+            "description": "The sender is asking about the minimum lease term.",
+            "status": "orange",
+            "category": "lease",
+            "suggested_action": null,
+            "requires_info": "Minimum lease term."
+          },
+          {
+            "id": "prob_3",
+            "title": "Pet Policy Inquiry",
+            "description": "The sender is asking if pets are allowed, specifically a small dog.",
+            "status": "orange",
+            "category": "lease",
+            "suggested_action": null,
+            "requires_info": "Pet policy details."
+          },
+          {
+            "id": "prob_4",
+            "title": "BER Rating Inquiry",
+            "description": "The sender is asking for the BER rating of the apartment.",
+            "status": "orange",
+            "category": "compliance",
+            "suggested_action": null,
+            "requires_info": "BER rating."
+          },
+          {
+            "id": "prob_5",
+            "title": "Viewing Request",
+            "description": "The sender is requesting to view the apartment.",
+            "status": "green",
+            "category": "admin",
+            "suggested_action": "Schedule a viewing.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_006",
+            "text": "reds Works",
+            "field": "property",
+            "label": "Property name"
+          },
+          {
+            "email_id": "email_006",
+            "text": "2-bed apartment at reds Works",
+            "field": "property",
+            "label": "Apartment details"
+          },
+          {
+            "email_id": "email_006",
+            "text": "Is parking included or is it extra?",
+            "field": "prob_1",
+            "label": "Parking question"
+          },
+          {
+            "email_id": "email_006",
+            "text": "What's the lease term — 12 months minimum?",
+            "field": "prob_2",
+            "label": "Lease term question"
+          },
+          {
+            "email_id": "email_006",
+            "text": "Are pets allowed? We have a small dog",
+            "field": "prob_3",
+            "label": "Pet policy question"
+          },
+          {
+            "email_id": "email_006",
+            "text": "Is the BER rating available?",
+            "field": "prob_4",
+            "label": "BER rating question"
+          },
+          {
+            "email_id": "email_006",
+            "text": "We'd love to arrange a viewing.",
+            "field": "prob_5",
+            "label": "Viewing request"
+          },
+          {
+            "email_id": "email_006",
+            "text": "any evening this week or Saturday morning",
+            "field": "urgency",
+            "label": "Timeframe for viewing"
+          },
+          {
+            "email_id": "email_006",
+            "text": "€2,400/month",
+            "field": "property",
+            "label": "Rental price"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_005": {
       "thread_id": "thread_005",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Marek Kowalski",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "high",
+          "status": "green",
+          "confidence": 0.9,
+          "note": "Ongoing noise disturbance at 2am, impacting sleep and work."
+        },
+        "summary": {
+          "value": "Marek Kowalski (Apt 8C) is complaining about ongoing loud parties in the apartment above him (9C). The parties have occurred for the past three weekends, causing significant disturbance and sleep deprivation. Management is taking action by issuing a warning, increasing security checks, and installing a noise sensor.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "graylings@manageco.ie",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Property name not explicitly mentioned, using management company email as proxy."
+        },
+        "problems": [
+          {
+            "id": "prob_001",
+            "title": "Noise disturbance from apartment above",
+            "description": "Loud parties with music, shouting, and furniture moving in Apt 9C, disturbing the resident in Apt 8C.",
+            "status": "green",
+            "category": "noise",
+            "suggested_action": "Issue formal warning, increase security checks, install noise sensor.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_007",
+            "text": "Marek Kowalski",
+            "field": "sender_name",
+            "label": "Sender name"
+          },
+          {
+            "email_id": "email_007",
+            "text": "Apt 8C",
+            "field": "prob_001",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_007",
+            "text": "apartment above me (9C)",
+            "field": "prob_001",
+            "label": "Apartment above"
+          },
+          {
+            "email_id": "email_007",
+            "text": "loud party since about 10pm",
+            "field": "prob_001",
+            "label": "Party time"
+          },
+          {
+            "email_id": "email_007",
+            "text": "loud music, shouting, and what sounds like furniture being moved around or people jumping.",
+            "field": "prob_001",
+            "label": "Noise description"
+          },
+          {
+            "email_id": "email_007",
+            "text": "I have work at 6am",
+            "field": "urgency",
+            "label": "Work schedule"
+          },
+          {
+            "email_id": "email_007",
+            "text": "This is the third weekend in a row this has happened.",
+            "field": "prob_001",
+            "label": "Frequency of issue"
+          },
+          {
+            "email_id": "email_043",
+            "text": "noise after 11pm is a clear breach of the house rules",
+            "field": "prob_001",
+            "label": "Breach of rules"
+          },
+          {
+            "email_id": "email_043",
+            "text": "Issue a formal written warning to the tenant in 9C today",
+            "field": "prob_001",
+            "label": "Action taken"
+          },
+          {
+            "email_id": "email_043",
+            "text": "Request that security do targeted checks on weekend nights for the next month",
+            "field": "prob_001",
+            "label": "Action taken"
+          },
+          {
+            "email_id": "email_043",
+            "text": "Ask our noise monitoring service to install a temporary sensor on your floor",
+            "field": "prob_001",
+            "label": "Action taken"
+          },
+          {
+            "email_id": "email_043",
+            "text": "I'm taking this seriously.",
+            "field": "urgency",
+            "label": "Seriousness of issue"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_006": {
       "thread_id": "thread_006",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Mairead Coyne",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "contractor",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Payment overdue and further work threatened."
+        },
+        "summary": {
+          "value": "Crest Electrical is following up on overdue invoice #4892 for emergency lighting replacement at Graylings. The invoice is 19 days overdue, and they threaten to halt further work if payment is not received within 7 days.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Graylings",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Overdue Invoice",
+            "description": "Invoice #4892 for emergency lighting replacement at Graylings is overdue.",
+            "status": "green",
+            "category": "financial",
+            "suggested_action": "Arrange payment of invoice #4892.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_2",
+            "title": "Potential Work Stoppage",
+            "description": "Crest Electrical threatens to put a hold on further work at ManageCo properties if the overdue invoice is not paid within 7 days.",
+            "status": "orange",
+            "category": "financial",
+            "suggested_action": "Contact Crest Electrical to negotiate payment terms or confirm continued service.",
+            "requires_info": "Confirmation of scheduled jobs at Citynorth Quarter."
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_008",
+            "text": "Mairead Coyne",
+            "field": "sender_name",
+            "label": "Sender Name"
+          },
+          {
+            "email_id": "email_008",
+            "text": "emergency lighting replacement works completed at Graylings",
+            "field": "prob_1",
+            "label": "Work Description"
+          },
+          {
+            "email_id": "email_008",
+            "text": "Invoice amount: €3,240.00 + VAT",
+            "field": "prob_1",
+            "label": "Invoice Amount"
+          },
+          {
+            "email_id": "email_008",
+            "text": "Due date: February 14th, 2026",
+            "field": "prob_1",
+            "label": "Due Date"
+          },
+          {
+            "email_id": "email_008",
+            "text": "Days overdue: 19 days",
+            "field": "prob_1",
+            "label": "Days Overdue"
+          },
+          {
+            "email_id": "email_008",
+            "text": "Please arrange payment within 7 days or we'll need to put a hold on any further work",
+            "field": "urgency",
+            "label": "Urgency Indicator"
+          },
+          {
+            "email_id": "email_008",
+            "text": "put a hold on any further work at your properties",
+            "field": "prob_2",
+            "label": "Work Stoppage Threat"
+          },
+          {
+            "email_id": "email_008",
+            "text": "Graylings",
+            "field": "property",
+            "label": "Property Name"
+          },
+          {
+            "email_id": "email_008",
+            "text": "We completed this work on an emergency basis over a weekend at your request.",
+            "field": "prob_1",
+            "label": "Emergency Work"
+          },
+          {
+            "email_id": "email_008",
+            "text": "We have two jobs scheduled at citynorth Quarter next week that would be affected.",
+            "field": "prob_2",
+            "label": "Potential Impact"
+          },
+          {
+            "email_id": "email_008",
+            "text": "citynorth Quarter",
+            "field": "prob_2",
+            "label": "Affected Property"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_007": {
       "thread_id": "thread_007",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Haruka Tanaka",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Notice to vacate received, needs processing before lease end."
+        },
+        "summary": {
+          "value": "Haruka Tanaka is vacating Apt 3D at Ilah Residences at the end of her lease on April 30th. She requests a move-out inspection and deposit return details, and mentions a pre-existing crack in the bathroom tile and professional carpet cleaning.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Ilah Residences",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Bathroom tile crack",
+            "description": "Small crack in the bathroom tile near the shower, noted on move-in report.",
+            "status": "green",
+            "category": "maintenance",
+            "suggested_action": null,
+            "requires_info": null
+          },
+          {
+            "id": "prob_2",
+            "title": "Deposit return",
+            "description": "Tenant requires details on the deposit return process and timeline.",
+            "status": "orange",
+            "category": "financial",
+            "suggested_action": null,
+            "requires_info": "Confirm current deposit amount and return address."
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_009",
+            "text": "Apt 3D",
+            "field": "property",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_009",
+            "text": "Ilah Residences",
+            "field": "property",
+            "label": "Property name"
+          },
+          {
+            "email_id": "email_009",
+            "text": "lease ends on April 30th",
+            "field": "urgency",
+            "label": "Lease end date"
+          },
+          {
+            "email_id": "email_009",
+            "text": "I'll be vacating Apt 3D",
+            "field": "prob_2",
+            "label": "Vacating apartment"
+          },
+          {
+            "email_id": "email_009",
+            "text": "move-out inspection for the week of April 14th",
+            "field": "urgency",
+            "label": "Inspection request"
+          },
+          {
+            "email_id": "email_009",
+            "text": "crack in the bathroom tile",
+            "field": "prob_1",
+            "label": "Tile crack"
+          },
+          {
+            "email_id": "email_009",
+            "text": "deposit return process and timeline",
+            "field": "prob_2",
+            "label": "Deposit return request"
+          },
+          {
+            "email_id": "email_009",
+            "text": "carpets professionally cleaned",
+            "field": "prob_1",
+            "label": "Carpet cleaning"
+          },
+          {
+            "email_id": "email_009",
+            "text": "noted it on the move-in report",
+            "field": "prob_1",
+            "label": "Pre-existing damage"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
     "thread_008": {
       "thread_id": "thread_008",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Aidan Carroll",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Tenant wants to avoid arrears."
+        },
+        "summary": {
+          "value": "Aidan Carroll reports that his March rent direct debit failed due to a bank account switch. He requests a new direct debit mandate form or account details for a manual transfer.",
+          "status": "green",
+          "confidence": 1
+        },
+        "property": {
+          "value": "Thornbury",
+          "status": "green",
+          "confidence": 1
+        },
+        "problems": [
+          {
+            "id": "prob_01",
+            "title": "Failed rent payment",
+            "description": "Direct debit for March rent failed due to a bank account switch.",
+            "status": "green",
+            "category": "financial",
+            "suggested_action": "Send new direct debit mandate form or provide account details for manual transfer.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_01",
+            "text": "Apt 7A",
+            "field": "prob_01",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_01",
+            "text": "direct debit for March rent didn't go through",
+            "field": "prob_01",
+            "label": "Direct debit failure"
+          },
+          {
+            "email_id": "email_01",
+            "text": "I don't want to fall into arrears",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_01",
+            "text": "send me the form to set up a new mandate?",
+            "field": "prob_01",
+            "label": "Request for mandate form"
+          },
+          {
+            "email_id": "email_01",
+            "text": "Or can I make a manual transfer for March in the meantime?",
+            "field": "prob_01",
+            "label": "Request for account details"
+          },
+          {
+            "email_id": "email_01",
+            "text": "Thornbury",
+            "field": "property",
+            "label": "Property name"
+          },
+          {
+            "email_id": "email_01",
+            "text": "Apologies for the hassle.",
+            "field": "prob_01",
+            "label": "Apology"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
@@ -288,9 +1080,88 @@
     },
     "thread_031": {
       "thread_id": "thread_031",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Amir Hassan",
+          "status": "green",
+          "confidence": 0.95
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Auto-classified based on keywords"
+        },
+        "summary": {
+          "value": "Amir Hassan sent an email regarding: Washing machine leaked - water damage to apartment below",
+          "status": "orange",
+          "confidence": 0.5
+        },
+        "property": {
+          "value": "prop_002",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Washing machine leaked - water damage to apartment below",
+            "description": "Hi Declan,\n\nI need to report something. My washing machine developed a leak during a cycle last night and water has gone through to the apartment below (27C). The tenant below knocked on my door aroun...",
+            "status": "orange",
+            "category": "other",
+            "suggested_action": "Review and respond to the email thread",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_035",
+            "text": "Amir Hassan",
+            "field": "sender_name",
+            "label": "Sender: Amir Hassan"
+          },
+          {
+            "email_id": "email_035",
+            "text": "worried about:\n- Damage to Apt 27C",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_036",
+            "text": "the fuse box for safety\n- Some water",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_035",
+            "text": "Hi Declan,\n\nI need to report something.",
+            "field": "prob_1",
+            "label": "Primary issue"
+          },
+          {
+            "email_id": "email_035",
+            "text": "My washing machine developed a leak during a cycle last night and water has gone through to the apartment below (27C).",
+            "field": "prob_1",
+            "label": "Issue details"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772894224116",
+          "type": "request_info",
+          "description": "request_info triggered",
+          "timestamp": "2026-03-07T14:37:04.116Z",
+          "draft_email": "Dear Amir,\n\nThank you for reaching out regarding \"Washing machine leaked - water damage to apartment below\". We want to make sure we address this properly for you at prop_002.\n\nTo help us resolve this as quickly as possible, could you please provide us with:\n\n• any additional details that would help us assist you\n\nOnce we have this information, we'll be able to take the appropriate next steps within 2-3 business days.\n\nWe appreciate your patience and cooperation.\n\nBest regards,\nManageCo Property Management",
+          "approved": true
+        }
+      ],
       "human_notes": ""
     },
     "thread_032": {
@@ -379,8 +1250,111 @@
     },
     "thread_044": {
       "thread_id": "thread_044",
-      "status": "pending",
-      "extraction": null,
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Diarmuid Fahey",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.7,
+          "note": "Tenant wants to meet to discuss the noise warning."
+        },
+        "summary": {
+          "value": "Diarmuid Fahey received a noise warning and believes it's unfair. He claims his neighbor is harassing him and management is siding with the neighbor without hearing his side. He requests an in-person meeting to discuss the issue.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": null,
+          "status": "red",
+          "confidence": 0.3
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Noise complaint dispute",
+            "description": "Tenant Diarmuid Fahey disputes a noise warning, claiming harassment from a neighbor and unfair treatment from management.",
+            "status": "red",
+            "category": "noise",
+            "suggested_action": "Schedule a meeting with the tenant and review the neighbor's complaints.",
+            "requires_info": null
+          },
+          {
+            "id": "prob_2",
+            "title": "Harassment claim",
+            "description": "Tenant Diarmuid Fahey claims he is being harassed by his neighbor.",
+            "status": "red",
+            "category": "legal",
+            "suggested_action": "Investigate the harassment claim and determine if further action is needed.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_050",
+            "text": "Diarmuid Fahey",
+            "field": "sender_name",
+            "label": "Sender name"
+          },
+          {
+            "email_id": "email_050",
+            "text": "Apt 9C",
+            "field": "sender_type",
+            "label": "Apartment number implies tenant"
+          },
+          {
+            "email_id": "email_050",
+            "text": "I'm being harassed by my neighbour",
+            "field": "prob_2",
+            "label": "Harassment claim"
+          },
+          {
+            "email_id": "email_050",
+            "text": "I'd like to meet in person to discuss this.",
+            "field": "urgency",
+            "label": "Request for meeting"
+          },
+          {
+            "email_id": "email_050",
+            "text": "I've just received your warning letter and I think it's completely unfair.",
+            "field": "prob_1",
+            "label": "Dispute of warning"
+          },
+          {
+            "email_id": "email_050",
+            "text": "management is siding with him without even hearing my side first. That's not fair.",
+            "field": "prob_1",
+            "label": "Complaint about management"
+          },
+          {
+            "email_id": "email_050",
+            "text": "The guy downstairs has been banging on my door and giving me dirty looks in the hall for weeks.",
+            "field": "prob_2",
+            "label": "Description of harassment"
+          },
+          {
+            "email_id": "email_050",
+            "text": "Apt 9C",
+            "field": "prob_1",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_050",
+            "text": "I'm not signing any acknowledgment of the warning until I've had a chance to give my version of events.",
+            "field": "urgency",
+            "label": "Tenant refusing to sign"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
@@ -561,8 +1535,72 @@
     },
     "thread_070": {
       "thread_id": "thread_070",
-      "status": "pending",
-      "extraction": null,
+      "status": "resolved",
+      "extraction": {
+        "sender_name": {
+          "value": "Bernadette Coffey",
+          "status": "green",
+          "confidence": 0.95
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Auto-classified based on keywords"
+        },
+        "summary": {
+          "value": "Bernadette Coffey sent an email regarding: Concern about construction next door",
+          "status": "orange",
+          "confidence": 0.5
+        },
+        "property": {
+          "value": "prop_001",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Concern about construction next door",
+            "description": "Tara,\n\nI've seen the planning notice for the 18-storey tower being built next to us. I'm in Apt 14A which directly faces the proposed site.\n\nMy concerns:\n1. Construction noise — I work from home 3 day...",
+            "status": "green",
+            "category": "other",
+            "suggested_action": "Review and respond to the email thread",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_076",
+            "text": "Bernadette Coffey",
+            "field": "sender_name",
+            "label": "Sender: Bernadette Coffey"
+          },
+          {
+            "email_id": "email_100",
+            "text": "the concierge today. I'd appreciate",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_076",
+            "text": "Tara,\n\nI've seen the planning notice for the 18-storey tower being built next to us.",
+            "field": "prob_1",
+            "label": "Primary issue"
+          },
+          {
+            "email_id": "email_076",
+            "text": "I'm in Apt 14A which directly faces the proposed site.",
+            "field": "prob_1",
+            "label": "Issue details"
+          }
+        ]
+      },
       "actions": [],
       "human_notes": ""
     },
@@ -603,9 +1641,76 @@
     },
     "thread_076": {
       "thread_id": "thread_076",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "analyzed",
+      "extraction": {
+        "sender_name": {
+          "value": "Isabelle Dempsey",
+          "status": "green",
+          "confidence": 0.95
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "orange",
+          "confidence": 0.6,
+          "note": "Auto-classified based on keywords"
+        },
+        "summary": {
+          "value": "Isabelle Dempsey sent an email regarding: Smells from neighbouring apartment",
+          "status": "orange",
+          "confidence": 0.5
+        },
+        "property": {
+          "value": "prop_003",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Smells from neighbouring apartment",
+            "description": "Hi Maeve,\n\nThis is a sensitive one and I'm not sure how to handle it.\n\nThere's a strong, unpleasant smell coming from the apartment next door (13A). It's been getting worse over the past week. It seem...",
+            "status": "orange",
+            "category": "other",
+            "suggested_action": "Review and respond to the email thread",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_083",
+            "text": "Isabelle Dempsey",
+            "field": "sender_name",
+            "label": "Sender: Isabelle Dempsey"
+          },
+          {
+            "email_id": "email_083",
+            "text": "Hi Maeve,\n\nThis is a sensitive one and I'm not sure how to handle it.",
+            "field": "prob_1",
+            "label": "Primary issue"
+          },
+          {
+            "email_id": "email_083",
+            "text": "There's a strong, unpleasant smell coming from the apartment next door (13A).",
+            "field": "prob_1",
+            "label": "Issue details"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772894378241",
+          "type": "request_info",
+          "description": "request_info triggered",
+          "timestamp": "2026-03-07T14:39:38.241Z",
+          "draft_email": "Dear Isabelle,\n\nThank you for reaching out regarding \"Smells from neighbouring apartment\". We want to make sure we address this properly for you at prop_003.\n\nTo help us resolve this as quickly as possible, could you please provide us with:\n\n• any additional details that would help us assist you\n\nOnce we have this information, we'll be able to take the appropriate next steps within 2-3 business days.\n\nWe appreciate your patience and cooperation.\n\nBest regards,\nManageCo Property Management",
+          "approved": true
+        }
+      ],
       "human_notes": ""
     },
     "thread_077": {
@@ -721,5 +1826,5 @@
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T14:28:48.710Z"
+  "last_updated": "2026-03-07T15:13:27.817Z"
 }

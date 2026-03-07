@@ -1,5 +1,7 @@
 import { apiFetch } from "./client";
 import type {
+  DashboardSummary,
+  SentItem,
   ThreadSummary,
   ThreadDetail,
   Extraction,
@@ -9,6 +11,8 @@ import type {
 
 export const threadsApi = {
   list: () => apiFetch<ThreadSummary[]>("/threads"),
+  getSent: () => apiFetch<SentItem[]>("/sent"),
+  getDashboard: () => apiFetch<DashboardSummary>("/dashboard"),
 
   get: (id: string) => apiFetch<ThreadDetail>(`/threads/${id}`),
 

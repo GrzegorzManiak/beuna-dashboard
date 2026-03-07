@@ -1,7 +1,10 @@
 import { loadState } from "./state";
+import { loadAnalytics } from "./analytics";
 import {
   handleGetThreads,
   handleGetThread,
+  handleGetSent,
+  handleGetDashboard,
   handleAnalyzeThread,
   handleAnalyzeAll,
   handleUpdateThread,
@@ -13,6 +16,7 @@ import {
 
 // ── Initialize state on startup ──────────────────────────────────────
 loadState();
+loadAnalytics();
 console.log("✓ State loaded");
 
 // ── CORS headers ─────────────────────────────────────────────────────
@@ -74,6 +78,14 @@ Bun.serve({
       // ── Routes ─────────────────────────────────────────────────
       if (method === "GET" && pathname === "/threads") {
         response = handleGetThreads();
+      }
+      //
+      else if (method === "GET" && pathname === "/sent") {
+        response = handleGetSent();
+      }
+      //
+      else if (method === "GET" && pathname === "/dashboard") {
+        response = handleGetDashboard();
       }
       //
       else if (method === "GET" && matchPath("/threads/:id", pathname)) {

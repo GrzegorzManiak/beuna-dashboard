@@ -1,5 +1,4 @@
 import {
-  getSeedData,
   getEmailsByThread,
   getPropertyName,
   getThreadState,
@@ -7,8 +6,16 @@ import {
   loadState,
   resetState,
 } from "./state";
+import {
+  getAnalytics,
+  recordSentItem,
+  recordThreadAnalyzed,
+  resetAnalytics,
+} from "./analytics";
 import { analyzeThread, generateDraftEmail } from "./llm";
 import type {
+  AnalyzedThreadEvent,
+  DashboardSummary,
   ThreadSummary,
   ThreadDetail,
   TrafficLight,
@@ -16,6 +23,7 @@ import type {
   ThreadAction,
   ActionType,
   Extraction,
+  SentItem,
 } from "../../shared/types";
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -46,11 +54,57 @@ function overallHealth(extraction: Extraction | null): TrafficLight {
   return "green";
 }
 
+function buildAnalyzedEvent(
+  threadId: string,
+  extraction: Extraction,
+  analyzedAt: string
+): AnalyzedThreadEvent {
+  const threadMap = getEmailsByThread();
+  const emails = threadMap.get(threadId);
+  const firstEmail = emails?.[0];
+  const propertyId =
+    emails?.find((email) => email.from.property_id)?.from.property_id ?? undefined;
+
+  return {
+    thread_id: threadId,
+    subject: firstEmail?.subject ?? "Unknown subject",
+    property_name: getPropertyName(propertyId),
+    analyzed_at: analyzedAt,
+    overall_health: overallHealth(extraction),
+    urgency: extraction.urgency?.value ?? null,
+  };
+}
+
+function buildSentItem(
+  threadId: string,
+  action: ThreadAction,
+  sentAt: string
+): SentItem {
+  const threadMap = getEmailsByThread();
+  const emails = threadMap.get(threadId);
+  const firstEmail = emails?.[0];
+  const propertyId =
+    emails?.find((email) => email.from.property_id)?.from.property_id ?? undefined;
+
+  return {
+    id: `${threadId}:${action.id}`,
+    thread_id: threadId,
+    action_id: action.id,
+    action_type: action.type,
+    description: action.description,
+    draft_email: action.draft_email,
+    sent_at: sentAt,
+    subject: firstEmail?.subject ?? "Unknown subject",
+    property_name: getPropertyName(propertyId),
+    recipient_name: firstEmail?.from.name ?? "Unknown recipient",
+    recipient_email: firstEmail?.from.email ?? "unknown@example.com",
+  };
+}
+
 // ── GET /threads ─────────────────────────────────────────────────────
 export function handleGetThreads(): Response {
   const threadMap = getEmailsByThread();
   const state = loadState();
-  const seed = getSeedData();
 
   const summaries: ThreadSummary[] = [];
 
@@ -105,6 +159,84 @@ export function handleGetThreads(): Response {
   return json(summaries);
 }
 
+// ── GET /sent ────────────────────────────────────────────────────────
+export function handleGetSent(): Response {
+  const analytics = getAnalytics();
+  const sent = [...analytics.sent_items].sort(
+    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
+  );
+  return json(sent);
+}
+
+// ── GET /dashboard ───────────────────────────────────────────────────
+export function handleGetDashboard(): Response {
+  const threadMap = getEmailsByThread();
+  const state = loadState();
+  const analytics = getAnalytics();
+
+  const threadHealth: Record<TrafficLight, number> = {
+    green: 0,
+    orange: 0,
+    red: 0,
+  };
+  const threadStatus: DashboardSummary["thread_status"] = {
+    pending: 0,
+    analyzed: 0,
+    reviewing: 0,
+    resolved: 0,
+  };
+  const problemStatus: Record<TrafficLight, number> = {
+    green: 0,
+    orange: 0,
+    red: 0,
+  };
+
+  let analyzed = 0;
+  let resolved = 0;
+
+  for (const threadId of threadMap.keys()) {
+    const threadState = state.threads[threadId];
+    if (!threadState) continue;
+
+    threadHealth[overallHealth(threadState.extraction)]++;
+    threadStatus[threadState.status]++;
+
+    if (threadState.extraction) {
+      analyzed++;
+      for (const problem of threadState.extraction.problems) {
+        problemStatus[problem.status]++;
+      }
+    }
+
+    if (threadState.status === "resolved") {
+      resolved++;
+    }
+  }
+
+  const summary: DashboardSummary = {
+    generated_at: new Date().toISOString(),
+    totals: {
+      threads: threadMap.size,
+      analyzed,
+      resolved,
+      sent_actions: analytics.sent_items.length,
+    },
+    thread_health: threadHealth,
+    thread_status: threadStatus,
+    problem_status: problemStatus,
+    recent_analyzed: analytics.analyzed_threads
+      .slice()
+      .sort((a, b) => new Date(b.analyzed_at).getTime() - new Date(a.analyzed_at).getTime())
+      .slice(0, 8),
+    recent_sent: analytics.sent_items
+      .slice()
+      .sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())
+      .slice(0, 8),
+  };
+
+  return json(summary);
+}
+
 // ── GET /threads/:id ─────────────────────────────────────────────────
 export function handleGetThread(threadId: string): Response {
   const threadMap = getEmailsByThread();
@@ -134,11 +266,13 @@ export async function handleAnalyzeThread(threadId: string): Promise<Response> {
 
   try {
     const extraction = await analyzeThread(emails);
+    const analyzedAt = new Date().toISOString();
 
     updateThreadState(threadId, (s) => {
       s.extraction = extraction;
       s.status = "analyzed";
     });
+    recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
 
     return json({ success: true, extraction });
   } catch (err) {
@@ -162,10 +296,12 @@ export async function handleAnalyzeAll(): Promise<Response> {
     const emails = threadMap.get(threadId)!;
     try {
       const extraction = await analyzeThread(emails);
+      const analyzedAt = new Date().toISOString();
       updateThreadState(threadId, (s) => {
         s.extraction = extraction;
         s.status = "analyzed";
       });
+      recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
       completed++;
     } catch {
       failed++;
@@ -276,12 +412,20 @@ export function handleApproveAction(
   const threadMap = getEmailsByThread();
   if (!threadMap.has(threadId)) return error("Thread not found", 404);
 
+  const sentAt = new Date().toISOString();
+  let approvedAction: ThreadAction | null = null;
+
   updateThreadState(threadId, (s) => {
     const action = s.actions.find((a) => a.id === actionId);
-    if (action) {
+    if (action && !action.approved) {
       action.approved = true;
+      approvedAction = action;
     }
   });
+
+  if (approvedAction) {
+    recordSentItem(buildSentItem(threadId, approvedAction, sentAt));
+  }
 
   return json({ success: true });
 }
@@ -309,5 +453,6 @@ export function handleResolveThread(threadId: string): Response {
 // ── POST /reset ──────────────────────────────────────────────────────
 export function handleReset(): Response {
   resetState();
+  resetAnalytics();
   return json({ success: true });
 }
