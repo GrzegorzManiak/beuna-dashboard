@@ -1174,9 +1174,114 @@
     },
     "thread_054": {
       "thread_id": "thread_054",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Fiona Redmond",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "tenant",
+          "status": "green",
+          "confidence": 1
+        },
+        "urgency": {
+          "value": "medium",
+          "status": "green",
+          "confidence": 0.8,
+          "note": "Internet outage affecting work."
+        },
+        "summary": {
+          "value": "Fiona Redmond reports internet connectivity issues affecting multiple apartments on the 5th floor. Virgin Media has ruled out external outages, suggesting a problem with the building's internal cabling.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": "Graylings",
+          "status": "orange",
+          "confidence": 0.6
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Internet Outage",
+            "description": "Tenant reports frequent internet drops affecting work. Virgin Media says the issue is not on their end, suggesting internal building cabling problems.",
+            "status": "orange",
+            "category": "maintenance",
+            "suggested_action": "Inspect building cabling and comms room on the 5th floor.",
+            "requires_info": null
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_060",
+            "text": "Apt 5A",
+            "field": "sender_type",
+            "label": "Apartment number"
+          },
+          {
+            "email_id": "email_060",
+            "text": "multiple times a day for the past week",
+            "field": "prob_1",
+            "label": "Problem frequency"
+          },
+          {
+            "email_id": "email_060",
+            "text": "I work from home full-time as a software developer and this is seriously affecting my work.",
+            "field": "urgency",
+            "label": "Urgency indicator"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Virgin Media and they said their service to the building is fine",
+            "field": "prob_1",
+            "label": "External service check"
+          },
+          {
+            "email_id": "email_060",
+            "text": "internal building cabling or the comms room",
+            "field": "prob_1",
+            "label": "Possible cause"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Two of my neighbours on the 5th floor (the person in 5B and the guy in 5D) are having the same issue",
+            "field": "prob_1",
+            "label": "Multiple tenants affected"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Can you check if there's a known issue with the building's telecoms infrastructure on our floor?",
+            "field": "prob_1",
+            "label": "Request for information"
+          },
+          {
+            "email_id": "email_060",
+            "text": "If cabling work is needed, I'd want to know the timeline as I may need to work from a coffee shop or co-working space and would expect not to be out of pocket for that.",
+            "field": "prob_1",
+            "label": "Tenant expectation"
+          },
+          {
+            "email_id": "email_060",
+            "text": "Apt 5A",
+            "field": "prob_1",
+            "label": "Apartment number"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772897694829_combined",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T15:34:54.829Z",
+          "draft_email": "Hi Fiona,\n\nThanks for your email. We understand the frustration caused by the internet connectivity issues you and your neighbours in 5B and 5D are experiencing.\n\nWe've taken note of your report and the information you received from Virgin Media. We will arrange for a qualified technician to inspect the building's internal cabling and comms room on the 5th floor as soon as possible to identify the source of the problem. We will contact you again within 48 hours to confirm when the inspection will take place.\n\nRegarding potential compensation for alternative workspace costs, we need to investigate the cause of the issue first. Once we have a clearer understanding of the problem and the expected timeframe for resolution, we can assess this further.\n\nWe appreciate your patience as we work to resolve this.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     },
     "thread_055": {
@@ -1887,11 +1992,132 @@
     },
     "thread_092": {
       "thread_id": "thread_092",
-      "status": "pending",
-      "extraction": null,
-      "actions": [],
+      "status": "in_progress",
+      "extraction": {
+        "sender_name": {
+          "value": "Rachel Doyle",
+          "status": "green",
+          "confidence": 1
+        },
+        "sender_type": {
+          "value": "prospect",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "urgency": {
+          "value": "low",
+          "status": "green",
+          "confidence": 0.7,
+          "note": "Partnership inquiry, no immediate action required."
+        },
+        "summary": {
+          "value": "Rachel Doyle from Airbnb's Corporate Housing division is inquiring about a potential partnership with ManageCo to provide furnished apartments for corporate stays in Dublin. Airbnb would handle bookings and guest vetting, while ManageCo would provide property management and cleaning services.",
+          "status": "green",
+          "confidence": 0.9
+        },
+        "property": {
+          "value": null,
+          "status": "red",
+          "confidence": 0.3
+        },
+        "problems": [
+          {
+            "id": "prob_1",
+            "title": "Partnership Inquiry",
+            "description": "Airbnb is looking for property management partners to offer furnished apartments for corporate stays.",
+            "status": "orange",
+            "category": "admin",
+            "suggested_action": "Evaluate the potential partnership and respond to Airbnb.",
+            "requires_info": "Information about available properties and management capabilities."
+          }
+        ],
+        "source_spans": [
+          {
+            "email_id": "email_099",
+            "text": "Rachel Doyle",
+            "field": "sender_name",
+            "label": "Sender identified"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Airbnb's Corporate Housing division",
+            "field": "prob_1",
+            "label": "Airbnb division"
+          },
+          {
+            "email_id": "email_099",
+            "text": "property management partners",
+            "field": "prob_1",
+            "label": "Partner request"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Professional management and cleaning services",
+            "field": "prob_1",
+            "label": "Service requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Consistent quality across multiple units",
+            "field": "prob_1",
+            "label": "Quality requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Flexible lease structures",
+            "field": "prob_1",
+            "label": "Lease requirements"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Guaranteed occupancy during void periods",
+            "field": "prob_1",
+            "label": "Benefit for ManageCo"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Premium nightly rates",
+            "field": "prob_1",
+            "label": "Benefit for ManageCo"
+          },
+          {
+            "email_id": "email_099",
+            "text": "pilot programme",
+            "field": "prob_1",
+            "label": "Pilot program"
+          },
+          {
+            "email_id": "email_099",
+            "text": "Dublin",
+            "field": "prob_1",
+            "label": "Location"
+          }
+        ]
+      },
+      "actions": [
+        {
+          "id": "action_1772898746069_combined",
+          "type": "reply",
+          "description": "Auto: combined response addressing 1 issue(s)",
+          "timestamp": "2026-03-07T15:52:26.069Z",
+          "draft_email": "Hi Rachel,\n\nThanks for reaching out to ManageCo regarding a potential partnership with Airbnb's Corporate Housing division. We appreciate you considering us.\n\nWe are certainly interested in exploring this opportunity further. To determine suitability, could you please provide more detail on the specific requirements for the furnished apartments, such as preferred locations in Dublin and typical apartment sizes? Also, could you elaborate on the \"flexible lease structures\" you mentioned?\n\nWe pride ourselves on our professional management and cleaning services, and consistent quality across our managed units. We look forward to discussing how we can work together to provide excellent accommodation for business travellers and relocating professionals.\n\nManageCo Property Management",
+          "approved": true,
+          "auto_triggered": true,
+          "problem_id": null
+        },
+        {
+          "id": "action_1772898787495",
+          "type": "forward_to_human",
+          "description": "Manual support escalation alongside AI reply",
+          "timestamp": "2026-03-07T15:53:07.495Z",
+          "draft_email": null,
+          "approved": false,
+          "auto_triggered": false,
+          "problem_id": null
+        }
+      ],
       "human_notes": ""
     }
   },
-  "last_updated": "2026-03-07T15:27:58.873Z"
+  "last_updated": "2026-03-07T15:53:07.495Z"
 }

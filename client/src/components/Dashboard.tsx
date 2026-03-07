@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
+  ArrowRight,
   CheckCircle2,
   Clock3,
   Loader2,
   Mail,
   Send,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { useDashboardQuery } from "@/hooks/useThreads";
 import { Button } from "@/components/ui/button";
@@ -16,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 function formatStamp(value: string): string {
   return new Date(value).toLocaleString("en-IE", {
@@ -27,7 +31,7 @@ function formatStamp(value: string): string {
 }
 
 function formatUrgency(value: string | null): string {
-  if (!value) return "unknown";
+  if (!value) return "Unknown";
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
@@ -36,7 +40,7 @@ export function Dashboard() {
 
   if (isLoading || !data) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-2xl border bg-card text-sm text-muted-foreground">
+      <div className="app-surface flex h-44 items-center justify-center text-sm text-muted-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
         Loading dashboard...
       </div>
@@ -46,26 +50,47 @@ export function Dashboard() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <Clock3 className="size-4 text-cyan-700" />
-            Current Situation
-          </CardTitle>
-          <CardDescription>
-            Updated {formatStamp(data.generated_at)} from live thread state + analytics.
-          </CardDescription>
+        <CardHeader className="border-b border-border/70">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-2xl">
+              <span className="app-kicker">
+                <Sparkles className="size-3.5" />
+                Live workflow telemetry
+              </span>
+              <CardTitle className="mt-4 text-2xl tracking-[-0.03em] md:text-[2rem]">
+                Operational clarity without the dashboard noise.
+              </CardTitle>
+              <CardDescription className="mt-3 max-w-xl text-[15px]">
+                See thread pressure, problem health, and outbound actions in one calm view so
+                review decisions happen faster.
+              </CardDescription>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/70 px-3 py-1.5">
+                <Clock3 className="size-3.5" />
+                Updated {formatStamp(data.generated_at)}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">
+                <ShieldCheck className="size-3.5" />
+                Analytics + thread state aligned
+              </span>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="grid gap-3 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        <CardContent className="grid gap-3 pt-5 md:grid-cols-2 xl:grid-cols-4">
           <Metric title="Threads" value={data.totals.threads} icon={Mail} />
           <Metric title="Analyzed" value={data.totals.analyzed} icon={CheckCircle2} />
-          <Metric title="Resolved" value={data.totals.resolved} icon={CheckCircle2} />
-          <Metric title="Sent actions" value={data.totals.sent_actions} icon={Send} />
+          <Metric title="Resolved" value={data.totals.resolved} icon={ShieldCheck} tone="positive" />
+          <Metric title="Sent Actions" value={data.totals.sent_actions} icon={Send} tone="accent" />
         </CardContent>
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-3">
         <StatusCard
           title="Thread Health"
+          description="Overall extraction confidence per thread."
           values={[
             { label: "Green", value: data.thread_health.green, tone: "green" },
             { label: "Orange", value: data.thread_health.orange, tone: "orange" },
@@ -74,6 +99,7 @@ export function Dashboard() {
         />
         <StatusCard
           title="Problem Health"
+          description="Issue-level review distribution."
           values={[
             { label: "Green", value: data.problem_status.green, tone: "green" },
             { label: "Orange", value: data.problem_status.orange, tone: "orange" },
@@ -82,38 +108,48 @@ export function Dashboard() {
         />
         <StatusCard
           title="Workflow Status"
+          description="Current stage across the queue."
           values={[
             { label: "Pending", value: data.thread_status.pending, tone: "neutral" },
             { label: "Analyzed", value: data.thread_status.analyzed, tone: "neutral" },
             { label: "Reviewing", value: data.thread_status.reviewing, tone: "neutral" },
-            { label: "Resolved", value: data.thread_status.resolved, tone: "neutral" },
+            { label: "In Progress", value: data.thread_status.in_progress, tone: "accent" },
+            { label: "Resolved", value: data.thread_status.resolved, tone: "green" },
           ]}
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader className="border-b">
+          <CardHeader className="border-b border-border/70">
             <CardTitle>Recent Analyzed Threads</CardTitle>
-            <CardDescription>Latest AI analyses captured in analytics.json</CardDescription>
+            <CardDescription>Latest thread intelligence captured in analytics.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 pt-4">
+          <CardContent className="space-y-3 pt-5">
             {data.recent_analyzed.length === 0 ? (
               <EmptyState text="No analyzed thread activity yet." />
             ) : (
               data.recent_analyzed.map((item) => (
-                <article key={item.thread_id} className="rounded-2xl border bg-background p-3">
-                  <p className="text-sm font-semibold">{item.subject}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{item.property_name}</span>
-                    <span>·</span>
-                    <span>{formatUrgency(item.urgency)}</span>
-                    <span>·</span>
-                    <span>{formatStamp(item.analyzed_at)}</span>
-                  </div>
-                  <div className="mt-2">
+                <article key={item.thread_id} className="app-surface-muted px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold tracking-[-0.01em]">{item.subject}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="rounded-full border border-border/70 bg-white/70 px-2.5 py-1">
+                          {item.property_name}
+                        </span>
+                        <span className="rounded-full border border-border/70 bg-white/70 px-2.5 py-1">
+                          {formatUrgency(item.urgency)}
+                        </span>
+                        <span>{formatStamp(item.analyzed_at)}</span>
+                      </div>
+                    </div>
+
                     <Button size="xs" variant="outline" asChild>
-                      <Link to={`/thread/${item.thread_id}`}>Open thread</Link>
+                      <Link to={`/thread/${item.thread_id}`}>
+                        Open
+                        <ArrowRight className="size-3.5" />
+                      </Link>
                     </Button>
                   </div>
                 </article>
@@ -123,27 +159,33 @@ export function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="border-b">
+          <CardHeader className="border-b border-border/70">
             <CardTitle>Recent Sent Actions</CardTitle>
-            <CardDescription>Approved outbound mock emails</CardDescription>
+            <CardDescription>Approved outbound communications from the workflow.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 pt-4">
+          <CardContent className="space-y-3 pt-5">
             {data.recent_sent.length === 0 ? (
               <EmptyState text="No sent actions yet." />
             ) : (
               data.recent_sent.map((item) => (
-                <article key={item.id} className="rounded-2xl border bg-background p-3">
-                  <p className="text-sm font-semibold">{item.subject}</p>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span>{item.action_type.replace(/_/g, " ")}</span>
-                    <span>·</span>
-                    <span>{item.recipient_name}</span>
-                    <span>·</span>
-                    <span>{formatStamp(item.sent_at)}</span>
-                  </div>
-                  <div className="mt-2">
+                <article key={item.id} className="app-surface-muted px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold tracking-[-0.01em]">{item.subject}</p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                          {item.action_type.replace(/_/g, " ")}
+                        </span>
+                        <span>{item.recipient_name}</span>
+                        <span>{formatStamp(item.sent_at)}</span>
+                      </div>
+                    </div>
+
                     <Button size="xs" variant="outline" asChild>
-                      <Link to={`/thread/${item.thread_id}`}>Open thread</Link>
+                      <Link to={`/thread/${item.thread_id}`}>
+                        Open
+                        <ArrowRight className="size-3.5" />
+                      </Link>
                     </Button>
                   </div>
                 </article>
@@ -160,37 +202,58 @@ function Metric({
   title,
   value,
   icon: Icon,
+  tone = "neutral",
 }: {
   title: string;
   value: number;
   icon: typeof Mail;
+  tone?: "neutral" | "positive" | "accent";
 }) {
+  const iconTone =
+    tone === "positive"
+      ? "bg-emerald-50 text-emerald-700"
+      : tone === "accent"
+        ? "bg-violet-50 text-violet-700"
+        : "bg-slate-100 text-slate-700";
+
   return (
-    <div className="rounded-2xl border bg-background p-3">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{title}</span>
-        <Icon className="size-3.5" />
+    <div className="app-stat">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {title}
+          </p>
+          <p className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{value}</p>
+        </div>
+        <div className={cn("rounded-[14px] p-2.5", iconTone)}>
+          <Icon className="size-4" />
+        </div>
       </div>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }
 
 function StatusCard({
   title,
+  description,
   values,
 }: {
   title: string;
-  values: Array<{ label: string; value: number; tone: "green" | "orange" | "red" | "neutral" }>;
+  description: string;
+  values: Array<{ label: string; value: number; tone: "green" | "orange" | "red" | "neutral" | "accent" }>;
 }) {
   return (
     <Card>
-      <CardHeader className="border-b">
+      <CardHeader className="border-b border-border/70">
         <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 pt-4">
+      <CardContent className="space-y-2.5 pt-5">
         {values.map((item) => (
-          <div key={item.label} className="flex items-center justify-between rounded-xl border bg-background px-3 py-2">
+          <div
+            key={item.label}
+            className="flex items-center justify-between rounded-[16px] border border-border/70 bg-white/70 px-3.5 py-3"
+          >
             <span className="flex items-center gap-2 text-sm">
               <StatusPill tone={item.tone} />
               {item.label}
@@ -203,21 +266,28 @@ function StatusCard({
   );
 }
 
-function StatusPill({ tone }: { tone: "green" | "orange" | "red" | "neutral" }) {
+function StatusPill({
+  tone,
+}: {
+  tone: "green" | "orange" | "red" | "neutral" | "accent";
+}) {
   const className =
     tone === "green"
       ? "bg-emerald-500"
       : tone === "orange"
         ? "bg-amber-500"
         : tone === "red"
-          ? "bg-red-500 animate-pulse"
-          : "bg-slate-400";
-  return <span className={`inline-block size-2.5 rounded-full ${className}`} />;
+          ? "bg-rose-500 animate-slow-pulse"
+          : tone === "accent"
+            ? "bg-violet-500"
+            : "bg-slate-400";
+
+  return <span className={cn("inline-block size-2.5 rounded-full", className)} />;
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="flex h-24 items-center justify-center rounded-2xl border bg-muted/40 text-sm text-muted-foreground">
+    <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-border/80 bg-background/50 text-sm text-muted-foreground">
       <AlertTriangle className="mr-2 size-4" />
       {text}
     </div>

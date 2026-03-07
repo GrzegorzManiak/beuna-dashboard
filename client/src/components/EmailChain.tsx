@@ -1,23 +1,51 @@
-import { useMemo, useEffect, useRef, Fragment } from "react";
-import { Mail, Paperclip, ArrowLeft, Send, CheckCircle2 } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Paperclip,
+  Send,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { SeedEmail, SourceSpan, ThreadAction } from "@shared/types";
+import type { SeedEmail, SourceSpan, ThreadAction, TrafficLight } from "@shared/types";
 
-// ── Highlight colours per field category ─────────────────────────────
-const fieldColors: Record<string, { bg: string; border: string; text: string }> = {
-  sender_name: { bg: "bg-violet-50", border: "border-violet-300", text: "text-violet-900" },
-  sender_type: { bg: "bg-violet-50", border: "border-violet-300", text: "text-violet-900" },
-  urgency:     { bg: "bg-rose-50",   border: "border-rose-300",   text: "text-rose-900" },
-  property:    { bg: "bg-sky-50",    border: "border-sky-300",    text: "text-sky-900" },
-  default:     { bg: "bg-amber-50",  border: "border-amber-300",  text: "text-amber-900" },
+const statusTones: Record<
+  TrafficLight,
+  { bg: string; border: string; text: string; active: string }
+> = {
+  green: {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-900",
+    active: "shadow-[0_0_0_3px_rgba(16,185,129,0.14)]",
+  },
+  orange: {
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-900",
+    active: "shadow-[0_0_0_3px_rgba(245,158,11,0.16)]",
+  },
+  red: {
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    text: "text-rose-900",
+    active: "shadow-[0_0_0_3px_rgba(244,63,94,0.14)]",
+  },
 };
 
-function getFieldColor(field: string) {
-  if (field.startsWith("prob_")) return fieldColors.default;
-  return fieldColors[field] ?? fieldColors.default;
+const neutralTone = {
+  bg: "bg-slate-50",
+  border: "border-slate-200",
+  text: "text-slate-900",
+  active: "shadow-[0_0_0_3px_rgba(100,116,139,0.12)]",
+};
+
+function getHighlightTone(status?: TrafficLight) {
+  if (!status) return neutralTone;
+  return statusTones[status];
 }
 
-// ── Build highlighted segments ───────────────────────────────────────
 interface Segment {
   text: string;
   span: SourceSpan | null;
@@ -34,72 +62,77 @@ function buildSegments(body: string, spans: SourceSpan[]): Segment[] {
     }
   }
 
-  matches.sort((a, b) => a.start - b.start);
+  matches.sort((left, right) => left.start - right.start);
   const deduped: typeof matches = [];
-  for (const m of matches) {
+  for (const match of matches) {
     const last = deduped[deduped.length - 1];
-    if (!last || m.start >= last.end) deduped.push(m);
+    if (!last || match.start >= last.end) deduped.push(match);
   }
 
   const segments: Segment[] = [];
   let cursor = 0;
-  for (const m of deduped) {
-    if (m.start > cursor) segments.push({ text: body.substring(cursor, m.start), span: null });
-    segments.push({ text: body.substring(m.start, m.end), span: m.span });
-    cursor = m.end;
+  for (const match of deduped) {
+    if (match.start > cursor) {
+      segments.push({ text: body.substring(cursor, match.start), span: null });
+    }
+    segments.push({
+      text: body.substring(match.start, match.end),
+      span: match.span,
+    });
+    cursor = match.end;
   }
   if (cursor < body.length) segments.push({ text: body.substring(cursor), span: null });
   return segments;
 }
 
-// ── Highlighted email body ───────────────────────────────────────────
 function HighlightedBody({
   body,
   emailId,
   spans,
+  fieldStatuses,
   activeField,
   onSpanClick,
 }: {
   body: string;
   emailId: string;
   spans: SourceSpan[];
+  fieldStatuses: Record<string, TrafficLight>;
   activeField: string | null;
   onSpanClick: (field: string) => void;
 }) {
   const emailSpans = useMemo(
-    () => spans.filter((s) => s.email_id === emailId),
-    [spans, emailId],
+    () => spans.filter((span) => span.email_id === emailId),
+    [spans, emailId]
   );
-  const segments = useMemo(
-    () => buildSegments(body, emailSpans),
-    [body, emailSpans],
-  );
+  const segments = useMemo(() => buildSegments(body, emailSpans), [body, emailSpans]);
 
   return (
-    <div className="text-[13px] text-foreground/90 whitespace-pre-wrap leading-relaxed">
-      {segments.map((seg, i) => {
-        if (!seg.span) return <Fragment key={i}>{seg.text}</Fragment>;
-        const color = getFieldColor(seg.span.field);
-        const isActive = activeField === seg.span.field;
+    <div className="whitespace-pre-wrap text-[13px] leading-7 text-foreground/90">
+      {segments.map((segment, index) => {
+        if (!segment.span) return <Fragment key={index}>{segment.text}</Fragment>;
+
+        const color = getHighlightTone(fieldStatuses[segment.span.field]);
+        const isActive = activeField === segment.span.field;
+
         return (
           <mark
-            key={i}
+            key={index}
             role="button"
             tabIndex={0}
-            title={seg.span.label}
-            onClick={() => onSpanClick(seg.span!.field)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") onSpanClick(seg.span!.field);
+            title={segment.span.label}
+            onClick={() => onSpanClick(segment.span!.field)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") onSpanClick(segment.span!.field);
             }}
             className={cn(
-              "cursor-pointer border-b-2 px-px -mx-px transition-colors duration-150",
+              "cursor-pointer rounded-[8px] border px-1 py-0.5 transition-all duration-150",
               color.bg,
               color.border,
               color.text,
-              isActive && "border-b-[3px] font-medium",
+              isActive && color.active
             )}
           >
-            {seg.text}
+            {segment.text}
           </mark>
         );
       })}
@@ -107,127 +140,129 @@ function HighlightedBody({
   );
 }
 
-// ── Single email message ─────────────────────────────────────────────
 function EmailMessage({
   email,
   isFirst,
   spans,
+  fieldStatuses,
   activeField,
   onSpanClick,
 }: {
   email: SeedEmail;
   isFirst: boolean;
   spans: SourceSpan[];
+  fieldStatuses: Record<string, TrafficLight>;
   activeField: string | null;
   onSpanClick: (field: string) => void;
 }) {
   const isInternal =
     email.from.type === "internal" || email.from.email.endsWith("@manageco.ie");
-
-  // Only highlight external / inbound emails — never our own outbound
   const shouldHighlight = !isInternal;
 
   return (
-    <div
+    <article
       className={cn(
-        "border-b border-border/50 last:border-b-0",
-        isInternal ? "bg-slate-50/60" : "bg-white",
+        "rounded-[20px] border px-4 py-4 shadow-[0_10px_20px_rgba(15,23,42,0.04)]",
+        isInternal
+          ? "border-sky-100 bg-sky-50/70"
+          : "border-border/70 bg-white/80"
       )}
     >
-      <div className="px-5 py-3.5">
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-1.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className={cn(
-                "size-7 rounded-full flex items-center justify-center text-[10px] font-semibold shrink-0",
-                isInternal
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-600",
-              )}
-            >
-              {email.from.name
-                .split(" ")
-                .map((w) => w[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[13px] font-semibold truncate">{email.from.name}</span>
-                {isInternal && (
-                  <span className="text-[10px] text-blue-600 font-medium">internal</span>
-                )}
-                {email.from.unit && (
-                  <span className="text-[10px] text-muted-foreground">{email.from.unit}</span>
-                )}
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate">
-                to {email.to}
-                {email.cc && <span> · cc {email.cc}</span>}
-              </p>
-            </div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex items-start gap-3">
+          <div
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-[14px] text-[11px] font-semibold uppercase tracking-[0.08em]",
+              isInternal ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-700"
+            )}
+          >
+            {email.from.name
+              .split(" ")
+              .map((word) => word[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()}
           </div>
-          <span className="text-[10px] text-muted-foreground shrink-0 tabular-nums pt-0.5">
-            {new Date(email.timestamp).toLocaleString("en-IE", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        </div>
 
-        {/* Subject — only first email */}
-        {isFirst && (
-          <h3 className="text-[13px] font-semibold mb-2 ml-[38px]">{email.subject}</h3>
-        )}
-
-        {/* Body */}
-        <div className="ml-[38px]">
-          {shouldHighlight ? (
-            <HighlightedBody
-              body={email.body}
-              emailId={email.id}
-              spans={spans}
-              activeField={activeField}
-              onSpanClick={onSpanClick}
-            />
-          ) : (
-            <div className="text-[13px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
-              {email.body}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-[14px] font-semibold tracking-[-0.01em]">
+                {email.from.name}
+              </p>
+              {isInternal && (
+                <span className="rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-700">
+                  Internal
+                </span>
+              )}
+              {email.from.unit && (
+                <span className="text-[11px] text-muted-foreground">{email.from.unit}</span>
+              )}
             </div>
-          )}
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              to {email.to}
+              {email.cc && <span> · cc {email.cc}</span>}
+            </p>
+          </div>
         </div>
 
-        {/* Attachments */}
-        {email.attachments.length > 0 && (
-          <div className="ml-[38px] mt-2 flex flex-wrap gap-1">
-            {email.attachments.map((att) => (
-              <span
-                key={att}
-                className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50"
-              >
-                <Paperclip className="size-2.5" />
-                {att}
-              </span>
-            ))}
+        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+          {new Date(email.timestamp).toLocaleString("en-IE", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </span>
+      </div>
+
+      {isFirst && (
+        <div className="mt-4 rounded-[16px] border border-border/70 bg-background/60 px-3.5 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Subject
+          </p>
+          <h3 className="mt-2 text-[15px] font-semibold tracking-[-0.01em]">{email.subject}</h3>
+        </div>
+      )}
+
+      <div className="mt-4">
+        {shouldHighlight ? (
+          <HighlightedBody
+            body={email.body}
+            emailId={email.id}
+            spans={spans}
+            fieldStatuses={fieldStatuses}
+            activeField={activeField}
+            onSpanClick={onSpanClick}
+          />
+        ) : (
+          <div className="whitespace-pre-wrap text-[13px] leading-7 text-foreground/85">
+            {email.body}
           </div>
         )}
       </div>
-    </div>
+
+      {email.attachments.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {email.attachments.map((attachment) => (
+            <span
+              key={attachment}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-white/70 px-2.5 py-1 text-[11px] text-muted-foreground"
+            >
+              <Paperclip className="size-3" />
+              {attachment}
+            </span>
+          ))}
+        </div>
+      )}
+    </article>
   );
 }
 
-// ── Sent action card (slides up at bottom of chain) ──────────────────
 function SentActionCard({ action }: { action: ThreadAction }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, []);
 
   const typeLabels: Record<string, string> = {
@@ -236,59 +271,56 @@ function SentActionCard({ action }: { action: ThreadAction }) {
     maintenance_request: "Maintenance request sent",
     contractor_dispatch: "Contractor dispatched",
     escalate: "Escalated to management",
-    forward_to_human: "Forwarded to customer service agent",
+    forward_to_human: "Escalated to human support",
     reply: "Reply sent",
   };
 
   return (
-    <div
+    <article
       ref={ref}
       style={{ animation: "slideUp 0.4s ease-out" }}
-      className="border-b border-border/50 last:border-b-0"
+      className="rounded-[20px] border border-emerald-200 bg-emerald-50/80 px-4 py-4 shadow-[0_10px_20px_rgba(16,185,129,0.08)]"
     >
-      <div className="px-5 py-3.5 bg-emerald-50/40">
-        <div className="flex items-start gap-2.5">
-          <div className="size-7 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-            {action.approved ? (
-              <CheckCircle2 className="size-3.5 text-emerald-600" />
-            ) : (
-              <Send className="size-3.5 text-blue-600" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-emerald-800">
-                  {typeLabels[action.type] ?? action.type.replace(/_/g, " ")}
-                </span>
-                {action.approved && (
-                  <span className="text-[10px] text-emerald-600 font-medium">sent</span>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground tabular-nums">
-                {new Date(action.timestamp).toLocaleString("en-IE", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-emerald-100 text-emerald-700">
+          {action.approved ? <CheckCircle2 className="size-4" /> : <Send className="size-4" />}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[14px] font-semibold tracking-[-0.01em] text-emerald-900">
+                {typeLabels[action.type] ?? action.type.replace(/_/g, " ")}
+              </p>
+              <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.14em] text-emerald-700">
+                Approved outbound action
+              </p>
             </div>
-            {action.draft_email && (
-              <div className="text-[12px] text-foreground/70 whitespace-pre-wrap leading-relaxed mt-1 border-l-2 border-emerald-200 pl-3">
-                {action.draft_email}
-              </div>
-            )}
+
+            <span className="text-[11px] tabular-nums text-emerald-800/70">
+              {new Date(action.timestamp).toLocaleTimeString("en-IE", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           </div>
+
+          {action.draft_email && (
+            <div className="mt-3 rounded-[16px] border border-emerald-200 bg-white/70 px-3.5 py-3 text-[12px] leading-6 text-foreground/80">
+              {action.draft_email}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
-// ── Email chain ──────────────────────────────────────────────────────
 export function EmailChain({
   emails,
   subject,
   spans,
+  fieldStatuses,
   activeField,
   actions,
   onBack,
@@ -297,15 +329,15 @@ export function EmailChain({
   emails: SeedEmail[];
   subject: string;
   spans: SourceSpan[];
+  fieldStatuses: Record<string, TrafficLight>;
   activeField: string | null;
   actions: ThreadAction[];
   onBack: () => void;
   onSpanClick: (field: string) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const approvedActions = actions.filter((a) => a.approved);
+  const approvedActions = actions.filter((action) => action.approved);
 
-  // Scroll to bottom when new approved actions come in
   useEffect(() => {
     if (approvedActions.length > 0 && bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
@@ -313,46 +345,57 @@ export function EmailChain({
   }, [approvedActions.length]);
 
   return (
-    <div className="flex flex-col h-full bg-white">
-      {/* Thread header */}
-      <div className="px-5 py-3 border-b border-border flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-1 rounded hover:bg-muted transition-colors"
-        >
-          <ArrowLeft className="size-4" />
-        </button>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold truncate">{subject}</h2>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-[10px] text-muted-foreground">
-              {emails.length} email{emails.length > 1 ? "s" : ""}
+    <div className="app-surface flex h-full min-h-0 flex-col">
+      <div className="border-b border-border/70 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex min-w-0 items-start gap-3">
+            <Button size="icon-sm" variant="outline" onClick={onBack}>
+              <ArrowLeft className="size-4" />
+            </Button>
+
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Conversation
+              </p>
+              <h3 className="mt-1 truncate text-[16px] font-semibold tracking-[-0.02em]">
+                {subject}
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <span className="rounded-full border border-border/80 bg-background px-2.5 py-1">
+              {emails.length} email{emails.length === 1 ? "" : "s"}
             </span>
             {spans.length > 0 && (
-              <span className="text-[10px] text-violet-600 font-medium">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-violet-700">
+                <Sparkles className="size-3.5" />
                 {spans.length} highlights
+              </span>
+            )}
+            {approvedActions.length > 0 && (
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                {approvedActions.length} sent
               </span>
             )}
           </div>
         </div>
-        <Mail className="size-4 text-muted-foreground" />
       </div>
 
-      {/* Email list */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[720px]">
-          {emails.map((email, i) => (
+      <div className="app-scroll flex-1 overflow-y-auto px-3 py-3">
+        <div className="mx-auto max-w-3xl space-y-2.5">
+          {emails.map((email, index) => (
             <EmailMessage
               key={email.id}
               email={email}
-              isFirst={i === 0}
+              isFirst={index === 0}
               spans={spans}
+              fieldStatuses={fieldStatuses}
               activeField={activeField}
               onSpanClick={onSpanClick}
             />
           ))}
 
-          {/* Approved/sent actions slide in at the bottom */}
           {approvedActions.map((action) => (
             <SentActionCard key={action.id} action={action} />
           ))}

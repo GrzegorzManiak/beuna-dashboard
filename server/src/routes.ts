@@ -12,7 +12,7 @@ import {
   recordThreadAnalyzed,
   resetAnalytics,
 } from "./analytics";
-import { analyzeThread, generateDraftEmail } from "./llm";
+import { analyzeThread, generateDraftEmail, generateCombinedDraftEmail } from "./llm";
 import type {
   ActionType,
   AnalyzedThreadEvent,
@@ -37,6 +37,35 @@ function json(data: unknown, status = 200): Response {
 
 function error(message: string, status = 400): Response {
   return json({ error: message }, status);
+}
+
+const INTERNAL_SUPPORT_RECIPIENT = {
+  name: "Human Support",
+  email: "support@manageco.ie",
+};
+
+function getPrimaryExternalSender(emails: SeedEmail[] | undefined): {
+  name: string;
+  email: string;
+} {
+  const sender =
+    emails?.find(
+      (email) =>
+        email.from.type !== "internal" && !email.from.email.endsWith("@manageco.ie")
+    ) ?? emails?.[0];
+
+  return {
+    name: sender?.from.name ?? "Unknown recipient",
+    email: sender?.from.email ?? "unknown@example.com",
+  };
+}
+
+function deriveActionDrivenStatus(
+  actions: ThreadAction[]
+): ThreadDetail["state"]["status"] {
+  if (actions.some((action) => !action.approved)) return "reviewing";
+  if (actions.some((action) => action.approved)) return "in_progress";
+  return "analyzed";
 }
 
 function overallHealth(extraction: Extraction | null): TrafficLight {
@@ -86,6 +115,10 @@ function buildSentItem(
   const firstEmail = emails?.[0];
   const propertyId =
     emails?.find((email) => email.from.property_id)?.from.property_id ?? undefined;
+  const recipient =
+    action.type === "forward_to_human"
+      ? INTERNAL_SUPPORT_RECIPIENT
+      : getPrimaryExternalSender(emails);
 
   return {
     id: `${threadId}:${action.id}`,
@@ -97,47 +130,14 @@ function buildSentItem(
     sent_at: sentAt,
     subject: firstEmail?.subject ?? "Unknown subject",
     property_name: getPropertyName(propertyId),
-    recipient_name: firstEmail?.from.name ?? "Unknown recipient",
-    recipient_email: firstEmail?.from.email ?? "unknown@example.com",
+    recipient_name: recipient.name,
+    recipient_email: recipient.email,
   };
 }
 
-function actionTypeForProblem(problem: Problem): ActionType {
-  if (problem.status === "red") return "forward_to_human";
-
-  if (problem.status === "orange") {
-    if (problem.requires_info) return "request_info";
-    return "forward_to_human";
-  }
-
+function shouldEscalateToHumanSupport(problem: Problem): boolean {
   const category = problem.category?.toLowerCase() ?? "";
-  if (category === "maintenance" || category === "safety" || category === "pest") {
-    return "contractor_dispatch";
-  }
-  if (category === "legal" || category === "compliance") {
-    return "forward_to_human";
-  }
-
-  return "acknowledge";
-}
-
-function descriptionForAction(type: ActionType, problem: Problem): string {
-  switch (type) {
-    case "request_info":
-      return `Auto: requesting missing info for "${problem.title}"`;
-    case "forward_to_human":
-      return `Auto: forwarded "${problem.title}" to customer service agent`;
-    case "contractor_dispatch":
-      return `Auto: dispatching contractor for "${problem.title}"`;
-    case "acknowledge":
-      return `Auto: acknowledging "${problem.title}"`;
-    case "maintenance_request":
-      return `Auto: maintenance request for "${problem.title}"`;
-    case "escalate":
-      return `Auto: escalating "${problem.title}"`;
-    default:
-      return `Auto: ${type} for "${problem.title}"`;
-  }
+  return problem.status === "red" || category === "legal" || category === "compliance";
 }
 
 async function autoTriggerActions(
@@ -146,56 +146,76 @@ async function autoTriggerActions(
   extraction: Extraction,
   existingActions: ThreadAction[]
 ): Promise<ThreadAction[]> {
-  const newActions: ThreadAction[] = [];
-  const hasRedProblems = extraction.problems.some((problem) => problem.status === "red");
+  const createdActions: ThreadAction[] = [];
+  const createdAt = new Date().toISOString();
+  const actionIdBase = Date.now();
 
-  for (const problem of extraction.problems) {
-    if (problem.status === "red") continue;
-
-    const hasAction = existingActions.some((action) => action.problem_id === problem.id);
-    if (hasAction) continue;
-
-    const type = actionTypeForProblem(problem);
+  const hasCombinedReply = existingActions.some(
+    (action) => action.type === "reply" && !action.problem_id
+  );
+  if (!hasCombinedReply && extraction.problems.length > 0) {
     let draftEmail: string | null = null;
-
-    if (type !== "forward_to_human") {
-      try {
-        draftEmail = await generateDraftEmail(emails, extraction, type, problem);
-      } catch {
-        draftEmail = null;
-      }
+    try {
+      draftEmail = await generateCombinedDraftEmail(emails, extraction, extraction.problems);
+    } catch {
+      draftEmail = null;
     }
 
-    const action: ThreadAction = {
-      id: `action_${Date.now()}_${problem.id}`,
-      type,
-      description: descriptionForAction(type, problem),
-      timestamp: new Date().toISOString(),
+    createdActions.push({
+      id: `action_${actionIdBase}_reply`,
+      type: "reply",
+      description: `Auto: combined response addressing ${extraction.problems.length} issue(s)`,
+      timestamp: createdAt,
       draft_email: draftEmail,
-      approved: !hasRedProblems && problem.status === "green",
+      approved: true,
       auto_triggered: true,
-      problem_id: problem.id,
-    };
-
-    newActions.push(action);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+      problem_id: null,
+    });
   }
 
-  if (newActions.length === 0) return newActions;
+  const escalationProblems = extraction.problems.filter(shouldEscalateToHumanSupport);
+  const hasSupportEscalation = existingActions.some(
+    (action) => action.type === "forward_to_human" && !action.problem_id
+  );
+  if (escalationProblems.length > 0 && !hasSupportEscalation) {
+    let draftEmail: string | null = null;
+    try {
+      draftEmail = await generateDraftEmail(
+        emails,
+        extraction,
+        "forward_to_human",
+        null
+      );
+    } catch {
+      draftEmail = null;
+    }
 
-  const allAutoApproved = newActions.every((action) => action.approved);
+    createdActions.push({
+      id: `action_${actionIdBase}_support`,
+      type: "forward_to_human",
+      description: `Auto: prepared human-support escalation for ${escalationProblems.length} issue(s)`,
+      timestamp: createdAt,
+      draft_email: draftEmail,
+      approved: false,
+      auto_triggered: true,
+      problem_id: null,
+    });
+  }
+
+  if (createdActions.length === 0) return [];
+
   updateThreadState(threadId, (state) => {
-    state.actions.push(...newActions);
-    state.status = allAutoApproved && !hasRedProblems ? "in_progress" : "reviewing";
+    state.actions.push(...createdActions);
+    state.status = deriveActionDrivenStatus(state.actions);
   });
 
-  for (const action of newActions) {
+  for (const action of createdActions) {
     if (action.approved) {
       recordSentItem(buildSentItem(threadId, action, action.timestamp));
     }
   }
 
-  return newActions;
+  return createdActions;
 }
 
 export function handleGetThreads(): Response {
@@ -366,7 +386,12 @@ export async function handleAnalyzeThread(threadId: string): Promise<Response> {
     });
     recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
 
-    const autoActions = await autoTriggerActions(threadId, emails, extraction, []);
+    const autoActions = await autoTriggerActions(
+      threadId,
+      emails,
+      extraction,
+      getThreadState(threadId).actions
+    );
     return json({ success: true, extraction, auto_actions: autoActions.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -393,7 +418,7 @@ export async function handleAnalyzeAll(): Promise<Response> {
         threadState.status = "analyzed";
       });
       recordThreadAnalyzed(buildAnalyzedEvent(threadId, extraction, analyzedAt));
-      await autoTriggerActions(threadId, emails, extraction, []);
+      await autoTriggerActions(threadId, emails, extraction, getThreadState(threadId).actions);
       completed++;
     } catch {
       failed++;
@@ -481,18 +506,20 @@ export async function handleThreadAction(
       : null;
 
   let draftEmail: string | null = null;
-  if (type !== "forward_to_human") {
-    try {
-      draftEmail = await generateDraftEmail(emails, threadState.extraction, type, problem);
-    } catch {
-      draftEmail = null;
-    }
+  try {
+    draftEmail = await generateDraftEmail(emails, threadState.extraction, type, problem);
+  } catch {
+    draftEmail = null;
   }
 
   const action: ThreadAction = {
     id: `action_${Date.now()}`,
     type,
-    description: description ?? `${type.replace(/_/g, " ")} triggered`,
+    description:
+      description ??
+      (type === "forward_to_human"
+        ? "Human support escalation queued"
+        : `${type.replace(/_/g, " ")} triggered`),
     timestamp: new Date().toISOString(),
     draft_email: draftEmail,
     approved: false,
@@ -508,6 +535,7 @@ export async function handleThreadAction(
         threadProblem.status = "orange";
       }
     }
+    state.status = deriveActionDrivenStatus(state.actions);
   });
 
   return json(action);
@@ -527,8 +555,8 @@ export function handleApproveAction(threadId: string, actionId: string): Respons
       approvedAction = action;
     }
 
-    if (approvedAction && (state.status === "reviewing" || state.status === "analyzed")) {
-      state.status = "in_progress";
+    if (approvedAction) {
+      state.status = deriveActionDrivenStatus(state.actions);
     }
   });
 

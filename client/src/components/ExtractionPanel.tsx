@@ -1,35 +1,69 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ChevronDown,
-  Pencil,
-  Check,
-  X,
-  Loader2,
-  Zap,
-  CheckCircle2,
-  Info,
-  ThumbsUp,
   ArrowRight,
   Bot,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Info,
+  Loader2,
+  Pencil,
+  ThumbsUp,
+  X,
+  Zap,
 } from "lucide-react";
+import { StatusBadge, StatusDot } from "@/components/StatusIndicator";
 import { Button } from "@/components/ui/button";
-import { StatusDot, StatusBadge } from "@/components/StatusIndicator";
 import { cn } from "@/lib/utils";
 import type {
-  ThreadDetail,
   ExtractedField,
   Problem,
-  TrafficLight,
   ThreadAction,
+  ThreadDetail,
+  TrafficLight,
 } from "@shared/types";
 import {
   useAnalyzeThread,
-  useUpdateThread,
   useApproveAction,
+  useTriggerAction,
+  useUpdateThread,
 } from "@/hooks/useThreads";
 
-// ── Editable field row ───────────────────────────────────────────────
+function getHealth(extraction: ThreadDetail["state"]["extraction"]): TrafficLight {
+  if (!extraction) return "red";
+
+  const states = [
+    extraction.sender_name.status,
+    extraction.sender_type.status,
+    extraction.urgency.status,
+    extraction.summary.status,
+    extraction.property.status,
+    ...extraction.problems.map((problem) => problem.status),
+  ];
+
+  if (states.includes("red")) return "red";
+  if (states.includes("orange")) return "orange";
+  return "green";
+}
+
+function SectionTitle({
+  title,
+  right,
+}: {
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2 pb-1">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {title}
+      </p>
+      <div className="ml-auto">{right}</div>
+    </div>
+  );
+}
+
 function FieldRow<T extends string>({
   label,
   field,
@@ -61,6 +95,7 @@ function FieldRow<T extends string>({
     onSave(editValue, "green");
     setEditing(false);
   }
+
   function cancel() {
     setEditValue(field.value);
     setEditing(false);
@@ -72,59 +107,91 @@ function FieldRow<T extends string>({
       data-field={fieldKey}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 py-1.5 px-2 -mx-2 rounded cursor-pointer transition-colors duration-150",
-        isActive ? "bg-violet-50" : "hover:bg-muted/40",
+        "rounded-[16px] border px-3 py-3 transition-all",
+        isActive
+          ? "border-primary/30 bg-primary/5 shadow-[0_12px_22px_rgba(62,89,176,0.08)]"
+          : "border-border/70 bg-white/70 hover:bg-white"
       )}
     >
-      <StatusDot status={field.status} size="xs" />
-      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider w-16 shrink-0">
-        {label}
-      </span>
-      <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <StatusDot status={field.status} size="xs" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {label}
+          </p>
+        </div>
+        <span className="rounded-full border border-border/70 bg-background/70 px-2 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+          {Math.round(field.confidence * 100)}%
+        </span>
+      </div>
+
+      <div className="mt-3">
         {editing ? (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             {options ? (
               <select
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value as T)}
-                className="text-[12px] border border-border rounded px-1.5 py-0.5 flex-1 bg-white outline-none"
+                onClick={(event) => event.stopPropagation()}
+                onChange={(event) => setEditValue(event.target.value as T)}
+                className="h-9 flex-1 rounded-[12px] border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
               >
-                {options.map((o) => (
-                  <option key={o} value={o}>{o}</option>
+                {options.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
               </select>
             ) : (
               <input
                 type="text"
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value as T)}
-                className="text-[12px] border border-border rounded px-1.5 py-0.5 flex-1 bg-white outline-none"
                 autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") save();
-                  if (e.key === "Escape") cancel();
+                onClick={(event) => event.stopPropagation()}
+                onChange={(event) => setEditValue(event.target.value as T)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") save();
+                  if (event.key === "Escape") cancel();
                 }}
+                className="h-9 flex-1 rounded-[12px] border border-border/80 bg-white px-3 text-sm outline-none ring-offset-background focus-visible:border-primary/40 focus-visible:ring-4 focus-visible:ring-primary/10"
               />
             )}
-            <button onClick={(e) => { e.stopPropagation(); save(); }} className="p-0.5 hover:bg-emerald-50 rounded">
-              <Check className="size-3 text-emerald-600" />
-            </button>
-            <button onClick={(e) => { e.stopPropagation(); cancel(); }} className="p-0.5 hover:bg-red-50 rounded">
-              <X className="size-3 text-red-500" />
-            </button>
+
+            <Button
+              size="icon-xs"
+              variant="outline"
+              onClick={(event) => {
+                event.stopPropagation();
+                save();
+              }}
+            >
+              <Check className="size-3" />
+            </Button>
+            <Button
+              size="icon-xs"
+              variant="outline"
+              onClick={(event) => {
+                event.stopPropagation();
+                cancel();
+              }}
+            >
+              <X className="size-3" />
+            </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-1 group/edit">
-            <span className="text-[12px] font-medium truncate">{field.value}</span>
-            <span className="text-[9px] text-muted-foreground tabular-nums">
-              {Math.round(field.confidence * 100)}%
-            </span>
-            <button
-              onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-              className="p-0.5 rounded opacity-0 group-hover/edit:opacity-100 transition-opacity"
+          <div className="flex items-start justify-between gap-2">
+            <p className="min-w-0 text-sm font-semibold leading-relaxed text-foreground">
+              {field.value}
+            </p>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              onClick={(event) => {
+                event.stopPropagation();
+                setEditing(true);
+              }}
             >
-              <Pencil className="size-2.5 text-muted-foreground" />
-            </button>
+              <Pencil className="size-3" />
+            </Button>
           </div>
         )}
       </div>
@@ -132,7 +199,6 @@ function FieldRow<T extends string>({
   );
 }
 
-// ── Inline action badge (shows what auto-action was taken) ───────────
 function ActionBadge({
   action,
   threadId,
@@ -144,60 +210,74 @@ function ActionBadge({
   const [showDraft, setShowDraft] = useState(false);
 
   const typeLabels: Record<string, string> = {
-    request_info: "Requesting info",
-    forward_to_human: "Forward to CS agent",
-    contractor_dispatch: "Dispatching contractor",
-    acknowledge: "Acknowledging",
+    request_info: "Request info",
+    forward_to_human: "Escalate to support",
+    contractor_dispatch: "Dispatch contractor",
+    acknowledge: "Acknowledge",
     maintenance_request: "Maintenance request",
-    escalate: "Escalating",
-    reply: "Replying",
+    escalate: "Escalate",
+    reply: "Reply",
   };
 
-  const typeColors: Record<string, string> = {
-    request_info: "text-amber-700 bg-amber-50 border-amber-200",
-    forward_to_human: "text-violet-700 bg-violet-50 border-violet-200",
-    contractor_dispatch: "text-blue-700 bg-blue-50 border-blue-200",
-    acknowledge: "text-emerald-700 bg-emerald-50 border-emerald-200",
-    maintenance_request: "text-blue-700 bg-blue-50 border-blue-200",
-    escalate: "text-red-700 bg-red-50 border-red-200",
-    reply: "text-gray-700 bg-gray-50 border-gray-200",
+  const toneClasses: Record<string, string> = {
+    request_info: "border-amber-200 bg-amber-50/80 text-amber-800",
+    forward_to_human: "border-violet-200 bg-violet-50/80 text-violet-800",
+    contractor_dispatch: "border-sky-200 bg-sky-50/80 text-sky-800",
+    acknowledge: "border-emerald-200 bg-emerald-50/80 text-emerald-800",
+    maintenance_request: "border-sky-200 bg-sky-50/80 text-sky-800",
+    escalate: "border-rose-200 bg-rose-50/80 text-rose-800",
+    reply: "border-slate-200 bg-slate-50/80 text-slate-800",
   };
 
   if (action.approved) {
     return (
-      <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium mt-1">
-        <CheckCircle2 className="size-3" />
-        <span>{typeLabels[action.type] ?? action.type} — sent</span>
+      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+        <CheckCircle2 className="size-3.5" />
+        {(typeLabels[action.type] ?? action.type).replace(/\b\w/g, (char) => char.toUpperCase())} sent
       </div>
     );
   }
 
   return (
-    <div className={cn("mt-1.5 rounded-sm border p-2 space-y-1.5", typeColors[action.type] ?? "text-gray-700 bg-gray-50 border-gray-200")}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 text-[10px] font-medium">
-          {action.auto_triggered && <Bot className="size-3 opacity-60" />}
-          <span>{typeLabels[action.type] ?? action.type}</span>
+    <div
+      className={cn(
+        "mt-3 rounded-[16px] border px-3 py-3 shadow-[0_8px_16px_rgba(15,23,42,0.04)]",
+        toneClasses[action.type] ?? "border-slate-200 bg-slate-50/80 text-slate-800"
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {action.auto_triggered && <Bot className="size-3.5 opacity-70" />}
+          <p className="text-[12px] font-semibold tracking-[-0.01em]">
+            {typeLabels[action.type] ?? action.type}
+          </p>
         </div>
-        <span className="text-[9px] opacity-60 font-medium">Pending approval</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-70">
+          Pending
+        </span>
       </div>
 
       {action.draft_email && (
         <>
           <button
-            onClick={(e) => { e.stopPropagation(); setShowDraft(!showDraft); }}
-            className="text-[10px] font-medium hover:underline flex items-center gap-1 opacity-70"
+            onClick={(event) => {
+              event.stopPropagation();
+              setShowDraft((value) => !value);
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-semibold opacity-80 transition hover:opacity-100"
           >
             {showDraft ? "Hide" : "Preview"} draft
-            <ChevronDown className={cn("size-2.5 transition-transform", showDraft && "rotate-180")} />
+            <ChevronDown className={cn("size-3 transition-transform", showDraft && "rotate-180")} />
           </button>
 
-          <div className={cn(
-            "grid transition-all duration-200",
-            showDraft ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-          )}>
+          <div
+            className={cn(
+              "grid transition-all duration-200",
+              showDraft ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+            )}
+          >
             <div className="overflow-hidden">
-              <div className="text-[11px] opacity-80 whitespace-pre-wrap leading-relaxed border-l-2 border-current/20 pl-2.5 py-1">
+              <div className="mt-3 rounded-[14px] border border-current/10 bg-white/50 px-3 py-3 text-[12px] leading-6">
                 {action.draft_email}
               </div>
             </div>
@@ -207,17 +287,17 @@ function ActionBadge({
 
       <Button
         size="sm"
-        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-7 font-medium shadow-sm"
-        onClick={(e) => {
-          e.stopPropagation();
+        className="mt-3 w-full"
+        onClick={(event) => {
+          event.stopPropagation();
           approveAction.mutate({ threadId, actionId: action.id });
         }}
         disabled={approveAction.isPending}
       >
         {approveAction.isPending ? (
-          <Loader2 className="size-3.5 animate-spin mr-1.5" />
+          <Loader2 className="size-4 animate-spin" />
         ) : (
-          <ThumbsUp className="size-3 mr-1.5" />
+          <ThumbsUp className="size-4" />
         )}
         Approve & Send
       </Button>
@@ -225,7 +305,6 @@ function ActionBadge({
   );
 }
 
-// ── Problem card ─────────────────────────────────────────────────────
 function ProblemCard({
   problem,
   threadId,
@@ -251,18 +330,15 @@ function ProblemCard({
     }
   }, [isActive]);
 
-  // Auto-expand if there's a pending action
   useEffect(() => {
-    if (action && !action.approved) {
-      setExpanded(true);
-    }
+    if (action && !action.approved) setExpanded(true);
   }, [action]);
 
-  const statusBorder: Record<TrafficLight, string> = {
-    red: "border-l-red-500",
-    orange: "border-l-amber-400",
-    green: "border-l-emerald-500",
-  };
+  const tone = {
+    red: "border-rose-200/80 bg-rose-50/60",
+    orange: "border-amber-200/80 bg-amber-50/60",
+    green: "border-emerald-200/80 bg-emerald-50/55",
+  }[problem.status];
 
   return (
     <div
@@ -270,72 +346,98 @@ function ProblemCard({
       data-field={problem.id}
       onClick={onFieldClick}
       className={cn(
-        "border border-border/60 border-l-2 rounded-sm transition-colors duration-150 cursor-pointer",
-        statusBorder[problem.status],
-        isActive && "bg-violet-50/50",
+        "rounded-[18px] border px-3 py-3 transition-all",
+        tone,
+        isActive && "shadow-[0_14px_24px_rgba(62,89,176,0.08)] ring-1 ring-primary/10"
       )}
     >
       <button
-        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-        className="w-full flex items-center gap-2 px-2.5 py-2 text-left"
+        onClick={(event) => {
+          event.stopPropagation();
+          setExpanded((value) => !value);
+        }}
+        className="flex w-full items-start gap-2 text-left"
       >
-        <StatusDot status={problem.status} size="xs" />
-        <span className="text-[12px] font-medium flex-1 truncate">{problem.title}</span>
-        <span className="text-[10px] text-muted-foreground capitalize">{problem.category}</span>
-        <ChevronDown className={cn("size-3 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+        <div className="pt-1">
+          <StatusDot status={problem.status} size="xs" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold tracking-[-0.01em]">{problem.title}</p>
+            <span className="rounded-full border border-white/70 bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {problem.category}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {problem.status === "red"
+              ? "Blocked"
+              : problem.status === "orange"
+                ? "Needs review"
+                : "Clear to continue"}
+          </p>
+        </div>
+        <ChevronDown className={cn("mt-0.5 size-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
       </button>
 
-      <div className={cn(
-        "grid transition-all duration-200",
-        expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-      )}>
+      <div
+        className={cn(
+          "grid transition-all duration-200",
+          expanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        )}
+      >
         <div className="overflow-hidden">
-          <div className="px-2.5 pb-2.5 space-y-1.5 border-t border-border/40 pt-2">
-            <p className="text-[11px] text-foreground/70 leading-relaxed">{problem.description}</p>
+          <div className="mt-3 border-t border-current/10 pt-3">
+            <p className="text-[13px] leading-6 text-foreground/80">{problem.description}</p>
 
             {problem.requires_info && (
-              <div className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50/60 rounded-sm px-2 py-1.5 border border-amber-100">
-                <Info className="size-3 mt-0.5 shrink-0" />
-                <span><strong>Missing:</strong> {problem.requires_info}</span>
+              <div className="mt-3 flex items-start gap-2 rounded-[14px] border border-amber-200 bg-amber-50/80 px-3 py-3 text-[12px] leading-6 text-amber-900">
+                <Info className="mt-0.5 size-3.5 shrink-0" />
+                <span>
+                  <strong>Missing info:</strong> {problem.requires_info}
+                </span>
               </div>
             )}
 
             {problem.suggested_action && (
-              <p className="text-[11px] text-muted-foreground">
-                → {problem.suggested_action}
+              <p className="mt-3 text-[12px] font-medium text-muted-foreground">
+                Suggested: {problem.suggested_action}
               </p>
             )}
 
-            {/* Red = needs human judgment */}
             {problem.status === "red" && (
-              <div className="space-y-1.5 pt-0.5">
-                <div className="flex items-center gap-1 text-[10px] text-red-600 font-medium">
-                  <AlertTriangle className="size-3" />
-                  Needs human judgment
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Button size="sm" variant="outline" className="text-[11px] h-7 px-2.5 font-medium border-amber-300 text-amber-700 hover:bg-amber-50"
-                    onClick={(e) => { e.stopPropagation(); onStatusChange(problem.id, "orange"); }}>
-                    <ArrowRight className="size-3 mr-1" /> Mark orange
-                  </Button>
-                  <Button size="sm" variant="outline" className="text-[11px] h-7 px-2.5 font-medium border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                    onClick={(e) => { e.stopPropagation(); onStatusChange(problem.id, "green"); }}>
-                    <Check className="size-3 mr-1" /> Mark green
-                  </Button>
-                </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onStatusChange(problem.id, "orange");
+                  }}
+                >
+                  <ArrowRight className="size-3.5" />
+                  Mark orange
+                </Button>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onStatusChange(problem.id, "green");
+                  }}
+                >
+                  <Check className="size-3.5" />
+                  Mark green
+                </Button>
               </div>
             )}
 
-            {/* Show the auto-triggered action for this problem */}
-            {action && (
-              <ActionBadge action={action} threadId={threadId} />
-            )}
+            {action && <ActionBadge action={action} threadId={threadId} />}
 
-            {/* Green with no action yet — just show complete */}
             {problem.status === "green" && !action && (
-              <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-medium pt-0.5">
-                <CheckCircle2 className="size-3" /> Complete
-              </span>
+              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                <CheckCircle2 className="size-3.5" />
+                Complete
+              </div>
             )}
           </div>
         </div>
@@ -344,7 +446,6 @@ function ProblemCard({
   );
 }
 
-// ── Main Extraction Panel ────────────────────────────────────────────
 export function ExtractionPanel({
   thread,
   activeField,
@@ -355,10 +456,10 @@ export function ExtractionPanel({
   onFieldClick: (field: string) => void;
 }) {
   const analyzeThread = useAnalyzeThread();
+  const triggerAction = useTriggerAction();
   const updateThread = useUpdateThread();
   const extraction = thread.state.extraction;
-
-  const hasRedItems = extraction?.problems.some((p) => p.status === "red") ?? false;
+  const hasRedItems = extraction?.problems.some((problem) => problem.status === "red") ?? false;
 
   function handleFieldUpdate(field: string, value: string, status: TrafficLight) {
     if (!extraction) return;
@@ -374,9 +475,10 @@ export function ExtractionPanel({
 
   function handleProblemStatusChange(problemId: string, status: TrafficLight) {
     if (!extraction) return;
-    const updatedProblems = extraction.problems.map((p) =>
-      p.id === problemId ? { ...p, status } : p,
+    const updatedProblems = extraction.problems.map((problem) =>
+      problem.id === problemId ? { ...problem, status } : problem
     );
+
     updateThread.mutate({
       id: thread.thread_id,
       data: {
@@ -387,225 +489,380 @@ export function ExtractionPanel({
 
   const problemStats = extraction
     ? {
-        red: extraction.problems.filter((p) => p.status === "red").length,
-        orange: extraction.problems.filter((p) => p.status === "orange").length,
-        green: extraction.problems.filter((p) => p.status === "green").length,
+        red: extraction.problems.filter((problem) => problem.status === "red").length,
+        orange: extraction.problems.filter((problem) => problem.status === "orange").length,
+        green: extraction.problems.filter((problem) => problem.status === "green").length,
       }
     : null;
 
-  // Map actions to their problems
   const actionsByProblem = new Map<string, ThreadAction>();
   for (const action of thread.state.actions) {
-    if (action.problem_id) {
-      actionsByProblem.set(action.problem_id, action);
-    }
+    if (action.problem_id) actionsByProblem.set(action.problem_id, action);
   }
 
-  // Unlinked actions (no problem_id — manual or legacy)
   const unlinkedPendingActions = thread.state.actions.filter(
-    (a) => !a.approved && !a.problem_id
+    (action) => !action.approved && !action.problem_id
   );
-
-  // Stats for bottom bar
+  const supportEscalation = thread.state.actions.find(
+    (action) => action.type === "forward_to_human" && !action.problem_id
+  );
   const totalActions = thread.state.actions.length;
-  const approvedActions = thread.state.actions.filter((a) => a.approved).length;
+  const approvedActions = thread.state.actions.filter((action) => action.approved).length;
   const pendingActions = totalActions - approvedActions;
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="px-3 py-2.5 border-b border-border">
-        <div className="flex items-center justify-between">
-          <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Extraction
-          </h3>
-          {extraction && (
-            <StatusBadge
-              status={hasRedItems ? "red" : extraction.problems.some((p) => p.status === "orange") ? "orange" : "green"}
-            />
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-0.5">{thread.property_name}</p>
+    <div className="app-surface flex h-full min-h-0 flex-col">
+      <div className="border-b border-border/70 px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <span className="app-kicker">Extraction</span>
+            <p className="mt-3 text-sm font-semibold tracking-[-0.01em]">{thread.property_name}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Structured fields, review state, and triggered actions.
+            </p>
+          </div>
 
-        {/* Progress bar */}
-        {problemStats && extraction!.problems.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-2">
-            <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden flex">
+          <StatusBadge status={getHealth(extraction)} />
+        </div>
+
+        {problemStats && extraction && extraction.problems.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="flex h-2 overflow-hidden rounded-full bg-slate-100">
               {problemStats.green > 0 && (
-                <div className="h-full bg-emerald-500 transition-all duration-300"
-                  style={{ width: `${(problemStats.green / extraction!.problems.length) * 100}%` }} />
+                <div
+                  className="h-full bg-emerald-500"
+                  style={{ width: `${(problemStats.green / extraction.problems.length) * 100}%` }}
+                />
               )}
               {problemStats.orange > 0 && (
-                <div className="h-full bg-amber-400 transition-all duration-300"
-                  style={{ width: `${(problemStats.orange / extraction!.problems.length) * 100}%` }} />
+                <div
+                  className="h-full bg-amber-500"
+                  style={{ width: `${(problemStats.orange / extraction.problems.length) * 100}%` }}
+                />
               )}
               {problemStats.red > 0 && (
-                <div className="h-full bg-red-500 transition-all duration-300"
-                  style={{ width: `${(problemStats.red / extraction!.problems.length) * 100}%` }} />
+                <div
+                  className="h-full bg-rose-500"
+                  style={{ width: `${(problemStats.red / extraction.problems.length) * 100}%` }}
+                />
               )}
             </div>
-            <span className="text-[9px] text-muted-foreground tabular-nums">
-              {problemStats.green}/{extraction!.problems.length}
-            </span>
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+              <CountChip color="emerald" value={problemStats.green} />
+              <CountChip color="amber" value={problemStats.orange} />
+              <CountChip color="rose" value={problemStats.red} />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="app-scroll flex-1 overflow-y-auto px-4 py-4">
         {!extraction ? (
-          <div className="flex flex-col items-center justify-center h-64 px-6">
-            <Zap className="size-8 text-muted-foreground/40 mb-3" />
-            <p className="text-[12px] font-medium text-foreground mb-1">Ready to analyse</p>
-            <p className="text-[10px] text-muted-foreground text-center mb-4 leading-relaxed">
-              Extract sender info, urgency, problems and auto-trigger actions.
+          <div className="flex h-full flex-col items-center justify-center rounded-[20px] border border-dashed border-border/80 bg-background/50 px-6 text-center">
+            <div className="flex size-12 items-center justify-center rounded-[16px] bg-slate-100 text-slate-700">
+              <Zap className="size-5" />
+            </div>
+            <p className="mt-4 text-[15px] font-semibold tracking-[-0.01em]">Ready to analyze</p>
+            <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">
+              Extract sender, urgency, summary, and problem actions in one pass.
             </p>
             <Button
               size="sm"
+              className="mt-4"
               onClick={() => analyzeThread.mutate(thread.thread_id)}
               disabled={analyzeThread.isPending}
             >
               {analyzeThread.isPending ? (
-                <Loader2 className="size-3 animate-spin mr-1" />
+                <Loader2 className="size-4 animate-spin" />
               ) : (
-                <Zap className="size-3 mr-1" />
+                <Zap className="size-4" />
               )}
-              {analyzeThread.isPending ? "Analysing…" : "Analyse Thread"}
+              {analyzeThread.isPending ? "Analyzing..." : "Analyze thread"}
             </Button>
             {analyzeThread.isError && (
-              <p className="text-[10px] text-red-600 mt-2">{analyzeThread.error.message}</p>
+              <p className="mt-3 text-xs text-rose-600">{analyzeThread.error.message}</p>
             )}
           </div>
         ) : (
-          <div className="px-3 py-2 space-y-1.5">
-            {/* Fields */}
-            <FieldRow label="Name" field={extraction.sender_name} fieldKey="sender_name"
-              isActive={activeField === "sender_name"} onClick={() => onFieldClick("sender_name")}
-              onSave={(v, s) => handleFieldUpdate("sender_name", v, s)} />
-            <FieldRow label="Type" field={extraction.sender_type} fieldKey="sender_type"
-              isActive={activeField === "sender_type"} onClick={() => onFieldClick("sender_type")}
-              options={["tenant", "landlord", "contractor", "prospect", "internal", "legal", "system", "external", "unknown"]}
-              onSave={(v, s) => handleFieldUpdate("sender_type", v, s)} />
+          <div className="space-y-4">
+            <section className="space-y-2">
+              <SectionTitle title="Identity" />
+              <FieldRow
+                label="Name"
+                field={extraction.sender_name}
+                fieldKey="sender_name"
+                isActive={activeField === "sender_name"}
+                onClick={() => onFieldClick("sender_name")}
+                onSave={(value, status) => handleFieldUpdate("sender_name", value, status)}
+              />
+              <FieldRow
+                label="Type"
+                field={extraction.sender_type}
+                fieldKey="sender_type"
+                isActive={activeField === "sender_type"}
+                onClick={() => onFieldClick("sender_type")}
+                options={[
+                  "tenant",
+                  "landlord",
+                  "contractor",
+                  "prospect",
+                  "internal",
+                  "legal",
+                  "system",
+                  "external",
+                  "unknown",
+                ]}
+                onSave={(value, status) => handleFieldUpdate("sender_type", value, status)}
+              />
+            </section>
 
-            <div className="border-t border-border/40 my-1" />
+            <section className="space-y-2">
+              <SectionTitle title="Classification" />
+              <FieldRow
+                label="Urgency"
+                field={extraction.urgency}
+                fieldKey="urgency"
+                isActive={activeField === "urgency"}
+                onClick={() => onFieldClick("urgency")}
+                options={["critical", "high", "medium", "low"]}
+                onSave={(value, status) => handleFieldUpdate("urgency", value, status)}
+              />
+              <FieldRow
+                label="Property"
+                field={extraction.property}
+                fieldKey="property"
+                isActive={activeField === "property"}
+                onClick={() => onFieldClick("property")}
+                onSave={(value, status) => handleFieldUpdate("property", value, status)}
+              />
+              <FieldRow
+                label="Summary"
+                field={extraction.summary}
+                fieldKey="summary"
+                isActive={activeField === "summary"}
+                onClick={() => onFieldClick("summary")}
+                onSave={(value, status) => handleFieldUpdate("summary", value, status)}
+              />
+            </section>
 
-            <FieldRow label="Urgency" field={extraction.urgency} fieldKey="urgency"
-              isActive={activeField === "urgency"} onClick={() => onFieldClick("urgency")}
-              options={["critical", "high", "medium", "low"]}
-              onSave={(v, s) => handleFieldUpdate("urgency", v, s)} />
-            <FieldRow label="Property" field={extraction.property} fieldKey="property"
-              isActive={activeField === "property"} onClick={() => onFieldClick("property")}
-              onSave={(v, s) => handleFieldUpdate("property", v, s)} />
-            <FieldRow label="Summary" field={extraction.summary} fieldKey="summary"
-              isActive={activeField === "summary"} onClick={() => onFieldClick("summary")}
-              onSave={(v, s) => handleFieldUpdate("summary", v, s)} />
+            <section className="space-y-2">
+              <SectionTitle
+                title="Problems"
+                right={
+                  problemStats && (
+                    <div className="flex items-center gap-1">
+                      <CountChip color="rose" value={problemStats.red} />
+                      <CountChip color="amber" value={problemStats.orange} />
+                      <CountChip color="emerald" value={problemStats.green} />
+                    </div>
+                  )
+                }
+              />
+              <div className="space-y-2">
+                {extraction.problems.map((problem) => (
+                  <ProblemCard
+                    key={problem.id}
+                    problem={problem}
+                    threadId={thread.thread_id}
+                    isActive={activeField === problem.id}
+                    action={actionsByProblem.get(problem.id)}
+                    onStatusChange={handleProblemStatusChange}
+                    onFieldClick={() => onFieldClick(problem.id)}
+                  />
+                ))}
+              </div>
+            </section>
 
-            <div className="border-t border-border/40 my-1" />
-
-            {/* Problems */}
-            <div className="flex items-center gap-1.5 py-1">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                Problems
-              </span>
-              {problemStats && (
-                <div className="flex items-center gap-0.5 ml-auto">
-                  {problemStats.red > 0 && (
-                    <span className="text-[9px] bg-red-50 text-red-600 border border-red-200 rounded px-1 py-px font-medium tabular-nums">{problemStats.red}</span>
-                  )}
-                  {problemStats.orange > 0 && (
-                    <span className="text-[9px] bg-amber-50 text-amber-600 border border-amber-200 rounded px-1 py-px font-medium tabular-nums">{problemStats.orange}</span>
-                  )}
-                  {problemStats.green > 0 && (
-                    <span className="text-[9px] bg-emerald-50 text-emerald-600 border border-emerald-200 rounded px-1 py-px font-medium tabular-nums">{problemStats.green}</span>
-                  )}
+            <section className="space-y-2">
+              <SectionTitle
+                title="Human Support"
+                right={
+                  supportEscalation ? (
+                    <span
+                      className={cn(
+                        "rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                        supportEscalation.approved
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-violet-200 bg-violet-50 text-violet-700"
+                      )}
+                    >
+                      {supportEscalation.approved ? "Sent" : "Queued"}
+                    </span>
+                  ) : undefined
+                }
+              />
+              <div className="rounded-[18px] border border-border/70 bg-background/55 px-3 py-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-[14px] bg-violet-50 text-violet-700">
+                    <AlertTriangle className="size-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold tracking-[-0.01em]">
+                      Optional internal escalation
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Send a separate internal handoff to human support without blocking the AI
+                      reply to the customer.
+                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={supportEscalation ? "secondary" : "outline"}
+                        onClick={() =>
+                          triggerAction.mutate({
+                            threadId: thread.thread_id,
+                            type: "forward_to_human",
+                            description: "Manual support escalation alongside AI reply",
+                          })
+                        }
+                        disabled={!!supportEscalation || triggerAction.isPending}
+                      >
+                        {triggerAction.isPending ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <ArrowRight className="size-4" />
+                        )}
+                        {supportEscalation
+                          ? supportEscalation.approved
+                            ? "Support escalation sent"
+                            : "Support escalation queued"
+                          : "Escalate to human support"}
+                      </Button>
+                      {hasRedItems && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Recommended when a problem still needs human judgment.
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              {extraction.problems.map((problem) => (
-                <ProblemCard
-                  key={problem.id}
-                  problem={problem}
-                  threadId={thread.thread_id}
-                  isActive={activeField === problem.id}
-                  action={actionsByProblem.get(problem.id)}
-                  onStatusChange={handleProblemStatusChange}
-                  onFieldClick={() => onFieldClick(problem.id)}
-                />
-              ))}
-            </div>
+              </div>
+            </section>
 
-            {/* Unlinked pending actions (legacy/manual) */}
             {unlinkedPendingActions.length > 0 && (
-              <>
-                <div className="border-t border-border/40 my-1" />
-                <div className="flex items-center gap-1.5 py-1">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    Other Actions
-                  </span>
-                </div>
-                <div className="space-y-1.5">
+              <section className="space-y-2">
+                <SectionTitle title="Other Actions" />
+                <div className="space-y-2">
                   {unlinkedPendingActions.map((action) => (
                     <ActionBadge key={action.id} action={action} threadId={thread.thread_id} />
                   ))}
                 </div>
-              </>
+              </section>
             )}
           </div>
         )}
       </div>
 
-      {/* Bottom bar — status + progress */}
       {extraction && (
-        <div className="px-3 py-2 border-t border-border">
+        <div className="border-t border-border/70 px-4 py-4">
           {thread.state.status === "resolved" ? (
-            <div className="flex items-center justify-center gap-1.5 text-emerald-600 text-[11px] font-medium py-0.5">
-              <CheckCircle2 className="size-3.5" />
-              Resolved — all actions approved
-            </div>
+            <BottomState
+              icon={CheckCircle2}
+              tone="emerald"
+              title="Resolved"
+              text="All actions are approved and the thread is ready to close."
+            />
           ) : thread.state.status === "in_progress" ? (
-            <div className="flex items-center justify-center gap-1.5 text-cyan-600 text-[11px] font-medium py-0.5">
-              <Loader2 className="size-3.5 animate-spin" />
-              In progress — responses sent
-            </div>
+            <BottomState
+              icon={Loader2}
+              tone="violet"
+              title="In progress"
+              text="Approved responses are being processed."
+              spinning
+            />
           ) : totalActions > 0 ? (
-            <div className="space-y-1.5">
-              {/* Action progress */}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                <span>
                   {approvedActions}/{totalActions} actions approved
                 </span>
+                {pendingActions > 0 && <span>{pendingActions} awaiting approval</span>}
                 {hasRedItems && (
-                  <span className="text-[10px] text-red-600 font-medium flex items-center gap-1">
-                    <AlertTriangle className="size-3" />
-                    {problemStats?.red} blocked
+                  <span className="inline-flex items-center gap-1 text-rose-600">
+                    <AlertTriangle className="size-3.5" />
+                    {problemStats?.red} need judgment
                   </span>
                 )}
               </div>
-              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-300 rounded-full"
+                  className="h-full rounded-full bg-primary transition-all duration-300"
                   style={{ width: `${totalActions > 0 ? (approvedActions / totalActions) * 100 : 0}%` }}
                 />
               </div>
-              {pendingActions > 0 && !hasRedItems && (
-                <p className="text-[9px] text-muted-foreground text-center">
-                  Approve remaining actions to auto-resolve
-                </p>
-              )}
-              {hasRedItems && (
-                <p className="text-[9px] text-red-600 text-center">
-                  Fix red items to unlock auto-actions
-                </p>
-              )}
+              <p className="text-center text-[11px] text-muted-foreground">
+                {hasRedItems
+                  ? pendingActions > 0
+                    ? "AI replies can continue while support escalations stay optional."
+                    : "Some items still need human judgment, but the rest of the workflow can continue."
+                  : pendingActions > 0
+                    ? "Approve remaining actions to move this thread forward."
+                    : "No pending approvals."}
+              </p>
             </div>
           ) : (
-            <p className="text-[10px] text-muted-foreground text-center py-0.5">
-              No actions triggered yet
+            <p className="text-center text-[11px] text-muted-foreground">
+              No actions triggered yet.
             </p>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function CountChip({
+  color,
+  value,
+}: {
+  color: "emerald" | "amber" | "rose";
+  value: number;
+}) {
+  if (value === 0) return null;
+
+  const classes =
+    color === "emerald"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : color === "amber"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-rose-200 bg-rose-50 text-rose-700";
+
+  return (
+    <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-semibold", classes)}>
+      {value}
+    </span>
+  );
+}
+
+function BottomState({
+  icon: Icon,
+  tone,
+  title,
+  text,
+  spinning = false,
+}: {
+  icon: typeof CheckCircle2;
+  tone: "emerald" | "violet";
+  title: string;
+  text: string;
+  spinning?: boolean;
+}) {
+  const classes =
+    tone === "emerald"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : "border-violet-200 bg-violet-50 text-violet-700";
+
+  return (
+    <div className={cn("rounded-[16px] border px-3.5 py-3", classes)}>
+      <div className="flex items-start gap-3">
+        <div className="flex size-9 items-center justify-center rounded-[12px] bg-white/60">
+          <Icon className={cn("size-4", spinning && "animate-spin")} />
+        </div>
+        <div>
+          <p className="text-sm font-semibold tracking-[-0.01em]">{title}</p>
+          <p className="mt-1 text-xs leading-relaxed opacity-80">{text}</p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,12 +4,12 @@ import { cn } from "@/lib/utils";
 const colors: Record<TrafficLight, string> = {
   green: "bg-emerald-500",
   orange: "bg-amber-500",
-  red: "bg-red-500",
+  red: "bg-rose-500",
 };
 
 const labels: Record<TrafficLight, string> = {
-  green: "Auto-dispatch",
-  orange: "Auto-email",
+  green: "Clear",
+  orange: "Review",
   red: "Blocked",
 };
 
@@ -28,7 +28,7 @@ export function StatusDot({
     <span
       title={labels[status]}
       className={cn(
-        "inline-block shrink-0 rounded-full",
+        "inline-block shrink-0 rounded-full ring-2 ring-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.65)]",
         colors[status],
         sizeClass,
         className,
@@ -45,14 +45,14 @@ export function StatusBadge({
   className?: string;
 }) {
   const bg: Record<TrafficLight, string> = {
-    green: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    orange: "bg-amber-50 text-amber-700 border-amber-200",
-    red: "bg-red-50 text-red-700 border-red-200",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
+    orange: "bg-amber-50 text-amber-700 border-amber-200/80",
+    red: "bg-rose-50 text-rose-700 border-rose-200/80",
   };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border rounded px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase",
         bg[status],
         className,
       )}
